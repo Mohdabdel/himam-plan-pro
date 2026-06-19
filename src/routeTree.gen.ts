@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsNewRouteImport } from './routes/students.new'
 import { Route as StudentsIdIepRouteImport } from './routes/students.$id.iep'
+import { Route as StudentsIdFrameworkRouteImport } from './routes/students.$id.framework'
 import { Route as StudentsIdCoverageRouteImport } from './routes/students.$id.coverage'
 import { Route as StudentsIdAssessmentRouteImport } from './routes/students.$id.assessment'
 
@@ -36,6 +37,11 @@ const StudentsIdIepRoute = StudentsIdIepRouteImport.update({
   path: '/students/$id/iep',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentsIdFrameworkRoute = StudentsIdFrameworkRouteImport.update({
+  id: '/students/$id/framework',
+  path: '/students/$id/framework',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentsIdCoverageRoute = StudentsIdCoverageRouteImport.update({
   id: '/students/$id/coverage',
   path: '/students/$id/coverage',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRoute
   '/students/$id/coverage': typeof StudentsIdCoverageRoute
+  '/students/$id/framework': typeof StudentsIdFrameworkRoute
   '/students/$id/iep': typeof StudentsIdIepRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRoute
   '/students/$id/coverage': typeof StudentsIdCoverageRoute
+  '/students/$id/framework': typeof StudentsIdFrameworkRoute
   '/students/$id/iep': typeof StudentsIdIepRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRoute
   '/students/$id/coverage': typeof StudentsIdCoverageRoute
+  '/students/$id/framework': typeof StudentsIdFrameworkRoute
   '/students/$id/iep': typeof StudentsIdIepRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/students/new'
     | '/students/$id/assessment'
     | '/students/$id/coverage'
+    | '/students/$id/framework'
     | '/students/$id/iep'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/students/new'
     | '/students/$id/assessment'
     | '/students/$id/coverage'
+    | '/students/$id/framework'
     | '/students/$id/iep'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/students/new'
     | '/students/$id/assessment'
     | '/students/$id/coverage'
+    | '/students/$id/framework'
     | '/students/$id/iep'
   fileRoutesById: FileRoutesById
 }
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   StudentsNewRoute: typeof StudentsNewRoute
   StudentsIdAssessmentRoute: typeof StudentsIdAssessmentRoute
   StudentsIdCoverageRoute: typeof StudentsIdCoverageRoute
+  StudentsIdFrameworkRoute: typeof StudentsIdFrameworkRoute
   StudentsIdIepRoute: typeof StudentsIdIepRoute
 }
 
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentsIdIepRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/students/$id/framework': {
+      id: '/students/$id/framework'
+      path: '/students/$id/framework'
+      fullPath: '/students/$id/framework'
+      preLoaderRoute: typeof StudentsIdFrameworkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/students/$id/coverage': {
       id: '/students/$id/coverage'
       path: '/students/$id/coverage'
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudentsNewRoute: StudentsNewRoute,
   StudentsIdAssessmentRoute: StudentsIdAssessmentRoute,
   StudentsIdCoverageRoute: StudentsIdCoverageRoute,
+  StudentsIdFrameworkRoute: StudentsIdFrameworkRoute,
   StudentsIdIepRoute: StudentsIdIepRoute,
 }
 export const routeTree = rootRouteImport
