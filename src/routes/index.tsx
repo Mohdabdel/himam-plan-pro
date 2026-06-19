@@ -30,7 +30,13 @@ type Row = {
 };
 
 const seedRows: Row[] = [
-  { name: "أحمد محمد السالم", center: "مركز التواصل", tool: "ABLLS-R", status: "مكتمل" },
+  {
+    id: "demo-complete",
+    name: "أحمد محمد السالم",
+    center: "مركز التواصل - أبوظبي",
+    tool: "TTAP - Transition Assessment Profile (2nd Edition)",
+    status: "مكتمل",
+  },
   { name: "سارة علي الزهراني", center: "برنامج التأهيل المهني", tool: "VB-MAPP", status: "قيد التنفيذ" },
 ];
 
@@ -111,6 +117,14 @@ function HomePage() {
                         style={{ backgroundColor: "#D9764A" }}
                       >
                         إدخال التقييم
+                      </Link>
+                    ) : s.status === "مكتمل" && s.id ? (
+                      <Link
+                        to="/students/$id/framework"
+                        params={{ id: s.id }}
+                        className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                      >
+                        عرض الإطار
                       </Link>
                     ) : (
                       <button className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
