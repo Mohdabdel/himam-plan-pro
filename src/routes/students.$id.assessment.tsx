@@ -162,7 +162,7 @@ function AssessmentPage() {
       return;
     }
     persist(false);
-    navigate({ to: "/" });
+    navigate({ to: "/students/$id/coverage", params: { id } });
   };
 
   const handleDraft = () => {
