@@ -271,9 +271,8 @@ function CoveragePage() {
 
         {/* Bottom button */}
         <div style={{ marginTop: 32 }}>
-          <Link
-            to="/students/$id/iep"
-            params={{ id }}
+          <a
+            href={`/students/${id}/iep`}
             style={{
               display: "block",
               textAlign: "center",
@@ -287,7 +286,7 @@ function CoveragePage() {
             }}
           >
             إدخال الخطة التربوية الفردية ←
-          </Link>
+          </a>
         </div>
       </main>
     </div>
