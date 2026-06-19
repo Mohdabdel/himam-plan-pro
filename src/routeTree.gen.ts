@@ -12,9 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsNewRouteImport } from './routes/students.new'
+import { Route as StudentsIdIepRouteImport } from './routes/students.$id.iep'
 import { Route as StudentsIdCoverageRouteImport } from './routes/students.$id.coverage'
 import { Route as StudentsIdAssessmentRouteImport } from './routes/students.$id.assessment'
-import { Route as StudentsIdIepRouteImport } from './routes/students.$id.iep'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -31,6 +31,11 @@ const StudentsNewRoute = StudentsNewRouteImport.update({
   path: '/students/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentsIdIepRoute = StudentsIdIepRouteImport.update({
+  id: '/students/$id/iep',
+  path: '/students/$id/iep',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentsIdCoverageRoute = StudentsIdCoverageRouteImport.update({
   id: '/students/$id/coverage',
   path: '/students/$id/coverage',
@@ -39,11 +44,6 @@ const StudentsIdCoverageRoute = StudentsIdCoverageRouteImport.update({
 const StudentsIdAssessmentRoute = StudentsIdAssessmentRouteImport.update({
   id: '/students/$id/assessment',
   path: '/students/$id/assessment',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StudentsIdIepRoute = StudentsIdIepRouteImport.update({
-  id: '/students/$id/iep',
-  path: '/students/$id/iep',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -131,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/students/$id/iep': {
+      id: '/students/$id/iep'
+      path: '/students/$id/iep'
+      fullPath: '/students/$id/iep'
+      preLoaderRoute: typeof StudentsIdIepRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/students/$id/coverage': {
       id: '/students/$id/coverage'
       path: '/students/$id/coverage'
@@ -143,13 +150,6 @@ declare module '@tanstack/react-router' {
       path: '/students/$id/assessment'
       fullPath: '/students/$id/assessment'
       preLoaderRoute: typeof StudentsIdAssessmentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/students/$id/iep': {
-      id: '/students/$id/iep'
-      path: '/students/$id/iep'
-      fullPath: '/students/$id/iep'
-      preLoaderRoute: typeof StudentsIdIepRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
