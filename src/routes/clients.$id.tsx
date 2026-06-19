@@ -8,7 +8,7 @@ export const Route = createFileRoute("/clients/$id")({
   loader: ({ params }) => {
     const client = getClient(params.id);
     if (!client) throw notFound();
-    return { client };
+    return { client: client! };
   },
   head: ({ loaderData }) => ({
     meta: [
