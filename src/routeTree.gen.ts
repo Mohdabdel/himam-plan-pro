@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsNewRouteImport } from './routes/students.new'
+import { Route as StudentsIdCoverageRouteImport } from './routes/students.$id.coverage'
 import { Route as StudentsIdAssessmentRouteImport } from './routes/students.$id.assessment'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -29,6 +30,11 @@ const StudentsNewRoute = StudentsNewRouteImport.update({
   path: '/students/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentsIdCoverageRoute = StudentsIdCoverageRouteImport.update({
+  id: '/students/$id/coverage',
+  path: '/students/$id/coverage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentsIdAssessmentRoute = StudentsIdAssessmentRouteImport.update({
   id: '/students/$id/assessment',
   path: '/students/$id/assessment',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRoute
+  '/students/$id/coverage': typeof StudentsIdCoverageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRoute
+  '/students/$id/coverage': typeof StudentsIdCoverageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,18 +61,30 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRoute
+  '/students/$id/coverage': typeof StudentsIdCoverageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sitemap.xml' | '/students/new' | '/students/$id/assessment'
+  fullPaths:
+    | '/'
+    | '/sitemap.xml'
+    | '/students/new'
+    | '/students/$id/assessment'
+    | '/students/$id/coverage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sitemap.xml' | '/students/new' | '/students/$id/assessment'
+  to:
+    | '/'
+    | '/sitemap.xml'
+    | '/students/new'
+    | '/students/$id/assessment'
+    | '/students/$id/coverage'
   id:
     | '__root__'
     | '/'
     | '/sitemap.xml'
     | '/students/new'
     | '/students/$id/assessment'
+    | '/students/$id/coverage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -72,6 +92,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StudentsNewRoute: typeof StudentsNewRoute
   StudentsIdAssessmentRoute: typeof StudentsIdAssessmentRoute
+  StudentsIdCoverageRoute: typeof StudentsIdCoverageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -97,6 +118,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/students/$id/coverage': {
+      id: '/students/$id/coverage'
+      path: '/students/$id/coverage'
+      fullPath: '/students/$id/coverage'
+      preLoaderRoute: typeof StudentsIdCoverageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/students/$id/assessment': {
       id: '/students/$id/assessment'
       path: '/students/$id/assessment'
@@ -112,6 +140,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StudentsNewRoute: StudentsNewRoute,
   StudentsIdAssessmentRoute: StudentsIdAssessmentRoute,
+  StudentsIdCoverageRoute: StudentsIdCoverageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
