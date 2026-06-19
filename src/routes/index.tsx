@@ -1,250 +1,102 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { SpecialistShell } from "@/components/SpecialistShell";
-import { StatusBadge, ProgressBar, Avatar } from "@/components/StatusBits";
-import { clients, upcomingSessions, tasks } from "@/lib/mock-data";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
+  component: HomePage,
   head: () => ({
     meta: [
-      { title: "Dashboard — Himam Specialist Portal" },
-      { name: "description", content: "Today's sessions, priority follow-ups, and caseload health at a glance." },
-      { property: "og:title", content: "Dashboard — Himam Specialist Portal" },
-      { property: "og:description", content: "Today's sessions, priority follow-ups, and caseload health at a glance." },
-      { property: "og:url", content: "/" },
+      { title: "همم — بوابة الأخصائي" },
+      { name: "description", content: "إدارة الطلاب في منصة همم لتخطيط الانتقال." },
     ],
-    links: [{ rel: "canonical", href: "/" }],
   }),
-  component: Dashboard,
 });
 
-function Dashboard() {
-  const active = clients.filter((c) => c.status !== "transitioned");
-  const onTrack = active.filter((c) => c.status === "on-track").length;
-  const attention = active.filter((c) => c.status === "needs-attention").length;
-  const atRisk = active.filter((c) => c.status === "at-risk").length;
-  const avgProgress = Math.round(active.reduce((a, c) => a + c.progress, 0) / active.length);
+type Student = {
+  name: string;
+  age: string;
+  tool: string;
+  status: "مكتمل" | "قيد التنفيذ";
+};
 
-  const priority = [...active]
-    .sort((a, b) => statusWeight(b.status) - statusWeight(a.status))
-    .slice(0, 4);
+const students: Student[] = [
+  { name: "أحمد محمد السالم", age: "17 سنة", tool: "ABLLS-R", status: "مكتمل" },
+  { name: "سارة علي الزهراني", age: "15 سنة", tool: "VB-MAPP", status: "قيد التنفيذ" },
+];
 
+function HomePage() {
   return (
-    <SpecialistShell
-      eyebrow="Wednesday · June 19"
-      title="Good morning, Nadia"
-      actions={
-        <>
-          <button className="hidden h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-sm font-medium text-foreground transition hover:bg-muted sm:inline-flex">
-            <span className="text-muted-foreground">⌘K</span> Search caseload
-          </button>
-          <button className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90">
-            + Log session
-          </button>
-        </>
-      }
-    >
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Active clients" value={String(active.length)} hint={`${onTrack} on track`} tone="primary" />
-        <StatCard label="Needs attention" value={String(attention)} hint="Review this week" tone="warning" />
-        <StatCard label="At risk" value={String(atRisk)} hint="Escalate or intervene" tone="destructive" />
-        <StatCard label="Avg. plan progress" value={`${avgProgress}%`} hint="Across active caseload" tone="success" />
-      </section>
-
-      <section className="mt-8 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Panel
-            title="Today & upcoming"
-            action={<Link to="/calendar" className="text-sm font-medium text-primary hover:underline">Open calendar →</Link>}
-          >
-            <ul className="divide-y divide-border">
-              {upcomingSessions.slice(0, 4).map((s) => (
-                <li key={s.id} className="flex items-center gap-4 py-3.5 first:pt-1 last:pb-1">
-                  <div className="w-28 shrink-0 text-sm">
-                    <div className="font-semibold text-foreground">{s.date.split(",")[0]}</div>
-                    <div className="text-muted-foreground">{s.date.split(",")[1]?.trim()}</div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      to="/clients/$id"
-                      params={{ id: s.clientId }}
-                      className="font-semibold text-foreground hover:text-primary"
-                    >
-                      {s.clientName}
-                    </Link>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {s.type} · {s.location}
-                    </div>
-                  </div>
-                  <div className="hidden text-xs text-muted-foreground sm:block">{s.duration}m</div>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel
-            title="Priority follow-ups"
-            action={<Link to="/clients" className="text-sm font-medium text-primary hover:underline">View caseload →</Link>}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              {priority.map((c) => (
-                <Link
-                  key={c.id}
-                  to="/clients/$id"
-                  params={{ id: c.id }}
-                  className="group rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40 hover:shadow-sm"
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar initials={c.initials} tone={c.status === "at-risk" ? "accent" : "primary"} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="truncate font-semibold text-foreground group-hover:text-primary">
-                          {c.name}
-                        </div>
-                        <StatusBadge status={c.status} />
-                      </div>
-                      <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {c.stage} · {c.schoolOrProgram}
-                      </div>
-                      <div className="mt-3">
-                        <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>Plan progress</span>
-                          <span className="tabular-nums">{c.progress}%</span>
-                        </div>
-                        <ProgressBar
-                          value={c.progress}
-                          tone={c.status === "at-risk" ? "destructive" : c.status === "needs-attention" ? "warning" : "primary"}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </Panel>
-        </div>
-
-        <div className="space-y-6">
-          <Panel title="My tasks">
-            <ul className="space-y-2.5">
-              {tasks.map((t) => (
-                <li key={t.id} className="flex items-start gap-3 rounded-xl p-2 -m-2 hover:bg-muted/60">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 shrink-0 rounded border-border accent-[oklch(0.44_0.08_195)]"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-foreground">{t.title}</div>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{t.client}</span>
-                      <span>·</span>
-                      <span
-                        className={
-                          t.priority === "high"
-                            ? "text-destructive font-medium"
-                            : t.priority === "med"
-                            ? "text-warning-foreground font-medium"
-                            : ""
-                        }
-                      >
-                        {t.due}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Panel>
-
-          <Panel title="Caseload mix" subtitle="Active clients by stage">
-            <StageMix />
-          </Panel>
-        </div>
-      </section>
-    </SpecialistShell>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  tone: "primary" | "success" | "warning" | "destructive";
-}) {
-  const accent =
-    tone === "primary"
-      ? "bg-primary"
-      : tone === "success"
-      ? "bg-success"
-      : tone === "warning"
-      ? "bg-warning"
-      : "bg-destructive";
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5">
-      <div className={`absolute left-0 top-0 h-full w-1 ${accent}`} />
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-2 font-serif text-4xl tabular-nums text-foreground">{value}</div>
-      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
-    </div>
-  );
-}
-
-function Panel({
-  title,
-  subtitle,
-  action,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-5">
-      <header className="mb-4 flex items-end justify-between gap-2">
-        <div>
-          <h2 className="font-serif text-xl text-foreground">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-        {action}
+    <div className="min-h-screen bg-[#FAF7F2]">
+      <header
+        className="flex items-center justify-between px-8 py-4"
+        style={{ backgroundColor: "#0F3D3E" }}
+      >
+        <button
+          className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+          style={{ backgroundColor: "#D9764A" }}
+        >
+          ＋ إضافة طالب جديد
+        </button>
+        <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
-      {children}
-    </section>
-  );
-}
 
-function StageMix() {
-  const stages = ["Assessment", "Planning", "Skill-building", "Work Experience", "Placement"] as const;
-  const counts = stages.map((s) => clients.filter((c) => c.stage === s).length);
-  const total = counts.reduce((a, b) => a + b, 0);
-  const tones = ["bg-chart-4", "bg-chart-3", "bg-primary", "bg-chart-2", "bg-chart-5"];
-  return (
-    <div className="space-y-3">
-      <div className="flex h-2.5 w-full overflow-hidden rounded-full">
-        {counts.map((c, i) => (
-          <div key={i} className={tones[i]} style={{ width: `${(c / total) * 100}%` }} />
-        ))}
-      </div>
-      <ul className="space-y-2">
-        {stages.map((s, i) => (
-          <li key={s} className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2">
-              <span className={`h-2.5 w-2.5 rounded-sm ${tones[i]}`} />
-              <span className="text-foreground">{s}</span>
-            </span>
-            <span className="tabular-nums text-muted-foreground">{counts[i]}</span>
-          </li>
-        ))}
-      </ul>
+      <main className="mx-auto max-w-6xl px-6 py-10 md:px-8">
+        <section className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <StatCard label="إجمالي الطلاب" value="2" />
+          <StatCard label="المكتملون" value="1" />
+          <StatCard label="قيد التنفيذ" value="1" />
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <table className="w-full text-right">
+            <thead className="bg-stone-50 text-sm text-stone-600">
+              <tr>
+                <th className="px-6 py-4 font-semibold">الاسم</th>
+                <th className="px-6 py-4 font-semibold">العمر</th>
+                <th className="px-6 py-4 font-semibold">أداة التقييم</th>
+                <th className="px-6 py-4 font-semibold">الحالة</th>
+                <th className="px-6 py-4 font-semibold">الإجراء</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((s) => (
+                <tr key={s.name} className="border-t border-stone-100">
+                  <td className="px-6 py-5 font-medium text-stone-900">{s.name}</td>
+                  <td className="px-6 py-5 text-stone-700">{s.age}</td>
+                  <td className="px-6 py-5 text-stone-700">{s.tool}</td>
+                  <td className="px-6 py-5">
+                    <StatusBadge status={s.status} />
+                  </td>
+                  <td className="px-6 py-5">
+                    <button className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
+                      عرض الإطار
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      </main>
     </div>
   );
 }
 
-function statusWeight(s: string) {
-  return s === "at-risk" ? 3 : s === "needs-attention" ? 2 : s === "on-track" ? 1 : 0;
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+      <div className="text-sm font-medium text-stone-600">{label}</div>
+      <div className="mt-3 text-4xl font-bold text-[#0F3D3E]">{value}</div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: Student["status"] }) {
+  const styles =
+    status === "مكتمل"
+      ? "bg-green-100 text-green-800 border-green-200"
+      : "bg-amber-100 text-amber-800 border-amber-200";
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${styles}`}>
+      {status}
+    </span>
+  );
 }
