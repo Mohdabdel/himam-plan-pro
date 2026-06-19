@@ -22,6 +22,7 @@ type StoredStudent = {
 };
 
 type Row = {
+  id?: string;
   name: string;
   center: string;
   tool: string;
@@ -41,6 +42,7 @@ function HomePage() {
       const stored: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
       setExtra(
         stored.map((s) => ({
+          id: s.id,
           name: s.name,
           center: s.center,
           tool: s.tool,
