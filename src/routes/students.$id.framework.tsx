@@ -93,10 +93,17 @@ function FrameworkPage() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem("himam_students");
-      if (!raw) return;
-      const list: StoredStudent[] = JSON.parse(raw);
+      const list: StoredStudent[] = raw ? JSON.parse(raw) : [];
       const s = list.find((x) => x.id === id);
       if (s) setStudent(s);
+      else if (id === "demo-complete") {
+        setStudent({
+          id: "demo-complete",
+          name: "أحمد محمد السالم",
+          center: "مركز التواصل - أبوظبي",
+          tool: "TTAP - Transition Assessment Profile (2nd Edition)",
+        } as StoredStudent);
+      }
     } catch {}
   }, [id]);
 
