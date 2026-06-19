@@ -1,5 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/students/$id/iep")({
   component: IEPPage,
@@ -23,7 +31,7 @@ type StoredStudent = {
 
 type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB";
 type GoalCategory = "أكاديمي" | "وظيفي" | "اجتماعي" | "عملي";
-type Goal = { id: string; text: string; categories: GoalCategory[] };
+type Goal = { id: string; text: string; category: GoalCategory | "" };
 
 const DOMAINS: { code: DomainCode; name: string }[] = [
   { code: "VS", name: "المهارات المهنية" },
@@ -56,7 +64,7 @@ function IEPPage() {
     VS: [], VB: [], IF: [], LS: [], FC: [], IB: [],
   });
   const [open, setOpen] = useState<Record<DomainCode, boolean>>({
-    VS: true, VB: false, IF: false, LS: false, FC: false, IB: false,
+    VS: false, VB: false, IF: false, LS: false, FC: false, IB: false,
   });
   const [services, setServices] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -72,7 +80,7 @@ function IEPPage() {
       if (iepRaw) {
         const data = JSON.parse(iepRaw);
         if (data.vision) setVision(data.vision);
-        if (data.goals) setGoals({ ...{ VS: [], VB: [], IF: [], LS: [], FC: [], IB: [] }, ...data.goals });
+        if (data.goals) setGoals({ VS: [], VB: [], IF: [], LS: [], FC: [], IB: [], ...data.goals });
         if (data.services) setServices(data.services);
         if (data.startDate) setStartDate(data.startDate);
       }
@@ -82,7 +90,7 @@ function IEPPage() {
   function addGoal(code: DomainCode) {
     setGoals((g) => ({
       ...g,
-      [code]: [...g[code], { id: crypto.randomUUID(), text: "", categories: [] }],
+      [code]: [...g[code], { id: crypto.randomUUID(), text: "", category: "" }],
     }));
   }
   function updateGoalText(code: DomainCode, gid: string, text: string) {
@@ -91,19 +99,10 @@ function IEPPage() {
       [code]: g[code].map((x) => (x.id === gid ? { ...x, text } : x)),
     }));
   }
-  function toggleCategory(code: DomainCode, gid: string, cat: GoalCategory) {
+  function updateGoalCategory(code: DomainCode, gid: string, cat: GoalCategory | "") {
     setGoals((g) => ({
       ...g,
-      [code]: g[code].map((x) =>
-        x.id === gid
-          ? {
-              ...x,
-              categories: x.categories.includes(cat)
-                ? x.categories.filter((c) => c !== cat)
-                : [...x.categories, cat],
-            }
-          : x,
-      ),
+      [code]: g[code].map((x) => (x.id === gid ? { ...x, category: cat } : x)),
     }));
   }
   function deleteGoal(code: DomainCode, gid: string) {
@@ -126,6 +125,7 @@ function IEPPage() {
         localStorage.setItem("himam_students", JSON.stringify(updated));
       }
     } catch {}
+    toast.success("تم حفظ الخطة بنجاح ✓");
     navigate({ to: "/" });
   }
 
@@ -177,6 +177,9 @@ function IEPPage() {
         {/* Section 2 - Goals by Domain */}
         <section style={cardStyle}>
           <h2 style={sectionTitle}>الأهداف حسب مجالات التقييم</h2>
+          <p style={{ color: "#64748B", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
+            أدخل الأهداف تحت كل مجال بحرية كاملة
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             {DOMAINS.map((d) => (
               <div key={d.code} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
@@ -185,13 +188,15 @@ function IEPPage() {
                   onClick={() => setOpen((o) => ({ ...o, [d.code]: !o[d.code] }))}
                   style={{
                     width: "100%", display: "flex", justifyContent: "space-between",
-                    alignItems: "center", padding: "12px 16px", background: "#F1F5F4",
-                    border: "none", cursor: "pointer", fontWeight: 700, color: TEAL, fontSize: 16,
-                    fontFamily: "inherit",
+                    alignItems: "center", padding: "12px 16px", background: "#E6F2F1",
+                    border: "none", cursor: "pointer", fontFamily: "inherit",
                   }}
                 >
-                  <span>{d.name}</span>
-                  <span style={{ fontSize: 14 }}>{open[d.code] ? "▲" : "▼"}</span>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ fontWeight: 700, color: TEAL, fontSize: 16 }}>{d.name}</span>
+                    <span style={{ fontSize: 12, color: "#94A3B8" }}>{d.code}</span>
+                  </div>
+                  <span style={{ fontSize: 14, color: "#64748B" }}>{open[d.code] ? "▲" : "▼"}</span>
                 </button>
                 {open[d.code] && (
                   <div style={{ padding: 14, background: "white" }}>
@@ -206,54 +211,49 @@ function IEPPage() {
                           key={g.id}
                           style={{
                             border: "1px solid #E5E7EB", borderRadius: 8, padding: 12,
-                            display: "flex", flexDirection: "column", gap: 10, background: "#FAFAF8",
+                            display: "flex", gap: 10, alignItems: "center", background: "#FAFAF8",
                           }}
                         >
-                          <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                            <input
-                              type="text"
-                              value={g.text}
-                              onChange={(e) => updateGoalText(d.code, g.id, e.target.value)}
-                              placeholder="اكتب الهدف..."
-                              style={{
-                                flex: 1, padding: "10px 12px", border: "1px solid #E5E7EB",
-                                borderRadius: 6, fontSize: 14, fontFamily: "inherit",
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => deleteGoal(d.code, g.id)}
-                              aria-label="حذف الهدف"
-                              style={{
-                                background: "#FEE2E2", color: "#B91C1C", border: "none",
-                                borderRadius: 6, width: 36, height: 36, cursor: "pointer",
-                                fontSize: 16, fontWeight: 700,
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                            {CATEGORIES.map((c) => {
-                              const active = g.categories.includes(c);
-                              return (
-                                <button
-                                  key={c}
-                                  type="button"
-                                  onClick={() => toggleCategory(d.code, g.id, c)}
-                                  style={{
-                                    padding: "5px 12px", borderRadius: 999, fontSize: 13,
-                                    border: `1px solid ${active ? TEAL : "#D1D5DB"}`,
-                                    background: active ? TEAL : "white",
-                                    color: active ? "white" : "#475569",
-                                    cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
-                                  }}
-                                >
+                          <input
+                            type="text"
+                            value={g.text}
+                            onChange={(e) => updateGoalText(d.code, g.id, e.target.value)}
+                            placeholder="اكتب الهدف..."
+                            style={{
+                              flex: 1, padding: "10px 12px", border: "1px solid #E5E7EB",
+                              borderRadius: 6, fontSize: 14, fontFamily: "inherit",
+                            }}
+                          />
+                          <Select
+                            value={g.category || "placeholder"}
+                            onValueChange={(val) => updateGoalCategory(d.code, g.id, val === "placeholder" ? "" : (val as GoalCategory))}
+                          >
+                            <SelectTrigger style={{ width: 130, fontSize: 13 }}>
+                              <SelectValue placeholder="التصنيف" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="placeholder" disabled>
+                                التصنيف
+                              </SelectItem>
+                              {CATEGORIES.map((c) => (
+                                <SelectItem key={c} value={c}>
                                   {c}
-                                </button>
-                              );
-                            })}
-                          </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <button
+                            type="button"
+                            onClick={() => deleteGoal(d.code, g.id)}
+                            aria-label="حذف الهدف"
+                            style={{
+                              background: "#FEE2E2", color: "#B91C1C", border: "none",
+                              borderRadius: 6, width: 36, height: 36, cursor: "pointer",
+                              fontSize: 16, fontWeight: 700, flexShrink: 0,
+                            }}
+                          >
+                            ✕
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -311,7 +311,7 @@ function IEPPage() {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             style={{
-              maxWidth: 200, padding: "10px 12px", border: "1px solid #E5E7EB",
+              maxWidth: 220, padding: "10px 12px", border: "1px solid #E5E7EB",
               borderRadius: 8, fontSize: 15, fontFamily: "inherit",
             }}
           />
@@ -321,11 +321,14 @@ function IEPPage() {
         <div
           style={{
             marginTop: 20, background: "#FBE9E1", border: `1px solid ${ORANGE}`,
-            borderRadius: 10, padding: "14px 16px", color: "#7C3F1D", fontSize: 14,
-            lineHeight: 1.7,
+            borderRadius: 8, padding: 12, color: "#7C3F1D", fontSize: 14,
+            lineHeight: 1.7, display: "flex", gap: 10, alignItems: "flex-start",
           }}
         >
-          بعد حفظ الخطة، ستُستكمل المعلومات من قسم الطالب والأسرة — وقد تعوض أي فجوات في بيانات التقييم الحالية
+          <span style={{ fontSize: 18, lineHeight: 1.4 }}>ℹ️</span>
+          <span>
+            بعد حفظ الخطة، ستُستكمل المعلومات من قسم الطالب والأسرة — وقد تعوض أي فجوات في بيانات التقييم الحالية
+          </span>
         </div>
 
         {/* Bottom button */}
