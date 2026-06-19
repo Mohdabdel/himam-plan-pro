@@ -118,6 +118,14 @@ function HomePage() {
                       >
                         إدخال التقييم
                       </Link>
+                    ) : s.status === "مكتمل" && s.id ? (
+                      <Link
+                        to="/students/$id/framework"
+                        params={{ id: s.id }}
+                        className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                      >
+                        عرض الإطار
+                      </Link>
                     ) : (
                       <button className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
                         عرض الإطار
