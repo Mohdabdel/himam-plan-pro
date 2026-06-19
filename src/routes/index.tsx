@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -10,39 +11,73 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-type Student = {
+type StoredStudent = {
+  id: string;
   name: string;
-  age: string;
+  birthDate: string;
+  center: string;
   tool: string;
-  status: "مكتمل" | "قيد التنفيذ";
+  createdAt: string;
+  status: "assessment";
 };
 
-const students: Student[] = [
-  { name: "أحمد محمد السالم", age: "17 سنة", tool: "ABLLS-R", status: "مكتمل" },
-  { name: "سارة علي الزهراني", age: "15 سنة", tool: "VB-MAPP", status: "قيد التنفيذ" },
+type Row = {
+  name: string;
+  center: string;
+  tool: string;
+  status: "مكتمل" | "قيد التنفيذ" | "إدخال التقييم";
+};
+
+const seedRows: Row[] = [
+  { name: "أحمد محمد السالم", center: "مركز التواصل", tool: "ABLLS-R", status: "مكتمل" },
+  { name: "سارة علي الزهراني", center: "برنامج التأهيل المهني", tool: "VB-MAPP", status: "قيد التنفيذ" },
 ];
 
 function HomePage() {
+  const [extra, setExtra] = useState<Row[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
+      setExtra(
+        stored.map((s) => ({
+          name: s.name,
+          center: s.center,
+          tool: s.tool,
+          status: "إدخال التقييم" as const,
+        })),
+      );
+    } catch {
+      setExtra([]);
+    }
+  }, []);
+
+  const rows = [...seedRows, ...extra];
+  const total = rows.length;
+  const completed = rows.filter((r) => r.status === "مكتمل").length;
+  const inProgress = rows.filter((r) => r.status !== "مكتمل").length;
+
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
       <header
         className="flex items-center justify-between px-8 py-4"
         style={{ backgroundColor: "#0F3D3E" }}
       >
-        <button
+        <Link
+          to="/students/new"
           className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
           style={{ backgroundColor: "#D9764A" }}
         >
           ＋ إضافة طالب جديد
-        </button>
+        </Link>
         <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <section className="grid grid-cols-3 gap-5">
-          <StatCard label="إجمالي الطلاب" value="2" />
-          <StatCard label="المكتملون" value="1" />
-          <StatCard label="قيد التنفيذ" value="1" />
+          <StatCard label="إجمالي الطلاب" value={String(total)} />
+          <StatCard label="المكتملون" value={String(completed)} />
+          <StatCard label="قيد التنفيذ" value={String(inProgress)} />
         </section>
 
         <section className="mt-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
@@ -50,17 +85,17 @@ function HomePage() {
             <thead className="bg-stone-50 text-sm text-stone-600">
               <tr>
                 <th className="px-6 py-4 font-semibold">الاسم</th>
-                <th className="px-6 py-4 font-semibold">العمر</th>
+                <th className="px-6 py-4 font-semibold">المركز / البرنامج</th>
                 <th className="px-6 py-4 font-semibold">أداة التقييم</th>
                 <th className="px-6 py-4 font-semibold">الحالة</th>
                 <th className="px-6 py-4 font-semibold">الإجراء</th>
               </tr>
             </thead>
             <tbody>
-              {students.map((s) => (
-                <tr key={s.name} className="border-t border-stone-100">
+              {rows.map((s, i) => (
+                <tr key={`${s.name}-${i}`} className="border-t border-stone-100">
                   <td className="px-6 py-5 font-medium text-stone-900">{s.name}</td>
-                  <td className="px-6 py-5 text-stone-700">{s.age}</td>
+                  <td className="px-6 py-5 text-stone-700">{s.center}</td>
                   <td className="px-6 py-5 text-stone-700">{s.tool}</td>
                   <td className="px-6 py-5">
                     <StatusBadge status={s.status} />
@@ -89,11 +124,13 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: Student["status"] }) {
+function StatusBadge({ status }: { status: Row["status"] }) {
   const styles =
     status === "مكتمل"
       ? "bg-green-100 text-green-800 border-green-200"
-      : "bg-amber-100 text-amber-800 border-amber-200";
+      : status === "إدخال التقييم"
+        ? "bg-orange-100 text-orange-800 border-orange-200"
+        : "bg-amber-100 text-amber-800 border-amber-200";
   return (
     <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${styles}`}>
       {status}
