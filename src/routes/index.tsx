@@ -22,6 +22,7 @@ type StoredStudent = {
 };
 
 type Row = {
+  id?: string;
   name: string;
   center: string;
   tool: string;
@@ -41,6 +42,7 @@ function HomePage() {
       const stored: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
       setExtra(
         stored.map((s) => ({
+          id: s.id,
           name: s.name,
           center: s.center,
           tool: s.tool,
@@ -101,9 +103,20 @@ function HomePage() {
                     <StatusBadge status={s.status} />
                   </td>
                   <td className="px-6 py-5">
-                    <button className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
-                      عرض الإطار
-                    </button>
+                    {s.status === "إدخال التقييم" && s.id ? (
+                      <Link
+                        to="/students/$id/assessment"
+                        params={{ id: s.id }}
+                        className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                        style={{ backgroundColor: "#D9764A" }}
+                      >
+                        إدخال التقييم
+                      </Link>
+                    ) : (
+                      <button className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
+                        عرض الإطار
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
