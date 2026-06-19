@@ -102,6 +102,7 @@ function FrameworkPage() {
           name: "أحمد محمد السالم",
           center: "مركز التواصل - أبوظبي",
           tool: "TTAP - Transition Assessment Profile (2nd Edition)",
+          status: "complete",
         } as StoredStudent);
       }
     } catch {}
