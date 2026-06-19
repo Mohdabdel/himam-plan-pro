@@ -39,7 +39,7 @@ function HomePage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10 md:px-8">
-        <section className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <section className="grid grid-cols-3 gap-5">
           <StatCard label="إجمالي الطلاب" value="2" />
           <StatCard label="المكتملون" value="1" />
           <StatCard label="قيد التنفيذ" value="1" />
