@@ -52,7 +52,7 @@ function AssessmentPage() {
 
   const tool = student?.tool ?? "";
   const domains = useMemo<DomainDef[]>(
-    () => (tool === "TTAP" ? TTAP_DOMAINS : GENERIC_DOMAINS),
+    () => (tool.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS),
     [tool],
   );
 
