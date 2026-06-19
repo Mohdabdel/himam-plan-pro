@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsNewRouteImport } from './routes/students.new'
+import { Route as StudentsIdAssessmentRouteImport } from './routes/students.$id.assessment'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -28,35 +29,49 @@ const StudentsNewRoute = StudentsNewRouteImport.update({
   path: '/students/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentsIdAssessmentRoute = StudentsIdAssessmentRouteImport.update({
+  id: '/students/$id/assessment',
+  path: '/students/$id/assessment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/students/new': typeof StudentsNewRoute
+  '/students/$id/assessment': typeof StudentsIdAssessmentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/students/new': typeof StudentsNewRoute
+  '/students/$id/assessment': typeof StudentsIdAssessmentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/students/new': typeof StudentsNewRoute
+  '/students/$id/assessment': typeof StudentsIdAssessmentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sitemap.xml' | '/students/new'
+  fullPaths: '/' | '/sitemap.xml' | '/students/new' | '/students/$id/assessment'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sitemap.xml' | '/students/new'
-  id: '__root__' | '/' | '/sitemap.xml' | '/students/new'
+  to: '/' | '/sitemap.xml' | '/students/new' | '/students/$id/assessment'
+  id:
+    | '__root__'
+    | '/'
+    | '/sitemap.xml'
+    | '/students/new'
+    | '/students/$id/assessment'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StudentsNewRoute: typeof StudentsNewRoute
+  StudentsIdAssessmentRoute: typeof StudentsIdAssessmentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +97,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/students/$id/assessment': {
+      id: '/students/$id/assessment'
+      path: '/students/$id/assessment'
+      fullPath: '/students/$id/assessment'
+      preLoaderRoute: typeof StudentsIdAssessmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +111,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StudentsNewRoute: StudentsNewRoute,
+  StudentsIdAssessmentRoute: StudentsIdAssessmentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
