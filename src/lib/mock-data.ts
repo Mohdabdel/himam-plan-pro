@@ -19,7 +19,7 @@ export interface Note {
   id: string;
   date: string;
   author: string;
-  kind: "Session" | "Assessment" | "Family" | "Employer";
+  kind: "Session" | "Assessment" | "Family" | "Employer" | "Site Visit";
   body: string;
 }
 
