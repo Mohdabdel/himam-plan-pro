@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { SpecialistShell } from "@/components/SpecialistShell";
 import { StatusBadge, ProgressBar, Avatar } from "@/components/StatusBits";
-import { getClient, type Goal } from "@/lib/mock-data";
+import { getClient, type Goal, type Client } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/clients/$id")({
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/clients/$id")({
 });
 
 function ClientDetail() {
-  const { client: c } = Route.useLoaderData();
+  const { client: c } = Route.useLoaderData() as { client: Client };
   const completed = c.goals.filter((g) => g.status === "complete").length;
 
   return (
