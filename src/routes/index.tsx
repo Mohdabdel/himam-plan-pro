@@ -30,7 +30,13 @@ type Row = {
 };
 
 const seedRows: Row[] = [
-  { name: "أحمد محمد السالم", center: "مركز التواصل", tool: "ABLLS-R", status: "مكتمل" },
+  {
+    id: "demo-complete",
+    name: "أحمد محمد السالم",
+    center: "مركز التواصل - أبوظبي",
+    tool: "TTAP - Transition Assessment Profile (2nd Edition)",
+    status: "مكتمل",
+  },
   { name: "سارة علي الزهراني", center: "برنامج التأهيل المهني", tool: "VB-MAPP", status: "قيد التنفيذ" },
 ];
 
