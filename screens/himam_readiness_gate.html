@@ -1,1 +1,684 @@
-<!-- TO BE ADDED -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>همم — بوابة الجاهزية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal: #1D9E75;
+      --teal-light: #E1F5EE;
+      --teal-dark: #085041;
+      --teal-mid: #5DCAA5;
+      --amber: #BA7517;
+      --amber-light: #FAEEDA;
+      --amber-dark: #633806;
+      --rose: #C0392B;
+      --rose-light: #FDECEA;
+      --blue: #1A6EBD;
+      --blue-light: #EAF2FB;
+      --bg: #F4F6F8;
+      --card: #FFFFFF;
+      --border: #E2E6EA;
+      --text: #24313A;
+      --muted: #677481;
+      --shadow: 0 14px 34px rgba(8, 33, 40, .08);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+    .page {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    h1,h2,h3,h4,p { margin-top: 0; }
+    h1 { color: var(--teal-dark); margin-bottom: 8px; }
+    .lead { color: var(--muted); max-width: 860px; margin-bottom: 0; }
+    .steps-bar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .step {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      text-align: center;
+      padding: 12px 10px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    .step.active {
+      background: var(--teal-light);
+      border-color: var(--teal-mid);
+      color: var(--teal-dark);
+      font-weight: 700;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1.35fr .75fr;
+      gap: 22px;
+      align-items: start;
+    }
+    .stack { display: grid; gap: 22px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    .card h2 { color: var(--teal-dark); margin-bottom: 8px; }
+    .intro { color: var(--muted); font-size: .95rem; }
+    .btn, .primary-btn, .secondary-btn, .ghost-btn, .danger-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .primary-btn { background: var(--teal); color: #fff; }
+    .secondary-btn { background: var(--amber-light); color: var(--amber-dark); }
+    .ghost-btn { background: var(--blue-light); color: var(--blue); }
+    .danger-btn { background: var(--rose-light); color: var(--rose); }
+    .primary-btn:disabled, .secondary-btn:disabled, .ghost-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .inline-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .meta-grid, .summary-grid {
+      display:grid;
+      gap:14px;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+    }
+    .summary-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .meta-box, .summary-box, .detail-box, .evidence-item {
+      border:1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background:#fbfcfd;
+      padding:14px;
+    }
+    .summary-box.ready { background: var(--teal-light); border-color: #bfe3d5; }
+    .summary-box.provisional { background: var(--amber-light); border-color: #ead8b4; }
+    .summary-box.blocked { background: var(--rose-light); border-color: #efc3bd; }
+    .summary-box strong, .meta-box strong { display:block; font-size:1.4rem; margin-bottom:4px; }
+    .muted { color: var(--muted); }
+    .alert {
+      border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid transparent;
+      margin-top: 16px;
+    }
+    .alert.amber { background: var(--amber-light); color: var(--amber-dark); border-color:#ead8b4; }
+    .alert.rose { background: var(--rose-light); color: var(--rose); border-color:#efc3bd; }
+    .hidden { display:none !important; }
+    .table-wrap { overflow:auto; }
+    table { width:100%; border-collapse: collapse; min-width: 980px; }
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      vertical-align: top;
+    }
+    th { color: var(--teal-dark); background:#f9fbfb; font-size:.94rem; }
+    tr.reviewed { outline: 2px dashed var(--blue); outline-offset: -4px; }
+    .verdict {
+      display:inline-flex;
+      align-items:center;
+      padding:7px 12px;
+      border-radius:999px;
+      font-size:.9rem;
+      font-weight:700;
+    }
+    .verdict.ready { background: var(--teal-light); color: var(--teal-dark); }
+    .verdict.provisional { background: var(--amber-light); color: var(--amber-dark); }
+    .verdict.blocked { background: var(--rose-light); color: var(--rose); }
+    .quality, .status-chip {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:.82rem;
+      font-weight:700;
+    }
+    .quality.strong { background: var(--teal-light); color: var(--teal-dark); }
+    .quality.usable { background: var(--blue-light); color: var(--blue); }
+    .status-chip.ready { background: var(--teal-light); color: var(--teal-dark); }
+    .status-chip.provisional { background: var(--amber-light); color: var(--amber-dark); }
+    .status-chip.blocked { background: var(--rose-light); color: var(--rose); }
+    .checks { display:flex; gap:6px; flex-wrap:wrap; }
+    .check {
+      width: 30px; height:30px; border-radius:50%; display:inline-flex;
+      align-items:center; justify-content:center; font-size:.85rem; font-weight:700;
+      background:#eef2f5; color:#5f6d79;
+    }
+    .check.pass { background: var(--teal-light); color: var(--teal-dark); }
+    .check.fail { background: var(--rose-light); color: var(--rose); }
+    .export-box {
+      margin-top: 14px;
+      border-radius: 16px;
+      border: 1px solid #0f2131;
+      background: #10202f;
+      color: #dce7f1;
+      padding: 14px;
+      min-height: 220px;
+      max-height: 420px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      direction: ltr;
+      text-align: left;
+      font-size: .85rem;
+    }
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 24, 37, 0.45);
+      display: none;
+      z-index: 999;
+    }
+    .drawer-backdrop.show { display:block; }
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: min(560px, 100%);
+      height: 100vh;
+      background: #fff;
+      box-shadow: 0 22px 60px rgba(0,0,0,.18);
+      border-inline-end: 1px solid var(--border);
+      transform: translateX(-100%);
+      transition: transform .25s ease;
+      z-index: 1000;
+      overflow:auto;
+      padding: 22px;
+    }
+    .drawer.show { transform: translateX(0); }
+    .drawer-header {
+      display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px;
+    }
+    .evidence-list, .condition-list { display:grid; gap:12px; }
+    .condition-item.pass { border-inline-start: 4px solid var(--teal); }
+    .condition-item.fail { border-inline-start: 4px solid var(--rose); }
+    @media (max-width: 1180px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 860px) {
+      .steps-bar, .meta-grid, .summary-grid { grid-template-columns: 1fr; }
+      .page { padding: 16px; }
+      .drawer { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <h1>بوابة الجاهزية — المحطة 6</h1>
+        <p class="lead">تقرأ هذه الشاشة مخرج المحطة الخامسة فقط، وتصدر حكمًا ثابتًا على جاهزية المفاهيم قبل تشغيل Silent Engine دون إدخال يدوي أو توليد لغوي.</p>
+      </div>
+      <div class="inline-actions">
+        <button type="button" class="ghost-btn" id="reloadBtn">إعادة تحميل ملف محدَّث</button>
+      </div>
+    </div>
+
+    <div class="steps-bar">
+      <div class="step">1. الهوية</div>
+      <div class="step">2. PINS</div>
+      <div class="step">3. البيئات</div>
+      <div class="step">4. الأصوات</div>
+      <div class="step">5. التقييم</div>
+      <div class="step active">6. الجاهزية</div>
+      <div class="step">7. المراجعة</div>
+    </div>
+
+    <div class="layout">
+      <div class="stack">
+        <section class="card">
+          <div class="inline-actions" style="justify-content:space-between; margin-bottom:12px;">
+            <div>
+              <h2>استيراد ملف المحطة 5</h2>
+              <p class="intro">اختر ملف JSON الذي تم توليده من شاشة التقييم المتكامل بصيغة himam_engine_input_[date].json.</p>
+            </div>
+            <div class="inline-actions">
+              <input type="file" id="jsonFileInput" accept="application/json,.json" class="hidden" />
+              <button type="button" class="primary-btn" id="loadFileBtn">تحميل ملف التقييم</button>
+            </div>
+          </div>
+          <div id="fileError" class="alert rose hidden"></div>
+          <div id="fileMeta" class="meta-grid hidden"></div>
+        </section>
+
+        <section class="card hidden" id="summarySection">
+          <h2>ملخص القرار الكلي</h2>
+          <p class="intro">يعرض عدد المفاهيم في كل حكم: ready / provisional / blocked بناءً على الشروط الخمسة الثابتة.</p>
+          <div class="summary-grid" id="summaryGrid"></div>
+          <div id="readyAlert" class="alert amber hidden"></div>
+        </section>
+
+        <section class="card hidden" id="resultsSection">
+          <h2>لوحة النتائج الكاملة</h2>
+          <p class="intro">كل صف يمثل مفهومًا واحدًا، مع حالة الشروط الخمسة، والحكم النهائي، وزر لعرض التفاصيل والمراجعة الفردية.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>المفهوم</th>
+                  <th>الأدلة</th>
+                  <th>الشروط</th>
+                  <th>الحكم</th>
+                  <th>الإجراء</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <aside class="stack hidden" id="actionsPanel">
+        <section class="card">
+          <h2>الإجراءات النهائية</h2>
+          <p class="intro">يشمل التصدير مفاهيم READY و PROVISIONAL فقط، ويستبعد المفاهيم BLOCKED من `engine_eligible_evidence` حتمًا.</p>
+          <div class="inline-actions" style="margin-bottom:12px;">
+            <button type="button" class="primary-btn" id="runEngineBtn" disabled>تشغيل Silent Engine على READY فقط</button>
+            <button type="button" class="secondary-btn" id="saveDraftBtn" disabled>حفظ كمسودة — استكمال لاحقاً</button>
+          </div>
+          <div class="export-box" id="jsonPreview">لم يتم إنشاء ناتج الجاهزية بعد.</div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="detailDrawer">
+    <div class="drawer-header">
+      <div>
+        <h2 id="drawerTitle">تفاصيل المفهوم</h2>
+        <p class="intro" id="drawerIntro">—</p>
+      </div>
+      <button type="button" class="danger-btn" id="closeDrawerBtn">إغلاق</button>
+    </div>
+    <div class="detail-box" style="margin-bottom:14px;">
+      <div class="muted" style="margin-bottom:8px;">التوصية الثابتة</div>
+      <div id="drawerRecommendation"></div>
+    </div>
+    <div class="detail-box" style="margin-bottom:14px;">
+      <div class="muted" style="margin-bottom:8px;">نتيجة الشروط الخمسة</div>
+      <div class="condition-list" id="drawerConditions"></div>
+    </div>
+    <div class="detail-box" style="margin-bottom:14px;">
+      <div class="muted" style="margin-bottom:8px;">الأدلة المرتبطة</div>
+      <div class="evidence-list" id="drawerEvidenceList"></div>
+    </div>
+    <button type="button" class="ghost-btn" id="markReviewedBtn">وضع علامة — تمت المراجعة</button>
+  </aside>
+
+  <script>
+    const CONDITION_LABELS = {
+      multi_source: 'الشرط 1: تعدد المصادر',
+      observable_context: 'الشرط 2: وجود سياق ملاحظ',
+      clear_relevance: 'الشرط 3: وضوح الصلة بالمفهوم',
+      not_family_only: 'الشرط 4: عدم الاعتماد على صوت الأسرة وحده',
+      min_evidence: 'الشرط 5: الحد الأدنى من الأدلة'
+    };
+
+    const RECOMMENDATION_TEMPLATES = {
+      add_observation: 'أضف ملاحظة وظيفية في بيئة البيت أو المجتمع',
+      add_second_source: 'أضف مصدراً ثانياً غير صوت الأسرة',
+      clarify_statement: 'وضّح statement الدليل — أكثر من 15 حرفاً',
+      add_second_evidence: 'أضف دليلاً ثانياً لهذا المفهوم'
+    };
+
+    const state = {
+      fileName: '',
+      engineInput: null,
+      gateResults: {},
+      reviewedConcepts: {},
+      exportJson: null,
+      selectedConcept: null
+    };
+
+    const jsonFileInput = document.getElementById('jsonFileInput');
+    const fileError = document.getElementById('fileError');
+    const fileMeta = document.getElementById('fileMeta');
+    const summarySection = document.getElementById('summarySection');
+    const resultsSection = document.getElementById('resultsSection');
+    const actionsPanel = document.getElementById('actionsPanel');
+    const resultsTableBody = document.getElementById('resultsTableBody');
+    const jsonPreview = document.getElementById('jsonPreview');
+
+    function setError(msg) {
+      fileError.textContent = msg;
+      fileError.classList.remove('hidden');
+    }
+
+    function clearError() {
+      fileError.textContent = '';
+      fileError.classList.add('hidden');
+    }
+
+    function verdictLabel(verdict) {
+      if (verdict === 'ready') return 'READY';
+      if (verdict === 'provisional') return 'PROVISIONAL';
+      return 'BLOCKED';
+    }
+
+    function renderFileMeta() {
+      const data = state.engineInput;
+      fileMeta.classList.remove('hidden');
+      fileMeta.innerHTML = `
+        <div class="meta-box"><strong>${state.fileName || '—'}</strong><span class="muted">اسم الملف</span></div>
+        <div class="meta-box"><strong>${data.created_at || '—'}</strong><span class="muted">تاريخ الإنشاء</span></div>
+        <div class="meta-box"><strong>${data.learner_id || '—'}</strong><span class="muted">اسم المتعلم / المعرّف</span></div>
+        <div class="meta-box"><strong>${(data.concepts_submitted || []).length}</strong><span class="muted">عدد المفاهيم المقدَّمة</span></div>
+        <div class="meta-box"><strong>${data.evidence_filtered?.length || 0}</strong><span class="muted">عدد الأدلة المصفّاة</span></div>
+        <div class="meta-box"><strong>${data.tool_assessment?.aata_compliance?.status || '—'}</strong><span class="muted">حالة الأداة</span></div>
+      `;
+    }
+
+    function groupedEvidenceFor(concept) {
+      return (state.engineInput?.evidence_filtered || []).filter(ev => ev.concept_hint === concept && ['strong','usable'].includes(ev.quality_badge));
+    }
+
+    function assessConcept(concept) {
+      const evidence = groupedEvidenceFor(concept);
+      const sourceTypes = [...new Set(evidence.map(ev => ev.source_type).filter(Boolean))];
+      const allFamilyOnly = evidence.length > 0 && evidence.every(ev => ev.source_type === 'صوت الأسرة');
+      const hasContext = evidence.some(ev => ev.context && ev.context.environment);
+      const clearRelevance = evidence.length > 0 && evidence.every(ev => ev.concept_hint === concept && (ev.statement || '').trim().length > 15);
+      const minEvidence = evidence.length >= 2;
+      const multiSource = sourceTypes.length >= 2;
+
+      const conditions = {
+        multi_source: multiSource,
+        observable_context: hasContext,
+        clear_relevance: clearRelevance,
+        not_family_only: !allFamilyOnly,
+        min_evidence: minEvidence
+      };
+
+      const failReasons = [];
+      if (!multiSource) failReasons.push('مصدر واحد فقط');
+      if (!hasContext) failReasons.push('لا يوجد سياق بيئي محدد');
+      if (!clearRelevance) failReasons.push('الأدلة غير مرتبطة بوضوح');
+      if (allFamilyOnly) failReasons.push('جميع الأدلة من صوت الأسرة فقط — النتيجة ستكون provisional');
+      if (!minEvidence) failReasons.push('أدلة غير كافية (أقل من 2)');
+
+      let completionRecommendation = '';
+      if (!multiSource || allFamilyOnly) completionRecommendation = RECOMMENDATION_TEMPLATES.add_second_source;
+      else if (!hasContext) completionRecommendation = RECOMMENDATION_TEMPLATES.add_observation;
+      else if (!clearRelevance) completionRecommendation = RECOMMENDATION_TEMPLATES.clarify_statement;
+      else if (!minEvidence) completionRecommendation = RECOMMENDATION_TEMPLATES.add_second_evidence;
+
+      let verdict = 'ready';
+      if (!multiSource || !hasContext || !minEvidence) verdict = 'blocked';
+      else if (!clearRelevance || allFamilyOnly) verdict = 'provisional';
+      else if ([multiSource, hasContext, clearRelevance, !allFamilyOnly, minEvidence].filter(Boolean).length < 5) verdict = 'provisional';
+
+      if (multiSource && hasContext && clearRelevance && minEvidence && allFamilyOnly) verdict = 'provisional';
+      if (multiSource && hasContext && clearRelevance && minEvidence && !allFamilyOnly) verdict = 'ready';
+
+      return {
+        verdict,
+        conditions,
+        evidence_count: evidence.length,
+        fail_reasons: failReasons,
+        completion_recommendation: completionRecommendation,
+        evidence
+      };
+    }
+
+    function runGate() {
+      const concepts = state.engineInput?.concepts_submitted || [];
+      state.gateResults = {};
+      concepts.forEach(concept => {
+        state.gateResults[concept] = assessConcept(concept);
+      });
+      renderSummary();
+      renderResultsTable();
+      buildExportJson();
+      summarySection.classList.remove('hidden');
+      resultsSection.classList.remove('hidden');
+      actionsPanel.classList.remove('hidden');
+      document.getElementById('runEngineBtn').disabled = summaryCounts().ready_count < 1;
+      document.getElementById('saveDraftBtn').disabled = false;
+    }
+
+    function summaryCounts() {
+      const results = Object.values(state.gateResults);
+      return {
+        ready_count: results.filter(r => r.verdict === 'ready').length,
+        provisional_count: results.filter(r => r.verdict === 'provisional').length,
+        blocked_count: results.filter(r => r.verdict === 'blocked').length
+      };
+    }
+
+    function renderSummary() {
+      const counts = summaryCounts();
+      const summaryGrid = document.getElementById('summaryGrid');
+      summaryGrid.innerHTML = `
+        <div class="summary-box ready"><strong>${counts.ready_count}</strong><div>READY</div><div class="muted">جاهز</div></div>
+        <div class="summary-box provisional"><strong>${counts.provisional_count}</strong><div>PROVISIONAL</div><div class="muted">مقبول بتحفظ</div></div>
+        <div class="summary-box blocked"><strong>${counts.blocked_count}</strong><div>BLOCKED</div><div class="muted">محجوب</div></div>
+      `;
+      const readyAlert = document.getElementById('readyAlert');
+      if (counts.ready_count < 5) {
+        readyAlert.textContent = '⚠ عدد المفاهيم الجاهزة أقل من 5 — يُنصح باستكمال الأدلة قبل تشغيل Silent Engine';
+        readyAlert.classList.remove('hidden');
+      } else {
+        readyAlert.classList.add('hidden');
+      }
+    }
+
+    function renderResultsTable() {
+      resultsTableBody.innerHTML = '';
+      Object.entries(state.gateResults).forEach(([concept, result]) => {
+        const tr = document.createElement('tr');
+        if (state.reviewedConcepts[concept]) tr.classList.add('reviewed');
+        const qualityIcons = result.evidence.map(ev => `<span class="quality ${ev.quality_badge}">${ev.quality_badge.toUpperCase()}</span>`).join(' ');
+        const checks = [
+          result.conditions.multi_source,
+          result.conditions.observable_context,
+          result.conditions.clear_relevance,
+          result.conditions.not_family_only,
+          result.conditions.min_evidence
+        ].map(pass => `<span class="check ${pass ? 'pass' : 'fail'}">${pass ? '✓' : '✕'}</span>`).join('');
+
+        tr.innerHTML = `
+          <td><strong>${concept}</strong></td>
+          <td>
+            <div><strong>${result.evidence_count}</strong> دليل</div>
+            <div class="inline-actions" style="margin-top:8px;">${qualityIcons || '<span class="muted">لا توجد أدلة مؤهلة</span>'}</div>
+          </td>
+          <td><div class="checks">${checks}</div></td>
+          <td><span class="verdict ${result.verdict}">${verdictLabel(result.verdict)}</span></td>
+          <td><button type="button" class="ghost-btn" data-concept="${concept}">عرض تفاصيل</button></td>
+        `;
+        resultsTableBody.appendChild(tr);
+      });
+      resultsTableBody.querySelectorAll('[data-concept]').forEach(btn => {
+        btn.addEventListener('click', () => openDrawer(btn.dataset.concept));
+      });
+    }
+
+    function openDrawer(concept) {
+      state.selectedConcept = concept;
+      const result = state.gateResults[concept];
+      document.getElementById('drawerTitle').textContent = concept;
+      document.getElementById('drawerIntro').innerHTML = `الحكم: <span class="status-chip ${result.verdict}">${verdictLabel(result.verdict)}</span>`;
+      document.getElementById('drawerRecommendation').textContent = result.completion_recommendation || 'لا توجد توصية استكمال — المفهوم جاهز للمعايرة.';
+
+      const condList = document.getElementById('drawerConditions');
+      condList.innerHTML = '';
+      const detailText = {
+        multi_source: result.conditions.multi_source
+          ? `✅ الشرط 1: مصدران — ${[...new Set(result.evidence.map(ev => ev.source_type).filter(Boolean))].join(' + ')}`
+          : '❌ الشرط 1: مصدر واحد فقط',
+        observable_context: result.conditions.observable_context
+          ? `✅ الشرط 2: يوجد سياق بيئي محدد`
+          : '❌ الشرط 2: لا يوجد سياق بيئي محدد',
+        clear_relevance: result.conditions.clear_relevance
+          ? '✅ الشرط 3: الأدلة مرتبطة بوضوح بالمفهوم'
+          : '❌ الشرط 3: الأدلة غير مرتبطة بوضوح',
+        not_family_only: result.conditions.not_family_only
+          ? '✅ الشرط 4: ليست كل الأدلة من صوت الأسرة'
+          : '❌ الشرط 4: جميع الأدلة من صوت الأسرة فقط',
+        min_evidence: result.conditions.min_evidence
+          ? '✅ الشرط 5: يوجد حد أدنى كافٍ من الأدلة'
+          : '❌ الشرط 5: أدلة غير كافية (أقل من 2)'
+      };
+      Object.entries(CONDITION_LABELS).forEach(([key, label]) => {
+        const item = document.createElement('div');
+        item.className = `detail-box condition-item ${result.conditions[key] ? 'pass' : 'fail'}`;
+        item.innerHTML = `<strong>${label}</strong><div class="muted">${detailText[key]}</div>`;
+        condList.appendChild(item);
+      });
+
+      const evList = document.getElementById('drawerEvidenceList');
+      evList.innerHTML = '';
+      result.evidence.forEach(ev => {
+        const el = document.createElement('div');
+        el.className = 'evidence-item';
+        const snippet = (ev.statement || '').slice(0, 80);
+        el.innerHTML = `
+          <div class="inline-actions" style="justify-content:space-between; margin-bottom:8px;">
+            <strong>${ev.evidence_id}</strong>
+            <span class="quality ${ev.quality_badge}">${ev.quality_badge.toUpperCase()}</span>
+          </div>
+          <div class="muted">${ev.source_type || '—'} ${ev.source_name ? '— ' + ev.source_name : ''}</div>
+          <div class="muted">${ev.context?.environment || '—'} ${ev.context?.routine ? '— ' + ev.context.routine : ''}</div>
+          <div style="margin:8px 0;">${snippet}${(ev.statement || '').length > 80 ? '...' : ''}</div>
+          <div class="muted">مستوى الاستقلالية: ${ev.independence_level || '—'}</div>
+        `;
+        evList.appendChild(el);
+      });
+      if (!result.evidence.length) {
+        evList.innerHTML = '<div class="muted">لا توجد أدلة مؤهلة لهذا المفهوم.</div>';
+      }
+
+      document.getElementById('drawerBackdrop').classList.add('show');
+      document.getElementById('detailDrawer').classList.add('show');
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawerBackdrop').classList.remove('show');
+      document.getElementById('detailDrawer').classList.remove('show');
+    }
+
+    function buildExportJson(status='ready_for_engine') {
+      const ready = [];
+      const provisional = [];
+      const blocked = [];
+      Object.entries(state.gateResults).forEach(([concept, result]) => {
+        if (result.verdict === 'ready') ready.push(concept);
+        else if (result.verdict === 'provisional') provisional.push(concept);
+        else blocked.push(concept);
+      });
+
+      const eligibleConcepts = [...ready, ...provisional];
+      const engineEligibleEvidence = (state.engineInput?.evidence_filtered || []).filter(ev =>
+        eligibleConcepts.includes(ev.concept_hint) && ['strong','usable'].includes(ev.quality_badge)
+      );
+
+      state.exportJson = {
+        section: 'readiness_gate_output',
+        status,
+        created_at: new Date().toISOString(),
+        learner_id: state.engineInput?.learner_id || 'pending',
+        gate_results: Object.fromEntries(
+          Object.entries(state.gateResults).map(([concept, result]) => [concept, {
+            verdict: result.verdict,
+            conditions: result.conditions,
+            evidence_count: result.evidence_count,
+            fail_reasons: result.fail_reasons,
+            completion_recommendation: result.completion_recommendation
+          }])
+        ),
+        summary: {
+          ready_count: ready.length,
+          provisional_count: provisional.length,
+          blocked_count: blocked.length,
+          concepts_for_engine: ready,
+          concepts_provisional: provisional,
+          concepts_blocked: blocked
+        },
+        engine_eligible_evidence: engineEligibleEvidence
+      };
+      jsonPreview.textContent = JSON.stringify(state.exportJson, null, 2);
+    }
+
+    function downloadJson(filename, payload) {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function loadJsonFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          if (data.section !== 'silent_engine_input') {
+            setError('الملف غير متوافق — يجب أن يكون مخرج المحطة الخامسة من منصة همم');
+            return;
+          }
+          clearError();
+          state.fileName = file.name;
+          state.engineInput = data;
+          renderFileMeta();
+          runGate();
+        } catch (e) {
+          setError('تعذر قراءة الملف — تأكد أنه JSON صحيح ومن مخرج المحطة الخامسة.');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    document.getElementById('loadFileBtn').addEventListener('click', () => jsonFileInput.click());
+    jsonFileInput.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) loadJsonFile(file);
+    });
+    document.getElementById('reloadBtn').addEventListener('click', () => jsonFileInput.click());
+    document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+    document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+    document.getElementById('markReviewedBtn').addEventListener('click', () => {
+      if (!state.selectedConcept) return;
+      state.reviewedConcepts[state.selectedConcept] = !state.reviewedConcepts[state.selectedConcept];
+      renderResultsTable();
+      closeDrawer();
+    });
+    document.getElementById('runEngineBtn').addEventListener('click', () => {
+      buildExportJson('ready_for_engine');
+      const filename = `himam_readiness_output_${new Date().toISOString().split('T')[0]}.json`;
+      downloadJson(filename, state.exportJson);
+    });
+    document.getElementById('saveDraftBtn').addEventListener('click', () => {
+      buildExportJson('pending_completion');
+      const filename = `himam_readiness_output_${new Date().toISOString().split('T')[0]}.json`;
+      downloadJson(filename, state.exportJson);
+    });
+  </script>
+</body>
+</html>

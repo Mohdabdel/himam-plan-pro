@@ -1,1 +1,1303 @@
-<!-- TO BE ADDED -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>همم — مسار التقييم المتكامل</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal: #1D9E75;
+      --teal-light: #E1F5EE;
+      --teal-dark: #085041;
+      --teal-mid: #5DCAA5;
+      --amber: #BA7517;
+      --amber-light: #FAEEDA;
+      --amber-dark: #633806;
+      --rose: #C0392B;
+      --rose-light: #FDECEA;
+      --blue: #1A6EBD;
+      --blue-light: #EAF2FB;
+      --bg: #F4F6F8;
+      --card: #FFFFFF;
+      --border: #E2E6EA;
+      --text: #24313A;
+      --muted: #6A7784;
+      --shadow: 0 14px 36px rgba(11, 38, 34, 0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      line-height: 1.65;
+    }
+    .app-shell {
+      max-width: 1450px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    h1,h2,h3,h4 { margin: 0; }
+    .topbar h1 {
+      color: var(--teal-dark);
+      margin-bottom: 8px;
+      font-size: 1.9rem;
+    }
+    .topbar p {
+      margin: 0;
+      max-width: 780px;
+      color: var(--muted);
+    }
+    .save-btn, .primary-btn, .secondary-btn, .ghost-btn, .danger-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+    .save-btn, .primary-btn { background: var(--teal); color: white; }
+    .secondary-btn { background: var(--amber-light); color: var(--amber-dark); }
+    .ghost-btn { background: var(--blue-light); color: var(--blue); }
+    .danger-btn { background: var(--rose-light); color: var(--rose); }
+    .save-btn[disabled], .primary-btn[disabled] {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .steps-bar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .step {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    .step.active {
+      background: var(--teal-light);
+      border-color: var(--teal-mid);
+      color: var(--teal-dark);
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.25fr .95fr;
+      gap: 22px;
+      align-items: start;
+    }
+    .stack {
+      display: grid;
+      gap: 22px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    .card h2 {
+      margin-bottom: 8px;
+      color: var(--teal-dark);
+      font-size: 1.2rem;
+    }
+    .card .intro {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .section-label {
+      font-weight: 700;
+      color: var(--teal-dark);
+      margin-bottom: 10px;
+      font-size: .98rem;
+    }
+    .tags-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font: inherit;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .chip.active {
+      background: var(--teal-light);
+      border-color: var(--teal-mid);
+      color: var(--teal-dark);
+      font-weight: 700;
+    }
+    .chip.amber {
+      background: var(--amber-light);
+      border-color: #e7d2a9;
+      color: var(--amber-dark);
+      font-weight: 700;
+    }
+
+    .field, .tool-domain-card {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .field label {
+      font-size: .92rem;
+      font-weight: 600;
+    }
+    .required::after { content: ' *'; color: var(--rose); }
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .grid-2, .grid-3, .grid-4 {
+      display: grid;
+      gap: 14px;
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .tool-meta, .tool-domain-card, .evidence-card, .mini-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fbfcfd;
+      padding: 14px;
+    }
+    .inline-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .domain-list, .evidence-list, .flags {
+      display: grid;
+      gap: 12px;
+    }
+    .evidence-list {
+      max-height: 1200px;
+      overflow: auto;
+      padding-left: 2px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: .9rem;
+      font-weight: 700;
+    }
+    .badge.strong { background: var(--teal-light); color: var(--teal-dark); }
+    .badge.usable { background: var(--blue-light); color: var(--blue); }
+    .badge.weak { background: var(--amber-light); color: var(--amber-dark); }
+    .badge.status-compliant { background: var(--teal-light); color: var(--teal-dark); }
+    .badge.status-partial { background: var(--blue-light); color: var(--blue); }
+    .badge.status-limited, .badge.status-unknown { background: var(--amber-light); color: var(--amber-dark); }
+
+    .reason, .muted { color: var(--muted); font-size: .9rem; }
+    .error-text { color: var(--rose); font-size: .84rem; min-height: 18px; }
+    .success-text { color: var(--teal-dark); font-size: .84rem; }
+
+    .alert {
+      border-radius: 16px;
+      padding: 14px 16px;
+      border: 1px solid transparent;
+    }
+    .alert.amber { background: var(--amber-light); color: var(--amber-dark); border-color: #ead8b4; }
+    .alert.blue { background: var(--blue-light); color: var(--blue); border-color: #d2e1f3; }
+    .alert.rose { background: var(--rose-light); color: var(--rose); border-color: #f4cfc9; }
+    .hidden { display: none !important; }
+
+    .coverage-row {
+      display: grid;
+      grid-template-columns: 130px 1fr 80px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .dot-track {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #d3dae0;
+    }
+    .dot.ready { background: var(--teal); }
+    .dot.partial { background: var(--blue); }
+    .dot.low { background: var(--amber); }
+
+    .summary-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .metric {
+      padding: 15px;
+      border: 1px solid var(--border);
+      background: #fbfcfd;
+      border-radius: 15px;
+    }
+    .metric strong {
+      display: block;
+      color: var(--teal-dark);
+      font-size: 1.45rem;
+      margin-bottom: 5px;
+    }
+
+    .export-box {
+      margin-top: 16px;
+      border-radius: 16px;
+      border: 1px solid #0f2131;
+      background: #10202f;
+      color: #dce7f1;
+      padding: 14px;
+      min-height: 220px;
+      max-height: 420px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      direction: ltr;
+      text-align: left;
+      font-size: .85rem;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 24, 37, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 999;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      width: min(980px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 26px 60px rgba(0,0,0,.18);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .criteria-list, .coverage-list, .final-actions-list {
+      display: grid;
+      gap: 10px;
+    }
+    .criteria-item, .coverage-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fbfcfd;
+    }
+    .criteria-item.pass { border-color: #bfe4d8; background: var(--teal-light); }
+    .criteria-item.fail { border-color: #ead8b4; background: var(--amber-light); }
+
+    @media (max-width: 1200px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 860px) {
+      .steps-bar, .grid-2, .grid-3, .grid-4, .summary-metrics { grid-template-columns: 1fr; }
+      .coverage-row { grid-template-columns: 1fr; }
+      .app-shell { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div>
+        <h1>مسار التقييم المتكامل — المحطة 5</h1>
+        <p>دمج سجل الأداة، تقرير الملاءمة والتغطية، إدخال الأدلة، ملخص التغطية، ومخرج الجاهزية في ملف واحد متراكم قابل للتغذية في Silent Engine.</p>
+      </div>
+      <button class="save-btn" id="saveFlowBtn">حفظ وفحص الجاهزية</button>
+    </div>
+
+    <div class="steps-bar">
+      <div class="step">1. الهوية</div>
+      <div class="step">2. PINS</div>
+      <div class="step">3. البيئات</div>
+      <div class="step">4. الأصوات</div>
+      <div class="step active">5. الأدلة</div>
+      <div class="step">6. الجاهزية</div>
+      <div class="step">7. المراجعة</div>
+    </div>
+
+    <div class="layout">
+      <div class="stack">
+        <section class="card">
+          <h2>ToolRegistry — سجل الأدوات</h2>
+          <p class="intro">اختر الأداة الرسمية الأساسية، ثم أضف النتائج على مستوى المجالات، وحدد المصادر التكميلية المستخدمة مع هذه المرحلة.</p>
+
+          <div class="section-label">الأداة الرسمية الأساسية (اختيار واحد فقط)</div>
+          <div class="tags-grid" id="primaryToolTags"></div>
+
+          <div id="primaryToolPanel" class="hidden">
+            <div class="tool-meta" style="margin-bottom:14px;">
+              <div class="grid-3">
+                <div class="field">
+                  <label class="required">تاريخ التطبيق</label>
+                  <input type="date" id="toolAppliedDate" />
+                </div>
+                <div class="field">
+                  <label>اسم المطبِّق (اختياري)</label>
+                  <input type="text" id="toolAppliedBy" placeholder="مثال: الأخصائية نورة" />
+                </div>
+                <div class="field">
+                  <label>الأداة المختارة</label>
+                  <input type="text" id="selectedToolName" readonly />
+                </div>
+              </div>
+            </div>
+
+            <div class="inline-actions" style="margin-bottom:10px;">
+              <div>
+                <div class="section-label" style="margin-bottom:0;">المجالات والنتائج</div>
+                <div class="muted">يجب أن يكون مجموع نجاح + ناشئة + عدم نجاح = 100% لكل مجال.</div>
+              </div>
+              <button type="button" class="ghost-btn hidden" id="addDomainBtn">إضافة مجال يدوي</button>
+            </div>
+            <div class="domain-list" id="domainsList"></div>
+            <div id="domainValidationMessage" class="error-text" style="margin-top:8px;"></div>
+            <div class="inline-actions" style="justify-content:flex-start; margin-top:12px;">
+              <button type="button" class="primary-btn" id="generateToolReportBtn">إنتاج التقرير المختصر للأداة</button>
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top:20px;">المصادر التكميلية (متعددة)</div>
+          <div class="tags-grid" id="supplementaryTags"></div>
+        </section>
+
+        <section class="card hidden" id="evidenceSection">
+          <div id="missingConceptBanner" class="alert amber hidden" style="margin-bottom:16px;"></div>
+          <div class="inline-actions" style="margin-bottom:12px;">
+            <div>
+              <h2 style="margin-bottom:4px;">EvidenceEntryForm — إدخال الأدلة</h2>
+              <p class="intro" style="margin-bottom:0;">أدخل الأدلة المنظمة. تُحتسب شارة الجودة لحظيًا، وتُبرز المفاهيم الناقصة أولًا داخل قائمة المفهوم.</p>
+            </div>
+            <button type="button" class="primary-btn" id="addEvidenceBtn">إضافة دليل جديد</button>
+          </div>
+          <div class="evidence-list" id="evidenceList"></div>
+        </section>
+      </div>
+
+      <aside class="stack">
+        <section class="card">
+          <h2>Coverage Summary — ملخص التغطية</h2>
+          <p class="intro">يقرأ من تقرير الأداة + الأدلة معًا، ويحدد المفاهيم الجاهزة والمفاهيم التي تحتاج استكمالًا قبل تشغيل المحرك.</p>
+          <div class="summary-metrics">
+            <div class="metric"><strong id="totalEvidence">0</strong><span>إجمالي الأدلة</span></div>
+            <div class="metric"><strong id="strongCount">0</strong><span>STRONG</span></div>
+            <div class="metric"><strong id="usableCount">0</strong><span>USABLE</span></div>
+            <div class="metric"><strong id="weakCount">0</strong><span>WEAK</span></div>
+          </div>
+          <div id="coverageRows"></div>
+          <div class="flags" id="readinessFlags"></div>
+        </section>
+
+        <section class="card">
+          <h2>JSON Preview</h2>
+          <p class="intro">المخرج النهائي الشامل لمسار التقييم، مع readiness_gate_input الناتج عن الدمج بين تقرير الأداة والأدلة.</p>
+          <div class="export-box" id="exportPreview">لم يتم إنشاء JSON بعد.</div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="toolReportModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2 style="color: var(--teal-dark); margin-bottom:6px;">تقرير أداة التقييم المختصر</h2>
+          <div class="muted">تقييم ثابت وفق معايير AATA/DCDT وتغطية المفاهيم العشرة من النتائج.</div>
+        </div>
+        <button type="button" class="danger-btn" id="closeToolReportModal">إغلاق</button>
+      </div>
+      <div class="mini-box" style="margin-bottom:14px;">
+        <div class="inline-actions" style="justify-content:space-between;">
+          <div>
+            <div class="section-label" style="margin-bottom:4px;" id="reportToolName">—</div>
+            <div class="muted" id="reportToolStatusText">—</div>
+          </div>
+          <div class="badge status-unknown" id="reportStatusBadge">unknown</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <h3 style="margin-bottom:10px; color:var(--teal-dark);">مطابقة معايير AATA/DCDT</h3>
+          <div class="criteria-list" id="criteriaList"></div>
+        </div>
+        <div>
+          <h3 style="margin-bottom:10px; color:var(--teal-dark);">تغطية المفاهيم</h3>
+          <div class="coverage-list" id="toolCoverageList"></div>
+        </div>
+      </div>
+      <div class="mini-box" style="margin-top:16px;">
+        <div class="section-label" style="margin-bottom:6px;">التوصية الثابتة</div>
+        <div id="toolRecommendationText"></div>
+      </div>
+      <div class="inline-actions" style="justify-content:flex-start; margin-top:16px;">
+        <button type="button" class="primary-btn" id="continueToEvidenceBtn">المتابعة إلى إدخال الأدلة</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="finalModal">
+    <div class="modal" style="width:min(760px,100%);">
+      <div class="modal-header">
+        <div>
+          <h2 style="color: var(--teal-dark); margin-bottom:6px;">حفظ وفحص الجاهزية</h2>
+          <div class="muted">تم إنشاء المخرج الشامل. اختر الخطوة التالية وفق جاهزية المفاهيم.</div>
+        </div>
+      </div>
+      <div class="mini-box" style="margin-bottom:14px;">
+        <div id="finalRecommendedAction"></div>
+      </div>
+      <div class="final-actions-list">
+        <button type="button" class="primary-btn" id="runEngineBtn">تشغيل Silent Engine على المفاهيم الجاهزة فقط</button>
+        <button type="button" class="secondary-btn" id="completeEvidenceBtn">استكمال الأدلة الناقصة أولاً</button>
+        <button type="button" class="ghost-btn" id="saveDraftBtn">حفظ كمسودة والمتابعة لاحقاً</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const PRIMARY_TOOLS = ['TTAP-3', 'Vineland-3', 'AEPS-3', 'ABAS-3', 'CARS-2', 'Brigance', 'PLS-5'];
+    const SUPPLEMENTARY_SOURCES = ['ملاحظة وظيفية', 'استمارة صوت المتعلم', 'استمارة صوت الأسرة', 'تقرير مصير', 'تحليل بيئي', 'قائمة مهارات حياة', 'تقرير علاجي', 'سجلات سابقة'];
+    const SOURCE_TYPES = ['أداة رسمية', 'ملاحظة وظيفية', 'صوت الأسرة', 'صوت المتعلم', 'تقرير فريق'];
+    const ENVIRONMENTS = ['البيت', 'المركز', 'المجتمع', 'العمل'];
+    const ROUTINES = ['', 'وقت الغداء', 'الاستيقاظ', 'الانتقال', 'التجمع الأسري', 'نشاط مجتمعي', 'جلسة تدريب', 'زيارة علاجية'];
+    const INDEPENDENCE_LEVELS = ['بدون دعم', 'تذكير بسيط', 'دعم متوسط', 'دعم مكثف'];
+    const REPETITIONS = ['', 'مرة واحدة', 'مؤكد مرتين', 'متعدد المصادر'];
+    const CONCEPTS = ['SAFETY', 'SELF_DET', 'COMM', 'SELF_CARE', 'MOBILITY', 'SOCIAL', 'COMMUNITY', 'HEALTH', 'ACADEMIC', 'LEARNING_TECH'];
+    const TTAP_DOMAINS = [
+      { domain_code: 'VS', domain_name: 'المهارات البصرية' },
+      { domain_code: 'VB', domain_name: 'السلوك اللفظي' },
+      { domain_code: 'IF', domain_name: 'الوظائف المستقلة' },
+      { domain_code: 'LS', domain_name: 'مهارات الترفيه' },
+      { domain_code: 'FC', domain_name: 'الإدراك الوظيفي' },
+      { domain_code: 'IB', domain_name: 'سلوكيات العمل' }
+    ];
+
+    const TOOL_ASSESSMENT_CRITERIA = {
+      'TTAP-3': {
+        age_appropriate: true,
+        transition_focus: true,
+        multi_environment: true,
+        multi_source: true,
+        observable: true,
+        concept_coverage: 10,
+        covered_concepts: [...CONCEPTS],
+        compliance_status: 'compliant'
+      },
+      'Vineland-3': {
+        age_appropriate: true,
+        transition_focus: true,
+        multi_environment: false,
+        multi_source: true,
+        observable: true,
+        concept_coverage: 6,
+        covered_concepts: ['COMM','SELF_CARE','MOBILITY','SOCIAL','HEALTH','ACADEMIC'],
+        compliance_status: 'partial'
+      },
+      'AEPS-3': {
+        age_appropriate: false,
+        transition_focus: false,
+        multi_environment: true,
+        multi_source: true,
+        observable: true,
+        concept_coverage: 5,
+        covered_concepts: ['COMM','SELF_CARE','MOBILITY','SOCIAL','ACADEMIC'],
+        compliance_status: 'limited'
+      },
+      'ABAS-3': {
+        age_appropriate: true,
+        transition_focus: true,
+        multi_environment: false,
+        multi_source: true,
+        observable: true,
+        concept_coverage: 7,
+        covered_concepts: ['SELF_CARE','COMM','SOCIAL','HEALTH','COMMUNITY','MOBILITY','ACADEMIC'],
+        compliance_status: 'partial'
+      },
+      'Brigance': {
+        age_appropriate: true,
+        transition_focus: true,
+        multi_environment: false,
+        multi_source: false,
+        observable: true,
+        concept_coverage: 5,
+        covered_concepts: ['ACADEMIC','COMM','SELF_CARE','LEARNING_TECH','HEALTH'],
+        compliance_status: 'partial'
+      },
+      'أداة غير موجودة في القائمة': {
+        compliance_status: 'unknown'
+      }
+    };
+
+    const DOMAIN_CONCEPT_MAP = {
+      'VS': ['COMM', 'ACADEMIC', 'LEARNING_TECH'],
+      'VB': ['COMM', 'SELF_DET', 'SOCIAL'],
+      'IF': ['SELF_CARE', 'HEALTH', 'SAFETY'],
+      'LS': ['SOCIAL', 'COMMUNITY', 'LEARNING_TECH'],
+      'FC': ['ACADEMIC', 'SELF_DET', 'SAFETY'],
+      'IB': ['COMMUNITY', 'ACADEMIC', 'SELF_DET'],
+      'DEFAULT_MANUAL': ['COMM', 'SELF_CARE', 'ACADEMIC']
+    };
+
+    const state = {
+      tool_registry: {
+        primary_tool: '',
+        applied_date: '',
+        applied_by: '',
+        domains: [],
+        supplementary_sources: []
+      },
+      tool_assessment: null,
+      evidence_items: [],
+      coverage_summary: null,
+      readiness_gate_input: null,
+      final_export: null
+    };
+
+    const primaryToolTags = document.getElementById('primaryToolTags');
+    const supplementaryTags = document.getElementById('supplementaryTags');
+    const primaryToolPanel = document.getElementById('primaryToolPanel');
+    const selectedToolName = document.getElementById('selectedToolName');
+    const domainsList = document.getElementById('domainsList');
+    const evidenceSection = document.getElementById('evidenceSection');
+    const evidenceList = document.getElementById('evidenceList');
+    const missingConceptBanner = document.getElementById('missingConceptBanner');
+    const coverageRows = document.getElementById('coverageRows');
+    const readinessFlagsEl = document.getElementById('readinessFlags');
+    const exportPreview = document.getElementById('exportPreview');
+    const toolReportModal = document.getElementById('toolReportModal');
+    const finalModal = document.getElementById('finalModal');
+
+    function buildOptions(items, selectedValue) {
+      return items.map(item => `<option value="${item}" ${item === selectedValue ? 'selected' : ''}>${item || 'اختر'}</option>`).join('');
+    }
+
+    function escapeHtml(value='') {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function renderPrimaryTools() {
+      primaryToolTags.innerHTML = '';
+      PRIMARY_TOOLS.forEach(tool => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `chip ${state.tool_registry.primary_tool === tool ? 'active' : ''}`;
+        btn.textContent = tool;
+        btn.addEventListener('click', () => selectPrimaryTool(tool));
+        primaryToolTags.appendChild(btn);
+      });
+    }
+
+    function renderSupplementarySources() {
+      supplementaryTags.innerHTML = '';
+      SUPPLEMENTARY_SOURCES.forEach(source => {
+        const active = state.tool_registry.supplementary_sources.includes(source);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `chip ${active ? 'active' : ''}`;
+        btn.textContent = source;
+        btn.addEventListener('click', () => toggleSupplementarySource(source));
+        supplementaryTags.appendChild(btn);
+      });
+    }
+
+    function selectPrimaryTool(tool) {
+      state.tool_registry.primary_tool = tool;
+      state.tool_registry.applied_date = '';
+      state.tool_registry.applied_by = '';
+      state.tool_assessment = null;
+      document.getElementById('toolAppliedDate').value = '';
+      document.getElementById('toolAppliedBy').value = '';
+      selectedToolName.value = tool;
+      primaryToolPanel.classList.remove('hidden');
+      document.getElementById('addDomainBtn').classList.toggle('hidden', tool === 'TTAP-3');
+      state.tool_registry.domains = tool === 'TTAP-3'
+        ? TTAP_DOMAINS.map(d => ({ ...d, success_pct: '', emerging_pct: '', fail_pct: '' }))
+        : [{ domain_code: '', domain_name: '', success_pct: '', emerging_pct: '', fail_pct: '' }];
+      renderPrimaryTools();
+      renderDomains();
+      updateCoverageAndExport();
+    }
+
+    function toggleSupplementarySource(source) {
+      const list = state.tool_registry.supplementary_sources;
+      const idx = list.indexOf(source);
+      if (idx >= 0) list.splice(idx, 1);
+      else list.push(source);
+      renderSupplementarySources();
+      updateCoverageAndExport();
+    }
+
+    function renderDomains() {
+      domainsList.innerHTML = '';
+      state.tool_registry.domains.forEach((domain, index) => {
+        const card = document.createElement('div');
+        card.className = 'tool-domain-card';
+        const total = sumPercent(domain);
+        const totalOk = total === 100;
+        card.innerHTML = `
+          <div class="inline-actions" style="align-items:flex-start;">
+            <div>
+              <div class="section-label" style="margin-bottom:4px;">المجال ${index + 1}</div>
+              <div class="muted">يجب أن يكون مجموع النسب 100% تمامًا.</div>
+            </div>
+            ${state.tool_registry.primary_tool === 'TTAP-3' ? '' : `<button type="button" class="danger-btn" data-remove-domain="${index}">حذف المجال</button>`}
+          </div>
+          <div class="grid-2" style="margin-top:12px;">
+            <div class="field">
+              <label class="required">رمز المجال</label>
+              <input ${state.tool_registry.primary_tool === 'TTAP-3' ? 'readonly' : ''} value="${escapeHtml(domain.domain_code)}" data-domain-index="${index}" data-field="domain_code" placeholder="مثال: VS أو D1" />
+            </div>
+            <div class="field">
+              <label class="required">اسم المجال</label>
+              <input ${state.tool_registry.primary_tool === 'TTAP-3' ? 'readonly' : ''} value="${escapeHtml(domain.domain_name)}" data-domain-index="${index}" data-field="domain_name" placeholder="اسم المجال" />
+            </div>
+          </div>
+          <div class="grid-3" style="margin-top:12px;">
+            <div class="field">
+              <label class="required">نجاح %</label>
+              <input type="number" min="0" max="100" value="${domain.success_pct}" data-domain-index="${index}" data-field="success_pct" />
+            </div>
+            <div class="field">
+              <label class="required">ناشئة %</label>
+              <input type="number" min="0" max="100" value="${domain.emerging_pct}" data-domain-index="${index}" data-field="emerging_pct" />
+            </div>
+            <div class="field">
+              <label class="required">عدم نجاح %</label>
+              <input type="number" min="0" max="100" value="${domain.fail_pct}" data-domain-index="${index}" data-field="fail_pct" />
+            </div>
+          </div>
+          <div class="${totalOk ? 'success-text' : 'error-text'}" style="margin-top:8px;">المجموع الحالي: ${isNaN(total) ? 0 : total}% ${totalOk ? '— صالح' : '— يجب أن يساوي 100%'}</div>
+        `;
+        domainsList.appendChild(card);
+      });
+
+      domainsList.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', onDomainFieldChange);
+      });
+      domainsList.querySelectorAll('[data-remove-domain]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.tool_registry.domains.splice(Number(btn.dataset.removeDomain), 1);
+          renderDomains();
+          updateCoverageAndExport();
+        });
+      });
+      validateDomains();
+    }
+
+    function onDomainFieldChange(e) {
+      const index = Number(e.target.dataset.domainIndex);
+      const field = e.target.dataset.field;
+      let value = e.target.value;
+      if (['success_pct','emerging_pct','fail_pct'].includes(field)) {
+        value = value === '' ? '' : Math.max(0, Math.min(100, Number(value)));
+      }
+      state.tool_registry.domains[index][field] = value;
+      renderDomains();
+      updateCoverageAndExport();
+    }
+
+    function addManualDomain() {
+      state.tool_registry.domains.push({ domain_code: '', domain_name: '', success_pct: '', emerging_pct: '', fail_pct: '' });
+      renderDomains();
+    }
+
+    function sumPercent(domain) {
+      return Number(domain.success_pct || 0) + Number(domain.emerging_pct || 0) + Number(domain.fail_pct || 0);
+    }
+
+    function validateDomains() {
+      const tool = state.tool_registry.primary_tool;
+      let message = '';
+      if (!tool) {
+        document.getElementById('domainValidationMessage').textContent = '';
+        return false;
+      }
+      const invalid = state.tool_registry.domains.some(domain => {
+        if (!domain.domain_code || !domain.domain_name) return true;
+        return sumPercent(domain) !== 100;
+      });
+      if (invalid) message = 'لا يمكن متابعة التقرير قبل اكتمال كل المجالات وأن يكون مجموع النسب 100% لكل مجال.';
+      document.getElementById('domainValidationMessage').textContent = message;
+      return !invalid && state.tool_registry.domains.length > 0;
+    }
+
+    function getCriteriaConfig(toolName) {
+      return TOOL_ASSESSMENT_CRITERIA[toolName] || TOOL_ASSESSMENT_CRITERIA['أداة غير موجودة في القائمة'];
+    }
+
+    function evaluateToolAssessment() {
+      if (!state.tool_registry.primary_tool || !validateDomains()) return null;
+      const toolName = state.tool_registry.primary_tool;
+      const config = getCriteriaConfig(toolName);
+      const criteriaKeys = ['age_appropriate','transition_focus','multi_environment','multi_source','observable'];
+      let passed = 0;
+      const flags = [];
+      criteriaKeys.forEach(key => {
+        const val = config[key];
+        if (val === true) passed += 1;
+        else if (val === false) flags.push(`${key}: false`);
+      });
+      if (typeof config.concept_coverage === 'number' && config.concept_coverage >= 5) passed += 1;
+      else if (typeof config.concept_coverage === 'number') flags.push('concept_coverage: low');
+      else flags.push('concept_coverage: unknown');
+
+      const conceptCoverage = Object.fromEntries(CONCEPTS.map(c => [c, 'missing']));
+      const coveredConcepts = new Set(config.covered_concepts || []);
+      const partialConcepts = new Set();
+
+      state.tool_registry.domains.forEach(domain => {
+        const hasData = Number(domain.success_pct || 0) > 0 || Number(domain.emerging_pct || 0) > 0;
+        const linkedConcepts = DOMAIN_CONCEPT_MAP[domain.domain_code] || DOMAIN_CONCEPT_MAP.DEFAULT_MANUAL;
+        linkedConcepts.forEach(concept => {
+          if (hasData) {
+            if (Number(domain.success_pct || 0) > 0 || Number(domain.emerging_pct || 0) >= 15) {
+              conceptCoverage[concept] = 'covered';
+            } else if (conceptCoverage[concept] !== 'covered') {
+              conceptCoverage[concept] = 'partial';
+              partialConcepts.add(concept);
+            }
+          }
+        });
+      });
+
+      coveredConcepts.forEach(concept => {
+        if (conceptCoverage[concept] === 'missing') conceptCoverage[concept] = 'partial';
+      });
+
+      const missingConcepts = CONCEPTS.filter(c => conceptCoverage[c] === 'missing');
+      const coveredCount = CONCEPTS.filter(c => conceptCoverage[c] === 'covered').length;
+      const criteriaPassed = passed;
+      const criteriaTotal = 6;
+
+      let recommendation_level = 4;
+      let recommendation_text = 'هذه الأداة غير مصممة للتقييم الانتقالي. نتائجها غير قابلة للمعايرة منفردةً.';
+      if (criteriaPassed >= 5 && coveredCount >= 8) {
+        recommendation_level = 1;
+        recommendation_text = 'الأداة ملائمة للتقييم الانتقالي وتغطي المفاهيم الأساسية. يمكن المتابعة لإدخال الأدلة.';
+      } else if (criteriaPassed >= 5 && coveredCount >= 5) {
+        const suggestedSource = missingConcepts.includes('SELF_DET') || missingConcepts.includes('COMMUNITY') ? 'تقرير مصير' : 'ملاحظة وظيفية';
+        recommendation_level = 2;
+        recommendation_text = `الأداة ملائمة لكن تحتاج مصدراً تكميلياً لـ ${missingConcepts.join('، ')}. يُقترح: ${suggestedSource}.`;
+      } else if (criteriaPassed >= 3) {
+        recommendation_level = 3;
+        recommendation_text = 'تنبيه — الأداة لا تستوفي كل شروط AATA. نتائجها provisional وتحتاج تعزيزاً بأدوات أخرى.';
+      }
+
+      const assessment = {
+        aata_compliance: {
+          criteria_passed: criteriaPassed,
+          criteria_total: criteriaTotal,
+          status: config.compliance_status || 'unknown',
+          flags
+        },
+        concept_coverage: conceptCoverage,
+        missing_concepts: missingConcepts,
+        recommendation_level,
+        recommendation_text
+      };
+      state.tool_assessment = assessment;
+      return assessment;
+    }
+
+    function showToolReportModal() {
+      const assessment = evaluateToolAssessment();
+      if (!assessment) {
+        alert('أكمل الأداة والمجالات أولًا وتأكد أن كل مجال مجموع نسبه 100%.');
+        return;
+      }
+      document.getElementById('reportToolName').textContent = state.tool_registry.primary_tool;
+      document.getElementById('reportToolStatusText').textContent = `اجتازت ${assessment.aata_compliance.criteria_passed} من ${assessment.aata_compliance.criteria_total} معايير.`;
+      const badge = document.getElementById('reportStatusBadge');
+      badge.textContent = assessment.aata_compliance.status;
+      badge.className = `badge status-${assessment.aata_compliance.status}`;
+
+      const labels = {
+        age_appropriate: 'الملاءمة العمرية',
+        transition_focus: 'التركيز الانتقالي',
+        multi_environment: 'تعدد البيئات',
+        multi_source: 'تعدد المصادر',
+        observable: 'قابلية الملاحظة',
+        concept_coverage: 'التغطية المفاهيمية'
+      };
+      const cfg = getCriteriaConfig(state.tool_registry.primary_tool);
+      const criteriaList = document.getElementById('criteriaList');
+      criteriaList.innerHTML = '';
+      Object.entries(labels).forEach(([key, label]) => {
+        const pass = key === 'concept_coverage' ? (cfg.concept_coverage || 0) >= 5 : cfg[key] === true;
+        const item = document.createElement('div');
+        item.className = `criteria-item ${pass ? 'pass' : 'fail'}`;
+        item.innerHTML = `<strong>${label}</strong><div class="muted">${pass ? 'مستوفى' : 'غير مستوفى'}</div>`;
+        criteriaList.appendChild(item);
+      });
+
+      const toolCoverageList = document.getElementById('toolCoverageList');
+      toolCoverageList.innerHTML = '';
+      CONCEPTS.forEach(concept => {
+        const status = assessment.concept_coverage[concept];
+        const item = document.createElement('div');
+        item.className = 'coverage-item';
+        item.innerHTML = `<div class="inline-actions"><strong>${concept}</strong><span class="chip ${status === 'missing' ? 'amber' : status === 'covered' ? 'active' : ''}">${status === 'covered' ? 'مغطى' : status === 'partial' ? 'ناقص' : 'غائب'}</span></div>`;
+        toolCoverageList.appendChild(item);
+      });
+
+      document.getElementById('toolRecommendationText').textContent = assessment.recommendation_text;
+      toolReportModal.classList.add('show');
+      updateCoverageAndExport();
+    }
+
+    function closeToolReportAndContinue() {
+      toolReportModal.classList.remove('show');
+      evidenceSection.classList.remove('hidden');
+      ensureEvidenceItem();
+      renderEvidenceList();
+      renderMissingConceptBanner();
+      updateCoverageAndExport();
+    }
+
+    function createEvidenceItem() {
+      return {
+        evidence_id: `EV-${String(state.evidence_items.length + 1).padStart(3, '0')}`,
+        source_type: '',
+        source_name: '',
+        date: '',
+        context: { environment: '', routine: '' },
+        statement: '',
+        independence_level: '',
+        concept_hint: '',
+        repetition: '',
+        confidence_note: '',
+        quality_badge: 'weak',
+        quality_reason: 'ضعيف — المصدر أو السياق أو التاريخ غير مكتمل'
+      };
+    }
+
+    function ensureEvidenceItem() {
+      if (state.evidence_items.length === 0) state.evidence_items.push(createEvidenceItem());
+    }
+
+    function conceptOptions(selected) {
+      const missing = state.tool_assessment?.missing_concepts || [];
+      const prioritized = [...missing, ...CONCEPTS.filter(c => !missing.includes(c))];
+      return [''].concat(prioritized).map(concept => {
+        if (!concept) return `<option value="">اختر المفهوم</option>`;
+        const isMissing = missing.includes(concept);
+        return `<option value="${concept}" ${selected === concept ? 'selected' : ''}>${isMissing ? '⚠ ' : ''}${concept}</option>`;
+      }).join('');
+    }
+
+    function renderEvidenceList() {
+      evidenceList.innerHTML = '';
+      state.evidence_items.forEach((item, index) => {
+        lintEvidence(index);
+        const card = document.createElement('div');
+        card.className = 'evidence-card';
+        card.innerHTML = `
+          <div class="inline-actions" style="align-items:flex-start; margin-bottom:14px;">
+            <div>
+              <div class="section-label" style="margin-bottom:4px;">${item.evidence_id}</div>
+              <div class="muted">أدخل الملاحظة أو القول كما ورد أو لوحظ، دون تلخيص إنشائي.</div>
+            </div>
+            <div>
+              <div class="badge ${item.quality_badge}">${item.quality_badge.toUpperCase()}</div>
+              <div class="muted" style="margin-top:6px;">${item.quality_reason}</div>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field">
+              <label class="required">نوع المصدر</label>
+              <select data-index="${index}" data-field="source_type">${buildOptions(['', ...SOURCE_TYPES], item.source_type)}</select>
+              <div class="error-text">${validateEvidence(item).source_type || ''}</div>
+            </div>
+            <div class="field">
+              <label>اسم المصدر</label>
+              <input data-index="${index}" data-field="source_name" value="${escapeHtml(item.source_name)}" placeholder="مثال: المختص أحمد" />
+            </div>
+            <div class="field">
+              <label class="required">التاريخ التقريبي</label>
+              <input type="date" data-index="${index}" data-field="date" value="${item.date}" />
+              <div class="error-text">${validateEvidence(item).date || ''}</div>
+            </div>
+            <div class="field">
+              <label class="required">البيئة</label>
+              <select data-index="${index}" data-field="context.environment">${buildOptions(['', ...ENVIRONMENTS], item.context.environment)}</select>
+              <div class="error-text">${validateEvidence(item)['context.environment'] || ''}</div>
+            </div>
+            <div class="field">
+              <label>الروتين</label>
+              <select data-index="${index}" data-field="context.routine">${buildOptions(ROUTINES, item.context.routine)}</select>
+            </div>
+            <div class="field">
+              <label>مستوى الاستقلالية</label>
+              <select data-index="${index}" data-field="independence_level">${buildOptions(['', ...INDEPENDENCE_LEVELS], item.independence_level)}</select>
+            </div>
+            <div class="field">
+              <label class="required">المفهوم المرتبط</label>
+              <select data-index="${index}" data-field="concept_hint">${conceptOptions(item.concept_hint)}</select>
+            </div>
+            <div class="field">
+              <label>التكرار</label>
+              <select data-index="${index}" data-field="repetition">${buildOptions(REPETITIONS, item.repetition)}</select>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px;">
+            <label class="required">ما الذي لوحظ أو قيل بالضبط</label>
+            <textarea data-index="${index}" data-field="statement" placeholder="مثال: قال المتعلم ... أو لوحظ أنه ...">${escapeHtml(item.statement)}</textarea>
+            <div class="error-text">${validateEvidence(item).statement || ''}</div>
+          </div>
+          <div class="field" style="margin-top:14px;">
+            <label>ملاحظة الثقة</label>
+            <textarea style="min-height:80px;" data-index="${index}" data-field="confidence_note">${escapeHtml(item.confidence_note)}</textarea>
+          </div>
+          <div class="inline-actions" style="margin-top:14px; justify-content:space-between;">
+            <button type="button" class="danger-btn" data-delete-evidence="${index}">حذف الدليل</button>
+            <button type="button" class="ghost-btn" data-duplicate-evidence="${index}">نسخ البطاقة</button>
+          </div>
+        `;
+        evidenceList.appendChild(card);
+      });
+
+      evidenceList.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('input', onEvidenceFieldChange);
+        field.addEventListener('change', onEvidenceFieldChange);
+      });
+      evidenceList.querySelectorAll('[data-delete-evidence]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.evidence_items.splice(Number(btn.dataset.deleteEvidence), 1);
+          reindexEvidence();
+          if (state.evidence_items.length === 0) ensureEvidenceItem();
+          renderEvidenceList();
+        });
+      });
+      evidenceList.querySelectorAll('[data-duplicate-evidence]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.duplicateEvidence);
+          const clone = JSON.parse(JSON.stringify(state.evidence_items[i]));
+          state.evidence_items.splice(i + 1, 0, clone);
+          reindexEvidence();
+          renderEvidenceList();
+        });
+      });
+      updateCoverageAndExport();
+    }
+
+    function onEvidenceFieldChange(e) {
+      const index = Number(e.target.dataset.index);
+      const field = e.target.dataset.field;
+      if (field.startsWith('context.')) {
+        state.evidence_items[index].context[field.split('.')[1]] = e.target.value;
+      } else {
+        state.evidence_items[index][field] = e.target.value;
+      }
+      lintEvidence(index);
+      renderEvidenceList();
+    }
+
+    function reindexEvidence() {
+      state.evidence_items.forEach((item, i) => item.evidence_id = `EV-${String(i + 1).padStart(3, '0')}`);
+    }
+
+    function validateEvidence(item) {
+      return {
+        source_type: item.source_type ? '' : 'نوع المصدر إلزامي',
+        date: item.date ? '' : 'التاريخ إلزامي',
+        'context.environment': item.context.environment ? '' : 'البيئة إلزامية',
+        statement: item.statement.trim() ? '' : 'نص الدليل إلزامي'
+      };
+    }
+
+    function lintEvidence(index) {
+      const item = state.evidence_items[index];
+      const statementLength = item.statement.trim().length;
+      const hasMissingCore = !item.source_type || !item.date || !item.context.environment;
+      if (hasMissingCore) {
+        item.quality_badge = 'weak';
+        item.quality_reason = !item.context.environment ? 'ضعيف — السياق غير محدد' : !item.source_type ? 'ضعيف — المصدر غير محدد' : 'ضعيف — التاريخ غير محدد';
+        return;
+      }
+      if (statementLength < 10) {
+        item.quality_badge = 'weak';
+        item.quality_reason = 'ضعيف — الوصف عام وغير قابل للملاحظة';
+        return;
+      }
+      const sourceSignatureSet = new Set();
+      state.evidence_items.forEach(ev => {
+        if (ev.concept_hint && ev.concept_hint === item.concept_hint && ev.source_type) {
+          sourceSignatureSet.add(`${ev.source_type}::${ev.source_name || ''}`);
+        }
+      });
+      const multiSource = sourceSignatureSet.size >= 2 || item.repetition === 'متعدد المصادر';
+      const naturalContext = item.context.environment === 'البيت' || item.context.environment === 'المجتمع';
+      if (multiSource && item.independence_level && statementLength > 20 && item.context.environment) {
+        item.quality_badge = 'strong';
+        item.quality_reason = naturalContext ? 'قوي — مصدران + بيئة طبيعية' : 'قوي — مصدران + استقلالية واضحة';
+        return;
+      }
+      if (item.source_type && item.source_name && item.date && item.context.environment && statementLength > 10) {
+        item.quality_badge = 'usable';
+        item.quality_reason = 'مقبول — مصدر واحد موثق';
+        return;
+      }
+      item.quality_badge = 'weak';
+      item.quality_reason = 'ضعيف — الوصف عام وغير قابل للملاحظة';
+    }
+
+    function renderMissingConceptBanner() {
+      const missing = state.tool_assessment?.missing_concepts || [];
+      if (!missing.length) {
+        missingConceptBanner.classList.add('hidden');
+        missingConceptBanner.textContent = '';
+        return;
+      }
+      missingConceptBanner.classList.remove('hidden');
+      missingConceptBanner.textContent = `بناءً على تقرير الأداة، هذه المفاهيم تحتاج أدلة إضافية: ${missing.join('، ')}. أضف ملاحظة وظيفية أو استمارة تقرير مصير لتغطيتها.`;
+    }
+
+    function calculateCoverageSummary() {
+      const counts = { strong: 0, usable: 0, weak: 0 };
+      const byConcept = Object.fromEntries(CONCEPTS.map(c => [c, { count: 0, status: 'missing' }]));
+      const flags = [];
+
+      state.evidence_items.forEach(item => {
+        counts[item.quality_badge] += 1;
+        if (item.concept_hint) byConcept[item.concept_hint].count += 1;
+      });
+
+      CONCEPTS.forEach(concept => {
+        const toolStatus = state.tool_assessment?.concept_coverage?.[concept] || 'missing';
+        const count = byConcept[concept].count;
+        if (count >= 2) byConcept[concept].status = 'ready';
+        else if (count === 1 || toolStatus === 'partial' || toolStatus === 'covered') byConcept[concept].status = 'needs_more';
+        else byConcept[concept].status = 'missing';
+
+        if (count === 0) flags.push(`${concept}: no evidence`);
+
+        const conceptSources = new Set(
+          state.evidence_items.filter(ev => ev.concept_hint === concept && ev.source_type).map(ev => `${ev.source_type}::${ev.source_name || ''}`)
+        );
+        if (count > 0 && conceptSources.size <= 1) flags.push(`${concept}: single source only`);
+      });
+
+      if (counts.weak >= 3) flags.push(`${counts.weak} أدلة بجودة weak — راجع الوصف والسياق`);
+
+      state.coverage_summary = {
+        total_evidence: state.evidence_items.length,
+        strong: counts.strong,
+        usable: counts.usable,
+        weak: counts.weak,
+        by_concept,
+        readiness_flags: flags
+      };
+      return state.coverage_summary;
+    }
+
+    function buildReadinessGate() {
+      const coverage = calculateCoverageSummary();
+      const concepts_ready = [];
+      const concepts_needs_more = [];
+      const concepts_missing = [];
+
+      CONCEPTS.forEach(concept => {
+        const item = coverage.by_concept[concept];
+        if (item.count >= 2) concepts_ready.push(concept);
+        else if (item.count === 1 || state.tool_assessment?.concept_coverage?.[concept] === 'partial' || state.tool_assessment?.concept_coverage?.[concept] === 'covered') concepts_needs_more.push(concept);
+        else concepts_missing.push(concept);
+      });
+
+      state.readiness_gate_input = {
+        concepts_ready,
+        concepts_needs_more,
+        concepts_missing,
+        recommended_action: `استكمال أدلة ${[...concepts_needs_more, ...concepts_missing].join(' و ')} قبل تشغيل Silent Engine`
+      };
+      return state.readiness_gate_input;
+    }
+
+    function renderCoverageSummary() {
+      const coverage = calculateCoverageSummary();
+      document.getElementById('totalEvidence').textContent = coverage.total_evidence;
+      document.getElementById('strongCount').textContent = coverage.strong;
+      document.getElementById('usableCount').textContent = coverage.usable;
+      document.getElementById('weakCount').textContent = coverage.weak;
+
+      coverageRows.innerHTML = '';
+      CONCEPTS.forEach(concept => {
+        const item = coverage.by_concept[concept];
+        const row = document.createElement('div');
+        row.className = 'coverage-row';
+        const dots = [1,2,3].map(i => {
+          const filled = item.count >= i;
+          const cls = filled ? (item.count >= 3 ? 'ready' : item.count === 2 ? 'partial' : 'low') : '';
+          return `<span class="dot ${cls}"></span>`;
+        }).join('');
+        const statusText = item.status === 'ready' ? 'جاهز' : item.status === 'needs_more' ? 'يحتاج استكمال' : 'غائب';
+        row.innerHTML = `<strong>${concept}</strong><div class="dot-track">${dots}</div><span>${statusText}</span>`;
+        coverageRows.appendChild(row);
+      });
+
+      readinessFlagsEl.innerHTML = '';
+      coverage.readiness_flags.forEach(flag => {
+        const el = document.createElement('div');
+        el.className = 'alert amber';
+        el.textContent = `⚠ ${flag}`;
+        readinessFlagsEl.appendChild(el);
+      });
+    }
+
+    function updateCoverageAndExport() {
+      renderCoverageSummary();
+      const readiness = buildReadinessGate();
+      state.final_export = {
+        section: 'assessment_flow',
+        status: 'evidence_completed',
+        captured_at: new Date().toISOString(),
+        tool_registry: {
+          primary_tool: state.tool_registry.primary_tool,
+          applied_date: state.tool_registry.applied_date,
+          applied_by: state.tool_registry.applied_by,
+          domains: state.tool_registry.domains.map(domain => ({
+            domain_code: domain.domain_code,
+            domain_name: domain.domain_name,
+            success_pct: Number(domain.success_pct || 0),
+            emerging_pct: Number(domain.emerging_pct || 0),
+            fail_pct: Number(domain.fail_pct || 0)
+          })),
+          supplementary_sources: [...state.tool_registry.supplementary_sources]
+        },
+        tool_assessment: state.tool_assessment,
+        evidence_items: state.evidence_items.map(item => ({ ...item })),
+        coverage_summary: state.coverage_summary,
+        readiness_gate_input: readiness
+      };
+      exportPreview.textContent = JSON.stringify(state.final_export, null, 2);
+    }
+
+    function finalSaveAndReadiness() {
+      if (!state.tool_assessment) {
+        alert('يجب إنتاج تقرير الأداة أولًا قبل حفظ وفحص الجاهزية.');
+        return;
+      }
+      const invalid = state.evidence_items.some(item => {
+        const v = validateEvidence(item);
+        return Boolean(v.source_type || v.date || v['context.environment'] || v.statement);
+      });
+      if (invalid) {
+        alert('لا يمكن الحفظ قبل استكمال الحقول الإلزامية في جميع بطاقات الأدلة.');
+        return;
+      }
+      updateCoverageAndExport();
+      document.getElementById('finalRecommendedAction').textContent = state.readiness_gate_input.recommended_action;
+      const canRun = state.readiness_gate_input.concepts_ready.length >= 5;
+      document.getElementById('runEngineBtn').disabled = !canRun;
+      finalModal.classList.add('show');
+    }
+
+    function bindGlobalEvents() {
+      document.getElementById('toolAppliedDate').addEventListener('input', e => {
+        state.tool_registry.applied_date = e.target.value;
+        updateCoverageAndExport();
+      });
+      document.getElementById('toolAppliedBy').addEventListener('input', e => {
+        state.tool_registry.applied_by = e.target.value;
+        updateCoverageAndExport();
+      });
+      document.getElementById('addDomainBtn').addEventListener('click', addManualDomain);
+      document.getElementById('generateToolReportBtn').addEventListener('click', showToolReportModal);
+      document.getElementById('closeToolReportModal').addEventListener('click', () => toolReportModal.classList.remove('show'));
+      document.getElementById('continueToEvidenceBtn').addEventListener('click', closeToolReportAndContinue);
+      document.getElementById('addEvidenceBtn').addEventListener('click', () => {
+        state.evidence_items.push(createEvidenceItem());
+        reindexEvidence();
+        renderEvidenceList();
+      });
+      document.getElementById('saveFlowBtn').addEventListener('click', finalSaveAndReadiness);
+      document.getElementById('completeEvidenceBtn').addEventListener('click', () => {
+        finalModal.classList.remove('show');
+        evidenceSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      document.getElementById('saveDraftBtn').addEventListener('click', () => {
+        updateCoverageAndExport();
+        state.final_export.status = 'needs_more_evidence';
+        exportPreview.textContent = JSON.stringify(state.final_export, null, 2);
+        finalModal.classList.remove('show');
+        alert('تم الحفظ كمسودة مع الحالة needs_more_evidence.');
+      });
+      document.getElementById('runEngineBtn').addEventListener('click', () => {
+        finalModal.classList.remove('show');
+        alert('المفاهيم الجاهزة فقط أصبحت مرشحة للتشغيل اللاحق على Silent Engine.');
+      });
+    }
+
+    function init() {
+      renderPrimaryTools();
+      renderSupplementarySources();
+      bindGlobalEvents();
+      ensureEvidenceItem();
+      updateCoverageAndExport();
+    }
+
+    init();
+  </script>
+</body>
+</html>
