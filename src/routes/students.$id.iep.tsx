@@ -29,17 +29,26 @@ type StoredStudent = {
   status: string;
 };
 
-type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB";
+type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB" | "COG" | "COM" | "SOC" | "ADL" | "VOC" | "MOT";
 type GoalCategory = "أكاديمي" | "وظيفي" | "اجتماعي" | "عملي";
 type Goal = { id: string; text: string; category: GoalCategory | "" };
 
-const DOMAINS: { code: DomainCode; name: string }[] = [
+const TTAP_DOMAINS: { code: DomainCode; name: string }[] = [
   { code: "VS", name: "المهارات المهنية" },
   { code: "VB", name: "السلوكيات المهنية" },
   { code: "IF", name: "الأداء الوظيفي المستقل" },
   { code: "LS", name: "مهارات الترفيه" },
   { code: "FC", name: "التواصل الوظيفي" },
   { code: "IB", name: "السلوك البينشخصي" },
+];
+
+const GENERIC_DOMAINS: { code: DomainCode; name: string }[] = [
+  { code: "COG", name: "المهارات المعرفية" },
+  { code: "COM", name: "التواصل واللغة" },
+  { code: "SOC", name: "المهارات الاجتماعية" },
+  { code: "ADL", name: "مهارات الحياة اليومية" },
+  { code: "VOC", name: "التأهيل المهني" },
+  { code: "MOT", name: "المهارات الحركية" },
 ];
 
 const CATEGORIES: GoalCategory[] = ["أكاديمي", "وظيفي", "اجتماعي", "عملي"];
@@ -55,17 +64,23 @@ const SUPPORT_SERVICES = [
 const TEAL = "#0F3D3E";
 const ORANGE = "#D9764A";
 
+function emptyGoalMap(domains: { code: DomainCode }[]): Record<DomainCode, Goal[]> {
+  return Object.fromEntries(domains.map((d) => [d.code, []])) as Record<DomainCode, Goal[]>;
+}
+function emptyOpenMap(domains: { code: DomainCode }[]): Record<DomainCode, boolean> {
+  return Object.fromEntries(domains.map((d) => [d.code, false])) as Record<DomainCode, boolean>;
+}
+
 function IEPPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState<StoredStudent | null>(null);
   const [vision, setVision] = useState("");
-  const [goals, setGoals] = useState<Record<DomainCode, Goal[]>>({
-    VS: [], VB: [], IF: [], LS: [], FC: [], IB: [],
-  });
-  const [open, setOpen] = useState<Record<DomainCode, boolean>>({
-    VS: false, VB: false, IF: false, LS: false, FC: false, IB: false,
-  });
+
+  const domains = student?.tool?.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS;
+
+  const [goals, setGoals] = useState<Record<DomainCode, Goal[]>>(emptyGoalMap(TTAP_DOMAINS));
+  const [open, setOpen] = useState<Record<DomainCode, boolean>>(emptyOpenMap(TTAP_DOMAINS));
   const [services, setServices] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
 
@@ -79,8 +94,10 @@ function IEPPage() {
       const iepRaw = localStorage.getItem(`himam_iep_${id}`);
       if (iepRaw) {
         const data = JSON.parse(iepRaw);
+        const found = raw ? (JSON.parse(raw) as StoredStudent[]).find((s) => s.id === id) : null;
+        const activeDomains = found?.tool?.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS;
         if (data.vision) setVision(data.vision);
-        if (data.goals) setGoals({ VS: [], VB: [], IF: [], LS: [], FC: [], IB: [], ...data.goals });
+        if (data.goals) setGoals({ ...emptyGoalMap(activeDomains), ...data.goals });
         if (data.services) setServices(data.services);
         if (data.startDate) setStartDate(data.startDate);
       }
@@ -121,12 +138,12 @@ function IEPPage() {
       const raw = localStorage.getItem("himam_students");
       if (raw) {
         const list: StoredStudent[] = JSON.parse(raw);
-        const updated = list.map((s) => (s.id === id ? { ...s, status: "family_section" } : s));
+        const updated = list.map((s) => (s.id === id ? { ...s, status: "iep_completed" } : s));
         localStorage.setItem("himam_students", JSON.stringify(updated));
       }
     } catch {}
     toast.success("تم حفظ الخطة بنجاح ✓");
-    navigate({ to: "/" });
+    navigate({ to: "/students/$id/family", params: { id } });
   }
 
   return (
@@ -181,7 +198,7 @@ function IEPPage() {
             أدخل الأهداف تحت كل مجال بحرية كاملة
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            {DOMAINS.map((d) => (
+            {domains.map((d) => (
               <div key={d.code} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
                 <button
                   type="button"
