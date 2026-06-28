@@ -156,7 +156,7 @@ function StudentVoicePage() {
     } catch {
       /* noop */
     }
-    navigate({ to: "/students/$id/family", params: { id } });
+    navigate({ to: "/students/$id/report", params: { id } });
   };
 
   const isLast = step === totalSteps - 1;
