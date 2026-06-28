@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/students/$id/coverage")({
-  component: CoveragePage,
+  component: RecommendationPage,
   head: () => ({
     meta: [
-      { title: "تقرير التغطية المفاهيمية — همم" },
-      { name: "description", content: "تقرير التغطية المفاهيمية للمستفيد بناءً على نتائج التقييم." },
+      { title: "توصيات أداة التقييم — همم" },
+      { name: "description", content: "تقييم أداة القياس المستخدمة وتوصيات الانتقال." },
     ],
   }),
 });
@@ -14,279 +14,151 @@ export const Route = createFileRoute("/students/$id/coverage")({
 type StoredStudent = {
   id: string;
   name: string;
-  birthDate: string;
-  center: string;
   tool: string;
-  createdAt: string;
-  status: string;
+  center: string;
 };
 
-type DomainData = { success: number; emerging: number; fail: number };
-type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB";
-
-const SAMPLE_DOMAINS: Record<DomainCode, DomainData> = {
-  VS: { success: 45, emerging: 35, fail: 20 },
-  VB: { success: 60, emerging: 25, fail: 15 },
-  IF: { success: 25, emerging: 50, fail: 25 },
-  LS: { success: 30, emerging: 45, fail: 25 },
-  FC: { success: 50, emerging: 30, fail: 20 },
-  IB: { success: 55, emerging: 35, fail: 10 },
+// Structural analysis per tool — independent of student scores.
+type ToolAnalysis = {
+  hasMultiplePerformances: boolean;
+  missingDCDTCriteria: string[];
+  weakConcepts: string[];
 };
 
-const CONCEPT_MAP: { concept: string; domain: DomainCode }[] = [
-  { concept: "المهارات الأكاديمية الوظيفية", domain: "VS" },
-  { concept: "الاستخدام التقني", domain: "VS" },
-  { concept: "التعلم المستمر", domain: "VB" },
-  { concept: "تقرير المصير", domain: "VB" },
-  { concept: "إدارة المال", domain: "IF" },
-  { concept: "العناية الذاتية", domain: "IF" },
-  { concept: "التنقل المستقل", domain: "IF" },
-  { concept: "السلامة الشخصية", domain: "IF" },
-  { concept: "المشاركة المجتمعية", domain: "LS" },
-  { concept: "الصحة واللياقة", domain: "LS" },
-  { concept: "التواصل الوظيفي", domain: "FC" },
-  { concept: "العلاقات الاجتماعية", domain: "IB" },
-];
-
-type Level = "independent" | "partial" | "full" | "none";
-
-function levelOf(d: DomainData | undefined): Level {
-  if (!d) return "none";
-  const { success, emerging, fail } = d;
-  if (success === 0 && emerging === 0 && fail === 0) return "none";
-  if (success >= 60) return "independent";
-  if (emerging > success) return "partial";
-  if (success < 25) return "full";
-  return "partial";
+function analyzeToolCoverage(tool: string): ToolAnalysis {
+  if (tool.includes("TTAP")) {
+    return {
+      hasMultiplePerformances: true,
+      missingDCDTCriteria: ["تقرير المصير (تحديد الذات)"],
+      weakConcepts: ["تقرير المصير", "الاستخدام التقني"],
+    };
+  }
+  return {
+    hasMultiplePerformances: false,
+    missingDCDTCriteria: [],
+    weakConcepts: [],
+  };
 }
 
-const LEVEL_META: Record<Level, { label: string; bg: string; text: string; bar: string }> = {
-  independent: { label: "مستقل", bg: "#DCFCE7", text: "#166534", bar: "#16A34A" },
-  partial: { label: "بمساعدة جزئية", bg: "#FFEDD5", text: "#9A3412", bar: "#D9764A" },
-  full: { label: "يحتاج دعماً كاملاً", bg: "#FEE2E2", text: "#991B1B", bar: "#DC2626" },
-  none: { label: "لم يُقيَّم", bg: "#E5E7EB", text: "#374151", bar: "#9CA3AF" },
-};
-
-function CoveragePage() {
+function RecommendationPage() {
   const { id } = Route.useParams();
   const [student, setStudent] = useState<StoredStudent | null>(null);
-  const [domains, setDomains] = useState<Record<string, DomainData>>(SAMPLE_DOMAINS);
 
   useEffect(() => {
     try {
       const list: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
       setStudent(list.find((x) => x.id === id) ?? null);
     } catch {
-      setStudent(null);
-    }
-    try {
-      const saved = JSON.parse(localStorage.getItem(`himam_assessment_${id}`) || "null");
-      if (saved && saved.domains) {
-        const parsed: Record<string, DomainData> = {};
-        let hasAny = false;
-        for (const k of Object.keys(saved.domains)) {
-          const v = saved.domains[k];
-          const s = Number(v.success) || 0;
-          const e = Number(v.emerging) || 0;
-          const f = Number(v.fail) || 0;
-          parsed[k] = { success: s, emerging: e, fail: f };
-          if (s || e || f) hasAny = true;
-        }
-        if (hasAny) setDomains({ ...SAMPLE_DOMAINS, ...parsed });
-      }
-    } catch {
-      /* keep sample */
+      /* noop */
     }
   }, [id]);
 
-  const rows = useMemo(
-    () =>
-      CONCEPT_MAP.map(({ concept, domain }) => {
-        const d = domains[domain];
-        const level = levelOf(d);
-        const coverage = d ? d.success : 0;
-        return { concept, domain, level, coverage };
-      }),
-    [domains],
-  );
-
-  const suggestions = rows.filter((r) => r.coverage < 60);
+  const tool = student?.tool ?? "";
+  const analysis = analyzeToolCoverage(tool);
 
   return (
-    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#F8F7F4", fontFamily: "system-ui, sans-serif" }}>
-      {/* Top bar */}
+    <div className="min-h-screen bg-[#FAF7F2]">
       <header
-        style={{
-          background: "#0F3D3E",
-          color: "white",
-          padding: "14px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
+        className="flex items-center justify-between px-8 py-4"
+        style={{ backgroundColor: "#0F3D3E" }}
       >
-        <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
         <Link
-          to="/"
-          style={{
-            color: "white",
-            textDecoration: "none",
-            fontSize: 15,
-            padding: "8px 14px",
-            border: "1px solid rgba(255,255,255,0.4)",
-            borderRadius: 8,
-          }}
+          to="/students/$id/assessment"
+          params={{ id }}
+          className="rounded-lg border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
         >
           → رجوع
         </Link>
+        <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
 
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: "28px 20px 60px" }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "#0F3D3E", margin: 0 }}>
-          تقرير التغطية المفاهيمية
-        </h1>
-        <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>
-          {student ? student.name : "—"}
-        </p>
+      <main className="mx-auto max-w-3xl px-6 py-8 md:px-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-[#0F3D3E]">توصيات أداة التقييم</h2>
+          {student && (
+            <p className="mt-1 text-sm text-stone-500">{student.name} — {student.center}</p>
+          )}
+        </div>
 
-        {/* Coverage table */}
-        <section
-          style={{
-            marginTop: 22,
-            background: "white",
-            border: "1px solid #E5E7EB",
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "14px 18px",
-              borderBottom: "1px solid #E5E7EB",
-              fontWeight: 700,
-              color: "#0F3D3E",
-              fontSize: 16,
-            }}
-          >
-            تغطية المفاهيم الانتقالية (12 مفهوماً)
-          </div>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {rows.map((r, i) => {
-              const meta = LEVEL_META[r.level];
-              return (
-                <li
-                  key={i}
-                  style={{
-                    padding: "14px 18px",
-                    borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : "none",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 2fr auto auto",
-                    gap: 16,
-                    alignItems: "center",
-                  }}
-                >
-                  <div style={{ fontSize: 15, color: "#0F172A", fontWeight: 600 }}>{r.concept}</div>
-                  <div
-                    style={{
-                      background: "#F1F5F9",
-                      borderRadius: 999,
-                      height: 10,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.max(0, Math.min(100, r.coverage))}%`,
-                        height: "100%",
-                        background: meta.bar,
-                      }}
-                    />
-                  </div>
-                  <div style={{ fontSize: 14, color: "#475569", minWidth: 44, textAlign: "left" }}>
-                    {r.coverage}%
-                  </div>
-                  <span
-                    style={{
-                      background: meta.bg,
-                      color: meta.text,
-                      padding: "4px 10px",
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {meta.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+        {/* Section 1 — Tool evaluation */}
+        <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <h3 className="mb-4 text-base font-bold text-[#0F3D3E]">تقييم أداة القياس</h3>
 
-        {/* Suggestions */}
-        {suggestions.length > 0 && (
-          <section style={{ marginTop: 28 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#0F3D3E", margin: "0 0 12px" }}>
-              اقتراحات اختيارية
-            </h2>
-            <div style={{ display: "grid", gap: 10 }}>
-              {suggestions.map((s, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: "white",
-                    border: "1px solid #E5E7EB",
-                    borderRadius: 10,
-                    padding: "12px 16px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  <span style={{ color: "#0F172A", fontSize: 14 }}>
-                    قد تُفيد أداة تكميلية في مجال {s.concept}
-                  </span>
-                  <span
-                    style={{
-                      background: "#FFEDD5",
-                      color: "#9A3412",
-                      padding: "3px 10px",
-                      borderRadius: 999,
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    اختياري
-                  </span>
+          {tool ? (
+            <>
+              {analysis.hasMultiplePerformances ? (
+                <p className="text-sm leading-7 text-stone-700">
+                  يبدو أن أداة التقييم المطبقة مع الطالب قد عكست أداءات متعددة مما يزيد من موثوقيتها.
+                </p>
+              ) : (
+                <p className="text-sm leading-7 text-stone-700">
+                  أداة التقييم المستخدمة لا تنتمي إلى الأدوات الموحدة المعيارية، مما قد يؤثر على مستوى موثوقية النتائج.
+                </p>
+              )}
+
+              {analysis.missingDCDTCriteria.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm leading-7 text-stone-700">
+                    ولكن وفقاً لمعايير أداة تقييم الانتقال الملائم للعمر، فإن الأداة المستخدمة لم تستوفِ المعايير التالية:
+                  </p>
+                  <ul className="mt-2 space-y-1 pr-4">
+                    {analysis.missingDCDTCriteria.map((c) => (
+                      <li key={c} className="flex items-start gap-2 text-sm text-stone-700">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: "#D9764A" }} />
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ))}
-            </div>
-            <p style={{ marginTop: 10, color: "#64748B", fontSize: 13 }}>
-              هذه الاقتراحات اختيارية — يمكن المتابعة مباشرةً
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-stone-500">لم يتم تحديد أداة التقييم بعد.</p>
+          )}
+        </div>
+
+        {/* Section 2 — Concept coverage gaps */}
+        {analysis.weakConcepts.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-base font-bold text-[#0F3D3E]">مفاهيم تحتاج إلى تغطية إضافية</h3>
+            <p className="text-sm leading-7 text-stone-700">
+              كما أن المعلومات التي تم تصديرها من الأداة لم تغطِّ مفاهيم:{" "}
+              <span className="font-semibold text-stone-900">
+                {analysis.weakConcepts.join("، ")}
+              </span>
             </p>
-          </section>
+            <p className="mt-3 text-sm leading-7 text-stone-700">
+              تغطية هذه المفاهيم تدعم تخطيطاً انتقالياً شاملاً ومعبراً عن الطالب.
+            </p>
+          </div>
         )}
 
-        {/* Bottom button */}
-        <div style={{ marginTop: 32 }}>
-          <a
-            href={`/students/${id}/iep`}
-            style={{
-              display: "block",
-              textAlign: "center",
-              background: "#0F3D3E",
-              color: "white",
-              padding: "14px 18px",
-              borderRadius: 10,
-              textDecoration: "none",
-              fontWeight: 700,
-              fontSize: 16,
-            }}
+        {/* Section 3 — Optional recommendation */}
+        <div
+          className="mt-4 rounded-2xl border p-5"
+          style={{ backgroundColor: "#FBE9E1", borderColor: "#D9764A" }}
+        >
+          <p className="text-sm leading-7 text-stone-800">
+            <span className="font-bold">توصية غير ملزمة:</span> يمكنك الاطلاع على أدوات في المكتبة قد تكون ملائمة للتطبيق.
+          </p>
+          <button className="mt-3 rounded-lg border border-stone-400 bg-white px-4 py-2 text-sm font-semibold text-stone-800 transition hover:bg-stone-50">
+            اطّلع على المكتبة
+          </button>
+        </div>
+
+        {/* Section 4 — Continue */}
+        <div className="mt-8">
+          <p className="mb-3 text-center text-xs text-stone-500">
+            هذه المرحلة اختيارية — يمكنك المتابعة مباشرةً لوضع الخطة في أي وقت
+          </p>
+          <Link
+            to="/students/$id/iep"
+            params={{ id }}
+            className="block w-full rounded-xl px-5 py-3.5 text-center text-base font-bold text-white shadow-sm transition hover:opacity-90"
+            style={{ backgroundColor: "#0F3D3E" }}
           >
-            إدخال الخطة التربوية الفردية ←
-          </a>
+            المتابعة لوضع الخطة التربوية ←
+          </Link>
         </div>
       </main>
     </div>

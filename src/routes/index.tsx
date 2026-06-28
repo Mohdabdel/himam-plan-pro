@@ -89,31 +89,31 @@ function HomePage() {
         </section>
 
         <section className="mt-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-          <table className="w-full text-right">
-            <thead className="bg-stone-50 text-sm text-stone-600">
+          <table className="w-full text-right" style={{ fontSize: 13 }}>
+            <thead className="bg-stone-50 text-stone-600">
               <tr>
-                <th className="px-6 py-4 font-semibold">الاسم</th>
-                <th className="px-6 py-4 font-semibold">المركز / البرنامج</th>
-                <th className="px-6 py-4 font-semibold">أداة التقييم</th>
-                <th className="px-6 py-4 font-semibold">الحالة</th>
-                <th className="px-6 py-4 font-semibold">الإجراء</th>
+                <th className="px-4 py-3 font-semibold">الاسم</th>
+                <th className="px-4 py-3 font-semibold">المركز / البرنامج</th>
+                <th className="px-4 py-3 font-semibold">أداة التقييم</th>
+                <th className="px-4 py-3 font-semibold">الحالة</th>
+                <th className="px-4 py-3 font-semibold">الإجراء</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((s, i) => (
                 <tr key={`${s.name}-${i}`} className="border-t border-stone-100">
-                  <td className="px-6 py-5 font-medium text-stone-900">{s.name}</td>
-                  <td className="px-6 py-5 text-stone-700">{s.center}</td>
-                  <td className="px-6 py-5 text-stone-700">{s.tool}</td>
-                  <td className="px-6 py-5">
+                  <td className="max-w-[160px] truncate px-4 py-3 font-medium text-stone-900">{s.name}</td>
+                  <td className="max-w-[160px] truncate px-4 py-3 text-stone-700">{s.center}</td>
+                  <td className="max-w-[200px] truncate px-4 py-3 text-stone-700">{s.tool}</td>
+                  <td className="px-4 py-3">
                     <StatusBadge status={s.status} />
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3">
                     {s.status === "إدخال التقييم" && s.id ? (
                       <Link
                         to="/students/$id/assessment"
                         params={{ id: s.id }}
-                        className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
                         style={{ backgroundColor: "#D9764A" }}
                       >
                         إدخال التقييم
@@ -122,12 +122,12 @@ function HomePage() {
                       <Link
                         to="/students/$id/framework"
                         params={{ id: s.id }}
-                        className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                        className="rounded-lg border border-[#0F3D3E] px-3 py-1.5 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
                       >
                         عرض الإطار
                       </Link>
                     ) : (
-                      <button className="rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
+                      <button className="rounded-lg border border-[#0F3D3E] px-3 py-1.5 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
                         عرض الإطار
                       </button>
                     )}

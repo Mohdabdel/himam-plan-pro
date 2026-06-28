@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>همم — صوت الأسرة والمتعلم</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal: #1D9E75;
+      --teal-light: #E8F6F1;
+      --teal-dark: #157A5A;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --gray-800: #1F2937;
+      --gray-900: #111827;
+      --red: #EF4444;
+    }
+
+    body {
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      min-height: 100vh;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 24px;
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 38px; height: 38px;
+      background: var(--teal);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 15px;
+    }
+    .logo-name { font-size: 18px; font-weight: 700; color: var(--gray-900); }
+    .logo-sub  { font-size: 11px; color: var(--gray-400); margin-top: 1px; }
+    .header-meta { font-size: 13px; color: var(--gray-500); }
+
+    /* ─── Steps Bar ─── */
+    .steps-bar {
+      background: white;
+      border-bottom: 2px solid var(--gray-200);
+      padding: 0 24px;
+      overflow-x: auto;
+    }
+    .steps-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-start;
+      padding: 16px 0;
+      min-width: max-content;
+    }
+    .step { display: flex; align-items: flex-start; }
+    .step-item {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      min-width: 90px; cursor: pointer;
+    }
+    .step-circle {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--gray-300);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600;
+      color: var(--gray-400); background: white;
+      transition: all .2s;
+    }
+    .step-label {
+      font-size: 11px; color: var(--gray-400);
+      text-align: center; white-space: nowrap;
+    }
+    .step-connector {
+      height: 2px; width: 36px;
+      background: var(--gray-200);
+      margin-top: 15px; flex-shrink: 0;
+    }
+    .step.done .step-circle   { background: var(--teal); border-color: var(--teal); color: white; }
+    .step.done .step-label    { color: var(--teal-dark); font-weight: 500; }
+    .step.done + .step-connector { background: var(--teal); }
+    .step.active .step-circle {
+      background: var(--teal); border-color: var(--teal); color: white;
+      box-shadow: 0 0 0 4px rgba(29,158,117,.2);
+    }
+    .step.active .step-label  { color: var(--teal); font-weight: 600; }
+
+    /* ─── Main ─── */
+    .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* ─── Tabs ─── */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid var(--gray-200);
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      padding: 12px 26px;
+      font-family: inherit; font-size: 15px; font-weight: 500;
+      color: var(--gray-500);
+      background: none; border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; margin-bottom: -2px;
+      display: flex; align-items: center; gap: 7px;
+      transition: all .2s;
+    }
+    .tab-btn:hover { color: var(--teal); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── Card ─── */
+    .card {
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 18px;
+    }
+    .card-title {
+      font-size: 15px; font-weight: 600; color: var(--gray-800);
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 7px;
+    }
+
+    /* ─── Notice ─── */
+    .notice-provisional {
+      background: #FFF7ED;
+      border: 1px solid #FED7AA;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .notice-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .notice-text { font-size: 14px; color: #92400E; line-height: 1.6; }
+    .notice-text strong { display: block; font-weight: 700; margin-bottom: 2px; }
+
+    /* ─── Form ─── */
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block;
+      font-size: 13px; font-weight: 500; color: var(--gray-700);
+      margin-bottom: 6px;
+    }
+    .req { color: var(--red); margin-right: 2px; }
+    .form-input {
+      width: 100%;
+      padding: 9px 13px;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px;
+      font-family: inherit; font-size: 14px; color: var(--gray-900);
+      background: white; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(29,158,117,.1);
+    }
+    textarea.form-input { min-height: 88px; resize: vertical; }
+    select.form-input { cursor: pointer; }
+
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media(max-width:720px) {
+      .row-2, .row-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Radio group ─── */
+    .radio-group { display: flex; flex-wrap: wrap; gap: 12px; }
+    .radio-opt {
+      display: flex; align-items: center; gap: 6px;
+      cursor: pointer; padding: 7px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 8px; transition: all .15s;
+    }
+    .radio-opt:has(input:checked) {
+      border-color: var(--teal);
+      background: var(--teal-light);
+      color: var(--teal-dark);
+    }
+    .radio-opt input { accent-color: var(--teal); width: 15px; height: 15px; }
+    .radio-opt span  { font-size: 14px; }
+
+    /* ─── Accordion ─── */
+    .accordion { display: flex; flex-direction: column; gap: 8px; }
+    .acc-item  { border: 1px solid var(--gray-200); border-radius: 10px; overflow: hidden; }
+    .acc-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; cursor: pointer; background: white;
+      user-select: none; transition: background .15s;
+    }
+    .acc-header:hover { background: var(--gray-50); }
+    .acc-header.open  { background: var(--teal-light); }
+    .acc-left  { display: flex; align-items: center; gap: 10px; }
+    .acc-emoji { font-size: 22px; }
+    .acc-name  { font-size: 15px; font-weight: 600; color: var(--gray-800); }
+    .acc-badge {
+      font-size: 11px; padding: 2px 8px;
+      border-radius: 20px; font-weight: 500;
+      background: var(--gray-100); color: var(--gray-500);
+    }
+    .acc-header.open .acc-badge { background: rgba(29,158,117,.15); color: var(--teal-dark); }
+    .acc-chevron { color: var(--gray-400); font-size: 11px; transition: transform .2s; }
+    .acc-header.open .acc-chevron { transform: rotate(180deg); }
+    .acc-body {
+      display: none; padding: 18px 20px;
+      border-top: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+    .acc-body.open { display: block; }
+
+    /* ─── AEPS ─── */
+    .aeps-wrap { margin: 12px 0; }
+    .aeps-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .06em;
+      color: var(--gray-400); text-transform: uppercase; margin-bottom: 7px;
+    }
+    .aeps-btns { display: flex; gap: 8px; }
+    .aeps-btn {
+      flex: 1; padding: 9px 6px;
+      border: 2px solid var(--gray-200);
+      border-radius: 8px;
+      background: white; cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      color: var(--gray-600); text-align: center;
+      transition: all .15s;
+    }
+    .aeps-btn:hover { border-color: var(--teal); color: var(--teal); }
+    .aeps-btn.sel-0 { background: #FEE2E2; border-color: #EF4444; color: #991B1B; }
+    .aeps-btn.sel-1 { background: #FEF3C7; border-color: #F59E0B; color: #78350F; }
+    .aeps-btn.sel-2 { background: #D1FAE5; border-color: #10B981; color: #064E3B; }
+
+    /* ─── Tags ─── */
+    .tag-wrap {
+      border: 1px solid var(--gray-300); border-radius: 8px;
+      padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px;
+      cursor: text; min-height: 48px; background: white;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .tag-wrap:focus-within {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(29,158,117,.1);
+    }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--teal-light); color: var(--teal-dark);
+      border-radius: 6px; padding: 3px 9px;
+      font-size: 13px; font-weight: 500;
+    }
+    .tag-x {
+      background: none; border: none; cursor: pointer;
+      color: var(--teal-dark); font-size: 15px;
+      padding: 0; line-height: 1; opacity: .6;
+    }
+    .tag-x:hover { opacity: 1; }
+    .tag-input {
+      border: none; outline: none;
+      font-family: inherit; font-size: 14px; color: var(--gray-900);
+      flex: 1; min-width: 110px; background: transparent;
+    }
+    .tag-hint { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+
+    /* ─── Quality Indicator ─── */
+    .quality-bar {
+      position: sticky; bottom: 20px;
+      background: white;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,.08);
+      margin-top: 20px; gap: 16px;
+    }
+    .quality-info { flex: 1; }
+    .quality-title { font-size: 13px; font-weight: 500; color: var(--gray-600); }
+    .quality-hint  { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+    .quality-badges { display: flex; gap: 8px; }
+    .qbadge {
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 600; border: 2px solid;
+      opacity: .35; transition: opacity .3s;
+    }
+    .qbadge.on { opacity: 1; }
+    .qbadge.weak   { background: #FEE2E2; border-color: #EF4444; color: #991B1B; }
+    .qbadge.usable { background: #FEF3C7; border-color: #F59E0B; color: #78350F; }
+    .qbadge.strong { background: #D1FAE5; border-color: #10B981; color: #064E3B; }
+
+    /* ─── Progress Tracker ─── */
+    .progress-card {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 10px; padding: 16px 18px; margin-bottom: 20px;
+    }
+    .progress-head {
+      display: flex; justify-content: space-between;
+      font-size: 13px; color: var(--gray-500); margin-bottom: 10px;
+    }
+    .progress-track {
+      background: var(--gray-100); border-radius: 99px;
+      height: 8px; overflow: hidden; margin-bottom: 14px;
+    }
+    .progress-fill {
+      height: 100%; background: var(--teal);
+      border-radius: 99px; transition: width .4s ease;
+    }
+    .progress-dots { display: flex; gap: 10px; }
+    .pdot {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 2px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: all .25s;
+      background: white;
+    }
+    .pdot.done { background: var(--teal); border-color: var(--teal); }
+
+    /* ─── Learner question cards ─── */
+    .q-card {
+      background: white;
+      border: 2px solid var(--gray-200);
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 16px;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .q-card.answered {
+      border-color: var(--teal);
+      box-shadow: 0 2px 12px rgba(29,158,117,.1);
+    }
+    .q-emoji { font-size: 44px; display: block; margin-bottom: 10px; }
+    .q-text  { font-size: 17px; font-weight: 600; color: var(--gray-800); margin-bottom: 14px; }
+    .q-opt   { font-size: 12px; color: var(--gray-400); font-weight: 400; margin-right: 6px; }
+
+    /* ─── Button ─── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 10px 20px; border-radius: 8px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; transition: all .2s;
+    }
+    .btn-primary { background: var(--teal); color: white; }
+    .btn-primary:hover { background: var(--teal-dark); }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--gray-100); }
+    ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════ HEADER ══════════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">هم</div>
+      <div>
+        <div class="logo-name">منصة همم</div>
+        <div class="logo-sub">Himam Transition Platform</div>
+      </div>
+    </div>
+    <div class="header-meta">خطة الانتقال — أحمد محمد &nbsp;|&nbsp; 2025</div>
+  </div>
+</header>
+
+<!-- ══════════════════ STEPS BAR (7 steps, step 4 active) ══════════════════ -->
+<div class="steps-bar">
+  <div class="steps-inner">
+
+    <div class="step done">
+      <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-label">البيانات الأساسية</div>
+      </div>
+    </div>
+    <div class="step-connector" style="background:var(--teal)"></div>
+
+    <div class="step done">
+      <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-label">الملف التشخيصي</div>
+      </div>
+    </div>
+    <div class="step-connector" style="background:var(--teal)"></div>
+
+    <div class="step done">
+      <div class="step-item">
+        <div class="step-circle">✓</div>
+        <div class="step-label">التقييم الوظيفي</div>
+      </div>
+    </div>
+    <div class="step-connector" style="background:var(--teal)"></div>
+
+    <div class="step active">
+      <div class="step-item">
+        <div class="step-circle">4</div>
+        <div class="step-label">الأصوات والروتين</div>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step">
+      <div class="step-item">
+        <div class="step-circle">5</div>
+        <div class="step-label">الأهداف الانتقالية</div>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step">
+      <div class="step-item">
+        <div class="step-circle">6</div>
+        <div class="step-label">خطة الانتقال</div>
+      </div>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step">
+      <div class="step-item">
+        <div class="step-circle">7</div>
+        <div class="step-label">المراجعة والتصدير</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<main class="main">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tbtn-family" onclick="switchTab('family', this)">
+      👨‍👩‍👧 صوت الأسرة
+    </button>
+    <button class="tab-btn" id="tbtn-learner" onclick="switchTab('learner', this)">
+      🧑 صوت المتعلم
+    </button>
+  </div>
+
+  <!-- ════════════ TAB A — FAMILY VOICE ════════════ -->
+  <div id="tab-family" class="tab-panel active">
+
+    <!-- Provisional notice -->
+    <div class="notice-provisional">
+      <span class="notice-icon">⚠️</span>
+      <div class="notice-text">
+        <strong>بيانات مبدئية (Provisional)</strong>
+        هذه البيانات تستند إلى صوت الأسرة وحده حتى الآن — ستُحدَّث وتُصنَّف نهائياً عند استكمال تقييم المتعلم والمحطات الروتينية.
+      </div>
+    </div>
+
+    <!-- Collection method -->
+    <div class="card">
+      <div class="card-title">
+        📋 طريقة الحصول على المعلومات
+        <span style="font-size:13px; color:var(--red); font-weight:500;">* إلزامي</span>
+      </div>
+      <div class="radio-group" id="family-method-group">
+        <label class="radio-opt">
+          <input type="radio" name="family_method" value="interview" onchange="updateFamilyQuality()">
+          <span>🤝 مقابلة</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="family_method" value="questionnaire" onchange="updateFamilyQuality()">
+          <span>📝 استبانة</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="family_method" value="phone" onchange="updateFamilyQuality()">
+          <span>📞 هاتفية</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="family_method" value="observation" onchange="updateFamilyQuality()">
+          <span>👁️ ملاحظة</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="family_method" value="report" onchange="updateFamilyQuality()">
+          <span>📄 تقرير</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Session info -->
+    <div class="card">
+      <div class="card-title">📅 معلومات الجلسة</div>
+      <div class="row-2">
+        <div class="form-group">
+          <label class="form-label">تاريخ الجلسة</label>
+          <input type="date" class="form-input" id="session_date" oninput="updateFamilyQuality()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">من حضر الجلسة</label>
+          <input type="text" class="form-input" id="session_attendees"
+                 placeholder="مثل: الأم، الأب، الأخت الكبرى..."
+                 oninput="updateFamilyQuality()">
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 Routine Stations -->
+    <div class="card">
+      <div class="card-title">🗺️ المحطات الروتينية اليومية</div>
+      <div class="accordion">
+
+        <!-- Station 1: Wake up -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-left">
+              <span class="acc-emoji">🌅</span>
+              <span class="acc-name">الاستيقاظ وبداية اليوم</span>
+              <span class="acc-badge" id="badge-s1">غير مكتمل</span>
+            </div>
+            <span class="acc-chevron">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="form-group">
+              <label class="form-label">ما الذي يفعله في روتين الاستيقاظ عادةً؟</label>
+              <textarea class="form-input" id="s1_q1" oninput="updateStationBadge(1); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ما الجوانب التي تحتاج إلى دعم؟</label>
+              <textarea class="form-input" id="s1_q2" oninput="updateStationBadge(1); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="aeps-wrap">
+              <div class="aeps-title">تقييم AEPS</div>
+              <div class="aeps-btns" id="aeps-s1">
+                <button class="aeps-btn" onclick="selectAeps(this,'s1',0)">0 — لم يُظهر بعد</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s1',1)">1 — أحياناً</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s1',2)">2 — باستمرار</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <textarea class="form-input" id="s1_notes" style="min-height:60px" oninput="updateFamilyQuality()" placeholder="ملاحظات إضافية..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 2: Lunch -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-left">
+              <span class="acc-emoji">🍽️</span>
+              <span class="acc-name">الغداء والمائدة</span>
+              <span class="acc-badge" id="badge-s2">غير مكتمل</span>
+            </div>
+            <span class="acc-chevron">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="form-group">
+              <label class="form-label">كيف يشارك في وجبة الغداء مع الأسرة؟</label>
+              <textarea class="form-input" id="s2_q1" oninput="updateStationBadge(2); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ما التحديات خلال وقت الطعام؟</label>
+              <textarea class="form-input" id="s2_q2" oninput="updateStationBadge(2); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="aeps-wrap">
+              <div class="aeps-title">تقييم AEPS</div>
+              <div class="aeps-btns" id="aeps-s2">
+                <button class="aeps-btn" onclick="selectAeps(this,'s2',0)">0 — لم يُظهر بعد</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s2',1)">1 — أحياناً</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s2',2)">2 — باستمرار</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <textarea class="form-input" id="s2_notes" style="min-height:60px" oninput="updateFamilyQuality()" placeholder="ملاحظات إضافية..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 3: Center -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-left">
+              <span class="acc-emoji">🎒</span>
+              <span class="acc-name">الذهاب للمركز</span>
+              <span class="acc-badge" id="badge-s3">غير مكتمل</span>
+            </div>
+            <span class="acc-chevron">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="form-group">
+              <label class="form-label">ما روتين التحضير والذهاب للمركز؟</label>
+              <textarea class="form-input" id="s3_q1" oninput="updateStationBadge(3); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">هل يستعد باستقلالية؟ ما الذي يحتاج مساعدة؟</label>
+              <textarea class="form-input" id="s3_q2" oninput="updateStationBadge(3); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="aeps-wrap">
+              <div class="aeps-title">تقييم AEPS</div>
+              <div class="aeps-btns" id="aeps-s3">
+                <button class="aeps-btn" onclick="selectAeps(this,'s3',0)">0 — لم يُظهر بعد</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s3',1)">1 — أحياناً</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s3',2)">2 — باستمرار</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <textarea class="form-input" id="s3_notes" style="min-height:60px" oninput="updateFamilyQuality()" placeholder="ملاحظات إضافية..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 4: Dining table -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-left">
+              <span class="acc-emoji">🧹</span>
+              <span class="acc-name">طاولة الطعام وترتيب البيت</span>
+              <span class="acc-badge" id="badge-s4">غير مكتمل</span>
+            </div>
+            <span class="acc-chevron">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="form-group">
+              <label class="form-label">كيف يساهم في ترتيب طاولة الطعام أو المنزل؟</label>
+              <textarea class="form-input" id="s4_q1" oninput="updateStationBadge(4); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ما المهام المنزلية التي يقوم بها حالياً؟</label>
+              <textarea class="form-input" id="s4_q2" oninput="updateStationBadge(4); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="aeps-wrap">
+              <div class="aeps-title">تقييم AEPS</div>
+              <div class="aeps-btns" id="aeps-s4">
+                <button class="aeps-btn" onclick="selectAeps(this,'s4',0)">0 — لم يُظهر بعد</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s4',1)">1 — أحياناً</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s4',2)">2 — باستمرار</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <textarea class="form-input" id="s4_notes" style="min-height:60px" oninput="updateFamilyQuality()" placeholder="ملاحظات إضافية..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Station 5: Family gathering -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-left">
+              <span class="acc-emoji">👨‍👩‍👧</span>
+              <span class="acc-name">التجمع العائلي والأوقات الاجتماعية</span>
+              <span class="acc-badge" id="badge-s5">غير مكتمل</span>
+            </div>
+            <span class="acc-chevron">▼</span>
+          </div>
+          <div class="acc-body">
+            <div class="form-group">
+              <label class="form-label">كيف يتفاعل مع أفراد الأسرة في التجمعات؟</label>
+              <textarea class="form-input" id="s5_q1" oninput="updateStationBadge(5); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ما الأنشطة المفضلة مع الأسرة؟</label>
+              <textarea class="form-input" id="s5_q2" oninput="updateStationBadge(5); updateFamilyQuality()" placeholder="اكتب هنا..."></textarea>
+            </div>
+            <div class="aeps-wrap">
+              <div class="aeps-title">تقييم AEPS</div>
+              <div class="aeps-btns" id="aeps-s5">
+                <button class="aeps-btn" onclick="selectAeps(this,'s5',0)">0 — لم يُظهر بعد</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s5',1)">1 — أحياناً</button>
+                <button class="aeps-btn" onclick="selectAeps(this,'s5',2)">2 — باستمرار</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <textarea class="form-input" id="s5_notes" style="min-height:60px" oninput="updateFamilyQuality()" placeholder="ملاحظات إضافية..."></textarea>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /accordion -->
+    </div>
+
+    <!-- Family priorities -->
+    <div class="card">
+      <div class="card-title">⭐ أولويات الأسرة</div>
+      <div class="tag-wrap" onclick="document.getElementById('inp-priorities').focus()">
+        <div id="tags-priorities"></div>
+        <input type="text" class="tag-input" id="inp-priorities"
+               placeholder="اكتب أولوية واضغط Enter..."
+               onkeydown="addTag(event,'priorities')">
+      </div>
+      <div class="tag-hint">اضغط Enter أو الفاصلة لإضافة كل عنصر</div>
+    </div>
+
+    <!-- Family concerns -->
+    <div class="card">
+      <div class="card-title">💬 مخاوف الأسرة</div>
+      <div class="form-group">
+        <label class="form-label">علامات سريعة</label>
+        <div class="tag-wrap" onclick="document.getElementById('inp-concerns').focus()">
+          <div id="tags-concerns"></div>
+          <input type="text" class="tag-input" id="inp-concerns"
+                 placeholder="اكتب مخاوفة واضغط Enter..."
+                 onkeydown="addTag(event,'concerns')">
+        </div>
+        <div class="tag-hint">اضغط Enter أو الفاصلة لإضافة</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">تفاصيل إضافية</label>
+        <textarea class="form-input" id="concerns_detail"
+                  oninput="updateFamilyQuality()"
+                  placeholder="شرح تفصيلي للمخاوف..."></textarea>
+      </div>
+    </div>
+
+    <!-- Home resources -->
+    <div class="card">
+      <div class="card-title">🏠 موارد ومدعمات البيت</div>
+      <div class="tag-wrap" onclick="document.getElementById('inp-resources').focus()">
+        <div id="tags-resources"></div>
+        <input type="text" class="tag-input" id="inp-resources"
+               placeholder="مثل: حديقة، حيوان أليف، أخ داعم..."
+               onkeydown="addTag(event,'resources')">
+      </div>
+      <div class="tag-hint">اضغط Enter أو الفاصلة لإضافة</div>
+    </div>
+
+    <!-- 5-year vision -->
+    <div class="card">
+      <div class="card-title">🌈 رؤية الأسرة بعد 5 سنوات</div>
+      <div class="form-group">
+        <label class="form-label">ماذا تتمنى الأسرة لابنها / ابنتها؟</label>
+        <textarea class="form-input" id="vision_text"
+                  oninput="updateFamilyQuality()"
+                  placeholder="اكتب رؤية الأسرة هنا..."></textarea>
+      </div>
+      <div class="row-3" style="margin-top:12px">
+        <div class="form-group">
+          <label class="form-label">أين يعيش؟</label>
+          <select class="form-input" id="vision_living" onchange="updateFamilyQuality()">
+            <option value="">اختر...</option>
+            <option value="family">مع الأسرة</option>
+            <option value="supported">سكن مدعوم</option>
+            <option value="independent">مستقل</option>
+            <option value="community">في المجتمع</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ماذا يعمل؟</label>
+          <select class="form-input" id="vision_work" onchange="updateFamilyQuality()">
+            <option value="">اختر...</option>
+            <option value="supported_emp">عمل مدعوم</option>
+            <option value="open_market">سوق العمل المفتوح</option>
+            <option value="day_program">برنامج نهاري</option>
+            <option value="volunteer">تطوع</option>
+            <option value="home_based">من المنزل</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">توقعات أخرى</label>
+          <input type="text" class="form-input" id="vision_other"
+                 oninput="updateFamilyQuality()"
+                 placeholder="اجتماعية، تعليمية...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Family quality indicator -->
+    <div class="quality-bar">
+      <div class="quality-info">
+        <div class="quality-title">مؤشر جودة بيانات الأسرة</div>
+        <div class="quality-hint" id="fq-hint">أكمل الحقول الأساسية لرفع الجودة</div>
+      </div>
+      <div class="quality-badges">
+        <div class="qbadge weak on"   id="fq-weak">⚠️ ضعيف</div>
+        <div class="qbadge usable"    id="fq-usable">✓ مقبول</div>
+        <div class="qbadge strong"    id="fq-strong">★ قوي</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-family -->
+
+  <!-- ════════════ TAB B — LEARNER VOICE ════════════ -->
+  <div id="tab-learner" class="tab-panel">
+
+    <!-- Collection method -->
+    <div class="card">
+      <div class="card-title">
+        📋 طريقة الحصول على صوت المتعلم
+        <span style="font-size:13px; color:var(--red); font-weight:500;">* إلزامي</span>
+      </div>
+      <div class="radio-group">
+        <label class="radio-opt">
+          <input type="radio" name="learner_method" value="speech" onchange="updateLearnerQuality()">
+          <span>🗣️ كلام مباشر</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="learner_method" value="aac" onchange="updateLearnerQuality()">
+          <span>📲 AAC</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="learner_method" value="visual" onchange="updateLearnerQuality()">
+          <span>🖼️ بصري</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="learner_method" value="observation" onchange="updateLearnerQuality()">
+          <span>👁️ ملاحظة</span>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="learner_method" value="mediator" onchange="updateLearnerQuality()">
+          <span>🤝 وسيط</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Progress tracker -->
+    <div class="progress-card">
+      <div class="progress-head">
+        <span>تقدم الأسئلة الخمسة</span>
+        <span id="prog-label">0 من 4 مكتمل</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-dots">
+        <div class="pdot" id="pdot-1">❤️</div>
+        <div class="pdot" id="pdot-2">💪</div>
+        <div class="pdot" id="pdot-3">🌈</div>
+        <div class="pdot" id="pdot-4">☀️</div>
+        <div class="pdot" id="pdot-5">🤔</div>
+      </div>
+    </div>
+
+    <!-- Q1 -->
+    <div class="q-card" id="qcard-1">
+      <span class="q-emoji">❤️</span>
+      <div class="q-text">ماذا تحب أن تفعل؟</div>
+      <textarea class="form-input" id="lq1"
+                placeholder="دع المتعلم يعبّر بطريقته..."
+                oninput="onLearnerInput(1, this.value)"></textarea>
+    </div>
+
+    <!-- Q2 -->
+    <div class="q-card" id="qcard-2">
+      <span class="q-emoji">💪</span>
+      <div class="q-text">ما الذي تجيده وتتميز فيه؟</div>
+      <textarea class="form-input" id="lq2"
+                placeholder="مهاراتك وقدراتك..."
+                oninput="onLearnerInput(2, this.value)"></textarea>
+    </div>
+
+    <!-- Q3 -->
+    <div class="q-card" id="qcard-3">
+      <span class="q-emoji">🌈</span>
+      <div class="q-text">ماذا تريد أن يكون مستقبلك؟</div>
+      <textarea class="form-input" id="lq3"
+                placeholder="أحلامك وطموحاتك..."
+                oninput="onLearnerInput(3, this.value)"></textarea>
+    </div>
+
+    <!-- Q4 -->
+    <div class="q-card" id="qcard-4">
+      <span class="q-emoji">☀️</span>
+      <div class="q-text">ما الذي يجعلك سعيداً؟</div>
+      <textarea class="form-input" id="lq4"
+                placeholder="الأشياء التي تسعدك..."
+                oninput="onLearnerInput(4, this.value)"></textarea>
+    </div>
+
+    <!-- Q5 optional -->
+    <div class="q-card" id="qcard-5">
+      <span class="q-emoji">🤔</span>
+      <div class="q-text">
+        ما الصعوبات التي تواجهها؟
+        <span class="q-opt">(اختياري)</span>
+      </div>
+      <textarea class="form-input" id="lq5"
+                placeholder="الأشياء الصعبة أو التي لا تحبها..."
+                oninput="onLearnerInput(5, this.value)"></textarea>
+    </div>
+
+    <!-- Comfortable environments -->
+    <div class="card">
+      <div class="card-title">🌿 البيئات المريحة للمتعلم</div>
+      <div class="tag-wrap" onclick="document.getElementById('inp-envs').focus()">
+        <div id="tags-envs"></div>
+        <input type="text" class="tag-input" id="inp-envs"
+               placeholder="مثل: المنزل، الحديقة، المكتبة..."
+               onkeydown="addTag(event,'envs')">
+      </div>
+      <div class="tag-hint">اضغط Enter أو الفاصلة لإضافة</div>
+    </div>
+
+    <!-- Learner quality + export -->
+    <div class="quality-bar">
+      <div class="quality-info">
+        <div class="quality-title">مؤشر جودة صوت المتعلم</div>
+        <div class="quality-hint" id="lq-hint">أكمل الأسئلة الأربعة الأساسية</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+        <div class="quality-badges">
+          <div class="qbadge weak on" id="lq-weak">⚠️ ضعيف</div>
+          <div class="qbadge usable"  id="lq-usable">✓ مقبول</div>
+          <div class="qbadge strong"  id="lq-strong">★ قوي</div>
+        </div>
+        <button class="btn btn-primary" onclick="exportJSON()">⬇️ تصدير JSON</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-learner -->
+
+</main>
+
+<script>
+/* ════════ Tab switching ════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ════════ Accordion ════════ */
+function toggleAcc(header) {
+  const body = header.nextElementSibling;
+  const open = body.classList.toggle('open');
+  header.classList.toggle('open', open);
+}
+
+/* ════════ AEPS ════════ */
+const aepsVals = {};
+function selectAeps(btn, station, val) {
+  const btns = btn.parentElement.querySelectorAll('.aeps-btn');
+  btns.forEach((b, i) => {
+    b.classList.remove('sel-0','sel-1','sel-2');
+    if (i === val) b.classList.add('sel-' + val);
+  });
+  aepsVals[station] = val;
+  updateStationBadge(parseInt(station.replace('s',''), 10));
+  updateFamilyQuality();
+}
+
+/* ════════ Station badge ════════ */
+function updateStationBadge(n) {
+  const q1 = (document.getElementById('s'+n+'_q1')?.value||'').trim();
+  const q2 = (document.getElementById('s'+n+'_q2')?.value||'').trim();
+  const badge = document.getElementById('badge-s'+n);
+  if (!badge) return;
+  if (q1.length > 8 && q2.length > 8 && aepsVals['s'+n] !== undefined) {
+    badge.textContent = '✓ مكتمل';
+    badge.style.background = 'rgba(29,158,117,.15)';
+    badge.style.color = 'var(--teal-dark)';
+  } else if (q1.length > 0 || q2.length > 0) {
+    badge.textContent = 'جزئي';
+    badge.style.background = '#FEF3C7';
+    badge.style.color = '#78350F';
+  } else {
+    badge.textContent = 'غير مكتمل';
+    badge.style.background = '';
+    badge.style.color = '';
+  }
+}
+
+/* ════════ Tags ════════ */
+const tagData = { priorities: [], concerns: [], resources: [], envs: [] };
+
+function addTag(e, group) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const val = e.target.value.replace(',','').trim();
+  if (val && !tagData[group].includes(val)) {
+    tagData[group].push(val);
+    renderTags(group);
+    e.target.value = '';
+    updateFamilyQuality();
+    if (group === 'envs') updateLearnerQuality();
+  }
+}
+
+function removeTag(group, idx) {
+  tagData[group].splice(idx, 1);
+  renderTags(group);
+  updateFamilyQuality();
+  if (group === 'envs') updateLearnerQuality();
+}
+
+function renderTags(group) {
+  const el = document.getElementById('tags-' + group);
+  if (!el) return;
+  el.innerHTML = tagData[group].map((t, i) =>
+    `<span class="tag">${t}<button class="tag-x" onclick="removeTag('${group}',${i})">×</button></span>`
+  ).join('');
+}
+
+/* ════════ Family quality ════════ */
+function updateFamilyQuality() {
+  let score = 0;
+  const stationFields = ['s1_q1','s1_q2','s2_q1','s2_q2','s3_q1','s3_q2','s4_q1','s4_q2','s5_q1','s5_q2'];
+  stationFields.forEach(id => {
+    const v = document.getElementById(id)?.value.trim() || '';
+    if (v.length > 10) score++;
+  });
+  score += Object.keys(aepsVals).length;
+  if (tagData.priorities.length >= 2) score++;
+  if (tagData.concerns.length >= 1) score++;
+  const detail = document.getElementById('concerns_detail')?.value.trim() || '';
+  if (detail.length > 15) score++;
+  if (tagData.resources.length >= 1) score++;
+  const vision = document.getElementById('vision_text')?.value.trim() || '';
+  if (vision.length > 20) score++;
+  if (document.getElementById('vision_living')?.value) score++;
+  if (document.getElementById('vision_work')?.value) score++;
+  if (document.querySelector('input[name="family_method"]:checked')) score += 2;
+  if (document.getElementById('session_date')?.value) score++;
+
+  const weak   = document.getElementById('fq-weak');
+  const usable = document.getElementById('fq-usable');
+  const strong = document.getElementById('fq-strong');
+  const hint   = document.getElementById('fq-hint');
+  [weak, usable, strong].forEach(b => b.classList.remove('on'));
+
+  if (score >= 16) {
+    strong.classList.add('on');
+    hint.textContent = 'بيانات شاملة وموثوقة — جاهزة للخطوة التالية';
+  } else if (score >= 8) {
+    usable.classList.add('on');
+    hint.textContent = 'بيانات مقبولة — يمكن إكمالها لاحقاً';
+  } else {
+    weak.classList.add('on');
+    hint.textContent = 'أكمل الحقول الأساسية لرفع الجودة';
+  }
+}
+
+/* ════════ Learner progress & quality ════════ */
+const learnerFilled = {};
+function onLearnerInput(n, val) {
+  const filled = val.trim().length > 5;
+  learnerFilled[n] = filled;
+  document.getElementById('qcard-' + n).classList.toggle('answered', filled);
+  document.getElementById('pdot-' + n).classList.toggle('done', filled);
+
+  const requiredDone = [1,2,3,4].filter(i => learnerFilled[i]).length;
+  const pct = (requiredDone / 4) * 100;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = requiredDone + ' من 4 مكتمل';
+
+  updateLearnerQuality();
+}
+
+function updateLearnerQuality() {
+  const requiredDone = [1,2,3,4].filter(i => learnerFilled[i]).length;
+  let score = requiredDone;
+  if (document.querySelector('input[name="learner_method"]:checked')) score++;
+  if (tagData.envs.length > 0) score++;
+  if (learnerFilled[5]) score++;
+
+  const weak   = document.getElementById('lq-weak');
+  const usable = document.getElementById('lq-usable');
+  const strong = document.getElementById('lq-strong');
+  const hint   = document.getElementById('lq-hint');
+  [weak, usable, strong].forEach(b => b.classList.remove('on'));
+
+  if (score >= 6) {
+    strong.classList.add('on');
+    hint.textContent = 'صوت المتعلم موثَّق بشكل ممتاز';
+  } else if (score >= 3) {
+    usable.classList.add('on');
+    hint.textContent = 'جيد — أكمل باقي الأسئلة لرفع الجودة';
+  } else {
+    weak.classList.add('on');
+    hint.textContent = 'أكمل الأسئلة الأربعة الأساسية';
+  }
+}
+
+/* ════════ Export JSON ════════ */
+function exportJSON() {
+  const fMethod = document.querySelector('input[name="family_method"]:checked')?.value || null;
+  const lMethod = document.querySelector('input[name="learner_method"]:checked')?.value || null;
+
+  const payload = {
+    meta: {
+      platform: 'Himam Transition Platform',
+      version: '1.0',
+      exported_at: new Date().toISOString()
+    },
+    family_voice: {
+      is_provisional: true,
+      method: fMethod,
+      session_date: document.getElementById('session_date').value,
+      attendees: document.getElementById('session_attendees').value,
+      stations: {
+        s1_wake_up:       buildStation(1),
+        s2_lunch:         buildStation(2),
+        s3_center:        buildStation(3),
+        s4_dining_table:  buildStation(4),
+        s5_family_gather: buildStation(5)
+      },
+      priorities:      tagData.priorities,
+      concerns:        { tags: tagData.concerns, detail: document.getElementById('concerns_detail').value },
+      resources:       tagData.resources,
+      vision: {
+        text:   document.getElementById('vision_text').value,
+        living: document.getElementById('vision_living').value,
+        work:   document.getElementById('vision_work').value,
+        other:  document.getElementById('vision_other').value
+      }
+    },
+    learner_voice: {
+      method: lMethod,
+      questions: {
+        q1_loves:      document.getElementById('lq1').value,
+        q2_good_at:    document.getElementById('lq2').value,
+        q3_future:     document.getElementById('lq3').value,
+        q4_happy:      document.getElementById('lq4').value,
+        q5_challenges: document.getElementById('lq5').value
+      },
+      environments: tagData.envs
+    }
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'himam_voice_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildStation(n) {
+  return {
+    q1:    document.getElementById('s'+n+'_q1')?.value || '',
+    q2:    document.getElementById('s'+n+'_q2')?.value || '',
+    aeps:  aepsVals['s'+n] ?? null,
+    notes: document.getElementById('s'+n+'_notes')?.value || ''
+  };
+}
+</script>
+</body>
+</html>
