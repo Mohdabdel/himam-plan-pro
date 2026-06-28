@@ -1,0 +1,807 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "himam_learner_profile_schema_v1",
+  "title": "بروفايل المتعلم — منصة همم",
+  "description": "النموذج الموحد لبروفايل المتعلم. يستوعب جميع المصادر ويُغذّي Silent Engine بالأدلة المصنفة.",
+  "type": "object",
+  "required": [
+    "profile_meta",
+    "pins",
+    "skills_academic",
+    "supports",
+    "environments",
+    "vision",
+    "concepts",
+    "tools_coverage"
+  ],
+  "properties": {
+    "profile_meta": {
+      "description": "بيانات هوية البروفايل والتتبع",
+      "type": "object",
+      "required": [
+        "profile_id",
+        "learner_id",
+        "created_at",
+        "schema_version",
+        "status"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "description": "معرف فريد للبروفايل"
+        },
+        "learner_id": {
+          "type": "string",
+          "description": "معرف المتعلم"
+        },
+        "learner_name_ar": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "schema_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "active",
+            "under_review",
+            "archived"
+          ],
+          "description": "draft=تحت الإعداد، active=مفعّل، under_review=قيد المراجعة"
+        },
+        "cycle": {
+          "type": "string",
+          "description": "دورة التقييم مثل 2026-Q1"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "معرف المختص المُنشئ"
+        }
+      }
+    },
+    "pins": {
+      "description": "الحافظة أ — التفضيلات والاهتمامات والاحتياجات والمهارات/نقاط القوة",
+      "type": "object",
+      "properties": {
+        "preferences": {
+          "type": "array",
+          "description": "ما يفضله المتعلم",
+          "items": {
+            "$ref": "#/$defs/pins_item"
+          }
+        },
+        "interests": {
+          "type": "array",
+          "description": "ما يهتم به المتعلم",
+          "items": {
+            "$ref": "#/$defs/pins_item"
+          }
+        },
+        "needs": {
+          "type": "array",
+          "description": "الاحتياجات الداعمة",
+          "items": {
+            "$ref": "#/$defs/pins_item"
+          }
+        },
+        "strengths": {
+          "type": "array",
+          "description": "نقاط القوة والمهارات",
+          "items": {
+            "$ref": "#/$defs/pins_item"
+          }
+        }
+      }
+    },
+    "skills_academic": {
+      "description": "الحافظة ب — المهارات الأكاديمية والوظيفية والحياتية",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "skill_id",
+          "description_ar",
+          "domain",
+          "source_ref"
+        ],
+        "properties": {
+          "skill_id": {
+            "type": "string"
+          },
+          "description_ar": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "reading_functional",
+              "writing_functional",
+              "math_functional",
+              "home_skills",
+              "organization",
+              "sequencing",
+              "other"
+            ]
+          },
+          "linked_concepts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/concept_id"
+            }
+          },
+          "source_ref": {
+            "$ref": "#/$defs/source_ref"
+          },
+          "context": {
+            "$ref": "#/$defs/context"
+          }
+        }
+      }
+    },
+    "supports": {
+      "description": "الحافظة ج — المدعمات والتسهيلات",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "support_id",
+          "description_ar",
+          "support_type",
+          "source_ref"
+        ],
+        "properties": {
+          "support_id": {
+            "type": "string"
+          },
+          "description_ar": {
+            "type": "string"
+          },
+          "support_type": {
+            "type": "string",
+            "enum": [
+              "visual_prompt",
+              "modeling",
+              "task_analysis",
+              "physical_prompt",
+              "verbal_prompt",
+              "environment_modification",
+              "AAC_device",
+              "schedule_visual",
+              "sensory_adjustment",
+              "other"
+            ]
+          },
+          "effectiveness": {
+            "type": "string",
+            "enum": [
+              "high",
+              "moderate",
+              "low",
+              "unknown"
+            ]
+          },
+          "linked_concepts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/concept_id"
+            }
+          },
+          "source_ref": {
+            "$ref": "#/$defs/source_ref"
+          }
+        }
+      }
+    },
+    "environments": {
+      "description": "الحافظة د — البيئات والروتينات",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "env_id",
+          "env_type",
+          "summary_ar",
+          "source_ref"
+        ],
+        "properties": {
+          "env_id": {
+            "type": "string"
+          },
+          "env_type": {
+            "type": "string",
+            "enum": [
+              "home",
+              "center_school",
+              "community",
+              "work",
+              "other"
+            ]
+          },
+          "routine": {
+            "type": "string",
+            "enum": [
+              "waking_up",
+              "lunch",
+              "going_to_center",
+              "dining_table",
+              "family_gathering",
+              "free_time",
+              "other"
+            ]
+          },
+          "summary_ar": {
+            "type": "string",
+            "description": "ملخص الأداء في هذه البيئة/الروتين"
+          },
+          "strengths_noted": {
+            "type": "string"
+          },
+          "challenges_noted": {
+            "type": "string"
+          },
+          "linked_concepts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/concept_id"
+            }
+          },
+          "source_ref": {
+            "$ref": "#/$defs/source_ref"
+          }
+        }
+      }
+    },
+    "vision": {
+      "description": "الحافظة هـ — الرؤية المستقبلية ومجالات الحياة",
+      "type": "object",
+      "properties": {
+        "learner_voice": {
+          "type": "object",
+          "description": "رؤية المتعلم لمستقبله",
+          "properties": {
+            "dreams_ar": {
+              "type": "string"
+            },
+            "preferences_ar": {
+              "type": "string"
+            },
+            "concerns_ar": {
+              "type": "string"
+            },
+            "source_ref": {
+              "$ref": "#/$defs/source_ref"
+            }
+          }
+        },
+        "family_voice": {
+          "type": "object",
+          "description": "رؤية الأسرة",
+          "properties": {
+            "priorities_ar": {
+              "type": "string"
+            },
+            "long_term_vision_ar": {
+              "type": "string"
+            },
+            "concerns_ar": {
+              "type": "string"
+            },
+            "cultural_context_ar": {
+              "type": "string"
+            },
+            "source_ref": {
+              "$ref": "#/$defs/source_ref"
+            }
+          }
+        },
+        "life_domains_priorities": {
+          "type": "array",
+          "description": "مجالات الحياة الراشدة المُعطاة الأولوية",
+          "items": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "enum": [
+                  "daily_living",
+                  "employment",
+                  "community_living",
+                  "health_wellness",
+                  "relationships",
+                  "self_determination"
+                ]
+              },
+              "priority_level": {
+                "type": "string",
+                "enum": [
+                  "high",
+                  "medium",
+                  "low"
+                ]
+              },
+              "notes_ar": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "concepts": {
+      "description": "الحافظة و — ملفات مفاهيم الانتقال العشرة (مخرج المعايرة)",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "SAFETY": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "SELF_DET": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "COMM": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "SELF_CARE": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "MOBILITY": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "SOCIAL": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "COMMUNITY": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "HEALTH": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "ACADEMIC": {
+          "$ref": "#/$defs/concept_file"
+        },
+        "LEARNING_TECH": {
+          "$ref": "#/$defs/concept_file"
+        }
+      }
+    },
+    "tools_coverage": {
+      "description": "الحافظة ز — الأدوات والتغطية",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "tool_id",
+          "tool_name",
+          "tool_type",
+          "date_administered"
+        ],
+        "properties": {
+          "tool_id": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "tool_type": {
+            "type": "string",
+            "enum": [
+              "formal_standardized",
+              "formal_curriculum_based",
+              "informal_checklist",
+              "informal_interest_survey",
+              "functional_observation",
+              "learner_interview",
+              "family_interview",
+              "team_report",
+              "file_review"
+            ]
+          },
+          "date_administered": {
+            "type": "string",
+            "format": "date"
+          },
+          "administered_by": {
+            "type": "string"
+          },
+          "concepts_covered": {
+            "type": "array",
+            "description": "المفاهيم التي غطّتها هذه الأداة",
+            "items": {
+              "$ref": "#/$defs/concept_id"
+            }
+          },
+          "environments_covered": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "home",
+                "center_school",
+                "community",
+                "work"
+              ]
+            }
+          },
+          "coverage_level": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "supporting",
+              "indirect"
+            ],
+            "description": "primary=تغذية رئيسية، supporting=مساندة، indirect=غير مباشرة"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "concept_id": {
+      "type": "string",
+      "enum": [
+        "SAFETY",
+        "SELF_DET",
+        "COMM",
+        "SELF_CARE",
+        "MOBILITY",
+        "SOCIAL",
+        "COMMUNITY",
+        "HEALTH",
+        "ACADEMIC",
+        "LEARNING_TECH"
+      ]
+    },
+    "pins_item": {
+      "type": "object",
+      "required": [
+        "item_id",
+        "description_ar",
+        "domain",
+        "source_ref"
+      ],
+      "properties": {
+        "item_id": {
+          "type": "string"
+        },
+        "description_ar": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string",
+          "enum": [
+            "daily_life",
+            "work_vocational",
+            "community",
+            "health_wellness",
+            "relationships",
+            "self_determination",
+            "learning",
+            "leisure",
+            "other"
+          ]
+        },
+        "stability": {
+          "type": "string",
+          "enum": [
+            "consistent",
+            "emerging",
+            "situational",
+            "unknown"
+          ]
+        },
+        "linked_concepts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/concept_id"
+          }
+        },
+        "source_ref": {
+          "$ref": "#/$defs/source_ref"
+        },
+        "context": {
+          "$ref": "#/$defs/context"
+        }
+      }
+    },
+    "source_ref": {
+      "type": "object",
+      "description": "مرجع المصدر — إلزامي لكل عنصر",
+      "required": [
+        "source_type",
+        "source_name"
+      ],
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "formal_tool",
+            "informal_tool",
+            "functional_observation",
+            "learner_voice",
+            "family_voice",
+            "team_report",
+            "file_review"
+          ]
+        },
+        "source_name": {
+          "type": "string",
+          "description": "مثل: TTAP-3, استمارة صوت المتعلم, ملاحظة مجتمعية"
+        },
+        "tool_id": {
+          "type": "string",
+          "description": "ربط بـ tools_coverage"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "observer": {
+          "type": "string"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "السياق الملازم للأداء — رافع وزن الدليل",
+      "properties": {
+        "environment": {
+          "type": "string",
+          "enum": [
+            "home",
+            "center_school",
+            "community",
+            "work",
+            "other"
+          ]
+        },
+        "routine": {
+          "type": "string",
+          "enum": [
+            "waking_up",
+            "lunch",
+            "going_to_center",
+            "dining_table",
+            "family_gathering",
+            "free_time",
+            "other"
+          ]
+        },
+        "support_present": {
+          "type": "string",
+          "enum": [
+            "none",
+            "minimal_reminder",
+            "moderate",
+            "intensive",
+            "unknown"
+          ]
+        },
+        "notes_ar": {
+          "type": "string"
+        }
+      }
+    },
+    "evidence_item": {
+      "type": "object",
+      "description": "دليل واحد مُسند لمفهوم — وحدة المعايرة الأساسية",
+      "required": [
+        "evidence_id",
+        "description_ar",
+        "evidence_type",
+        "source_ref"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string"
+        },
+        "description_ar": {
+          "type": "string"
+        },
+        "evidence_type": {
+          "type": "string",
+          "enum": [
+            "strength",
+            "emerging",
+            "need",
+            "support_condition",
+            "personal_voice"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/$defs/source_ref"
+        },
+        "context": {
+          "$ref": "#/$defs/context"
+        },
+        "weights": {
+          "type": "object",
+          "description": "أوزان مصفوفة الترجيح — تُحسبها Silent Engine",
+          "properties": {
+            "source_type_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "context_strength_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "repetition_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "relevance_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "independence_score": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "total_weight": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 14
+            }
+          }
+        }
+      }
+    },
+    "concept_file": {
+      "type": "object",
+      "description": "ملف مفهوم انتقالي واحد — مخرج المعايرة",
+      "required": [
+        "concept_id",
+        "calibration_status"
+      ],
+      "properties": {
+        "concept_id": {
+          "$ref": "#/$defs/concept_id"
+        },
+        "calibration_status": {
+          "type": "string",
+          "enum": [
+            "not_started",
+            "incomplete",
+            "provisional",
+            "final"
+          ],
+          "description": "not_started=لم يبدأ، incomplete=غير مكتمل المعايرة (لا يُستخدم في الأهداف)، provisional=مبدئي، final=نهائي"
+        },
+        "evidence": {
+          "type": "array",
+          "description": "قائمة الأدلة المرتبطة بهذا المفهوم",
+          "items": {
+            "$ref": "#/$defs/evidence_item"
+          }
+        },
+        "current_level": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 6
+        },
+        "level_description_ar": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coverage": {
+          "type": "string",
+          "enum": [
+            "limited",
+            "moderate",
+            "good"
+          ]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "evidence_summary": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "conflicts": {
+          "type": "array",
+          "description": "التعارضات المرصودة بين الأدلة — لا تُحذف",
+          "items": {
+            "type": "object",
+            "properties": {
+              "conflict_id": {
+                "type": "string"
+              },
+              "description_ar": {
+                "type": "string"
+              },
+              "between_sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "interpretation_ar": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "completion_recommendation": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "null إذا التغطية كافية، وإلا توصية استكمال",
+          "properties": {
+            "trigger": {
+              "type": "string",
+              "enum": [
+                "single_source_only",
+                "no_natural_environment_observation",
+                "conflicting_evidence",
+                "no_support_data",
+                "voice_without_performance_data",
+                "high_level_weak_evidence"
+              ]
+            },
+            "tool_recommended": {
+              "type": "string"
+            },
+            "target_environment": {
+              "type": "string"
+            },
+            "target_routine": {
+              "type": "string"
+            },
+            "purpose_ar": {
+              "type": "string"
+            }
+          }
+        },
+        "priority_level": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low",
+            "not_assessed"
+          ],
+          "description": "الأولوية للاستهداف في خطة الانتقال"
+        },
+        "goal_indicators": {
+          "type": "array",
+          "description": "مؤشرات مبدئية مقترحة للأهداف — تُولَّد من المستوى+الأدلة",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
