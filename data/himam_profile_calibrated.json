@@ -1,0 +1,844 @@
+{
+  "profile_meta": {
+    "profile_id": "PRF-2026-001",
+    "learner_id": "LRN-001",
+    "learner_name_ar": "محمد (مثال)",
+    "created_at": "2026-06-28T08:00:00Z",
+    "updated_at": "2026-06-28T08:00:00Z",
+    "schema_version": "1.0",
+    "status": "active",
+    "cycle": "2026-Q1",
+    "created_by": "specialist-001"
+  },
+  "pins": {
+    "preferences": [
+      {
+        "item_id": "PREF-001",
+        "description_ar": "يفضل الجلوس في الصف الأمامي قرب المشرف في المركز",
+        "domain": "daily_life",
+        "stability": "consistent",
+        "linked_concepts": [
+          "SOCIAL",
+          "COMM"
+        ],
+        "source_ref": {
+          "source_type": "family_voice",
+          "source_name": "استمارة صوت الأسرة",
+          "tool_id": "TOOL-002",
+          "date": "2026-05-10"
+        },
+        "context": {
+          "environment": "center_school",
+          "routine": "going_to_center",
+          "support_present": "minimal_reminder"
+        }
+      },
+      {
+        "item_id": "PREF-002",
+        "description_ar": "يفضل الأنشطة الهادئة (ترتيب الأشياء، المطابقة) على الأنشطة الصاخبة",
+        "domain": "leisure",
+        "stability": "consistent",
+        "linked_concepts": [
+          "SELF_DET",
+          "HEALTH"
+        ],
+        "source_ref": {
+          "source_type": "functional_observation",
+          "source_name": "ملاحظة وظيفية — المركز",
+          "tool_id": "TOOL-003",
+          "date": "2026-05-15"
+        },
+        "context": {
+          "environment": "center_school",
+          "routine": "free_time",
+          "support_present": "none"
+        }
+      }
+    ],
+    "interests": [
+      {
+        "item_id": "INT-001",
+        "description_ar": "مهتم بترتيب الأغراض وتصنيفها — يتطوع لترتيب أكواب القهوة في المجلس",
+        "domain": "daily_life",
+        "stability": "consistent",
+        "linked_concepts": [
+          "COMMUNITY",
+          "SELF_DET"
+        ],
+        "source_ref": {
+          "source_type": "family_voice",
+          "source_name": "استمارة صوت الأسرة",
+          "tool_id": "TOOL-002",
+          "date": "2026-05-10"
+        },
+        "context": {
+          "environment": "home",
+          "routine": "family_gathering",
+          "support_present": "none"
+        }
+      }
+    ],
+    "needs": [
+      {
+        "item_id": "NEED-001",
+        "description_ar": "يحتاج إلى جدول بصري لتسلسل خطوات الاستعداد الصباحي",
+        "domain": "daily_life",
+        "stability": "consistent",
+        "linked_concepts": [
+          "SELF_CARE",
+          "ACADEMIC"
+        ],
+        "source_ref": {
+          "source_type": "family_voice",
+          "source_name": "استمارة صوت الأسرة",
+          "tool_id": "TOOL-002",
+          "date": "2026-05-10"
+        },
+        "context": {
+          "environment": "home",
+          "routine": "waking_up",
+          "support_present": "moderate"
+        }
+      },
+      {
+        "item_id": "NEED-002",
+        "description_ar": "يحتاج إلى تذكير لفظي واحد عند الانتقال بين الأنشطة",
+        "domain": "daily_life",
+        "stability": "consistent",
+        "linked_concepts": [
+          "MOBILITY",
+          "SELF_DET"
+        ],
+        "source_ref": {
+          "source_type": "formal_tool",
+          "source_name": "TTAP-3",
+          "tool_id": "TOOL-001",
+          "date": "2026-04-20"
+        },
+        "context": {
+          "environment": "center_school",
+          "support_present": "minimal_reminder"
+        }
+      }
+    ],
+    "strengths": [
+      {
+        "item_id": "STR-001",
+        "description_ar": "يكمل مهام التسلسل البسيطة (3–4 خطوات) باستقلالية عالية في البيت",
+        "domain": "daily_life",
+        "stability": "consistent",
+        "linked_concepts": [
+          "SELF_CARE",
+          "ACADEMIC"
+        ],
+        "source_ref": {
+          "source_type": "functional_observation",
+          "source_name": "ملاحظة وظيفية — البيت",
+          "tool_id": "TOOL-003",
+          "date": "2026-05-20"
+        },
+        "context": {
+          "environment": "home",
+          "routine": "waking_up",
+          "support_present": "none"
+        }
+      },
+      {
+        "item_id": "STR-002",
+        "description_ar": "يحافظ على تواصل بصري مع الأشخاص المألوفين ويرد على التحية باتساق",
+        "domain": "relationships",
+        "stability": "consistent",
+        "linked_concepts": [
+          "SOCIAL",
+          "COMM"
+        ],
+        "source_ref": {
+          "source_type": "formal_tool",
+          "source_name": "TTAP-3",
+          "tool_id": "TOOL-001",
+          "date": "2026-04-20"
+        },
+        "context": {
+          "environment": "center_school",
+          "support_present": "none"
+        }
+      }
+    ]
+  },
+  "skills_academic": [
+    {
+      "skill_id": "SKL-001",
+      "description_ar": "يتعرف على اسمه مكتوباً ويُشير إليه بدقة",
+      "domain": "reading_functional",
+      "linked_concepts": [
+        "ACADEMIC",
+        "COMM"
+      ],
+      "source_ref": {
+        "source_type": "formal_tool",
+        "source_name": "TTAP-3",
+        "tool_id": "TOOL-001",
+        "date": "2026-04-20"
+      },
+      "context": {
+        "environment": "center_school",
+        "support_present": "none"
+      }
+    },
+    {
+      "skill_id": "SKL-002",
+      "description_ar": "يعدّ حتى 5 مع المطابقة الصحيحة للكميات في سياق الأكواب والأطباق",
+      "domain": "math_functional",
+      "linked_concepts": [
+        "ACADEMIC",
+        "COMMUNITY"
+      ],
+      "source_ref": {
+        "source_type": "functional_observation",
+        "source_name": "ملاحظة وظيفية — المركز",
+        "tool_id": "TOOL-003",
+        "date": "2026-05-15"
+      },
+      "context": {
+        "environment": "center_school",
+        "routine": "dining_table",
+        "support_present": "minimal_reminder"
+      }
+    }
+  ],
+  "supports": [
+    {
+      "support_id": "SUP-001",
+      "description_ar": "جدول بصري مصور للروتين الصباحي (6 خطوات)",
+      "support_type": "schedule_visual",
+      "effectiveness": "high",
+      "linked_concepts": [
+        "SELF_CARE",
+        "ACADEMIC"
+      ],
+      "source_ref": {
+        "source_type": "family_voice",
+        "source_name": "استمارة صوت الأسرة",
+        "tool_id": "TOOL-002",
+        "date": "2026-05-10"
+      }
+    },
+    {
+      "support_id": "SUP-002",
+      "description_ar": "تذكير لفظي واحد قبل الانتقال بدقيقة",
+      "support_type": "verbal_prompt",
+      "effectiveness": "high",
+      "linked_concepts": [
+        "MOBILITY",
+        "SELF_DET"
+      ],
+      "source_ref": {
+        "source_type": "formal_tool",
+        "source_name": "TTAP-3",
+        "tool_id": "TOOL-001",
+        "date": "2026-04-20"
+      }
+    }
+  ],
+  "environments": [
+    {
+      "env_id": "ENV-001",
+      "env_type": "home",
+      "routine": "waking_up",
+      "summary_ar": "يستيقظ باستقلالية، يحتاج جدولاً بصرياً لإكمال الروتين. يُكمل 4/6 خطوات بدون تذكير.",
+      "strengths_noted": "يبدأ بمفرده، يُكمل اللباس بشكل شبه كامل",
+      "challenges_noted": "غسل الأسنان والشعر يحتاجان تذكيراً",
+      "linked_concepts": [
+        "SELF_CARE",
+        "HEALTH"
+      ],
+      "source_ref": {
+        "source_type": "family_voice",
+        "source_name": "استمارة صوت الأسرة",
+        "tool_id": "TOOL-002",
+        "date": "2026-05-10"
+      }
+    },
+    {
+      "env_id": "ENV-002",
+      "env_type": "community",
+      "routine": "family_gathering",
+      "summary_ar": "يحضر مجلس العائلة الأسبوعي. يجلس باتساق، يوزّع التمر بمبادرة ذاتية، يرد على التحية.",
+      "strengths_noted": "يؤدي دوراً واضحاً في الضيافة، سلوكه منظم في المجلس",
+      "challenges_noted": "يصعب عليه في التجمعات الكبيرة (>15 شخص)",
+      "linked_concepts": [
+        "COMMUNITY",
+        "SOCIAL",
+        "SAFETY"
+      ],
+      "source_ref": {
+        "source_type": "family_voice",
+        "source_name": "استمارة صوت الأسرة",
+        "tool_id": "TOOL-002",
+        "date": "2026-05-10"
+      }
+    }
+  ],
+  "vision": {
+    "learner_voice": {
+      "dreams_ar": "يريد أن يساعد في البيت ويخرج مع الأسرة",
+      "preferences_ar": "يحب الهدوء وترتيب الأشياء والخروج إلى الحديقة",
+      "concerns_ar": "لا يحب الأماكن المزدحمة جداً",
+      "source_ref": {
+        "source_type": "learner_voice",
+        "source_name": "استمارة صوت المتعلم",
+        "tool_id": "TOOL-004",
+        "date": "2026-05-12"
+      }
+    },
+    "family_voice": {
+      "priorities_ar": "الاستقلالية في العناية الذاتية، المشاركة في المجلس، الذهاب للمسجد مع الوالد",
+      "long_term_vision_ar": "يعيش بشكل شبه مستقل، يشارك في حياة الأسرة والمجتمع",
+      "concerns_ar": "السلامة عند الخروج وحده، التعامل مع الغرباء",
+      "cultural_context_ar": "الأسرة خليجية، المجلس والمسجد ودار الحي محاور مجتمعية أساسية",
+      "source_ref": {
+        "source_type": "family_voice",
+        "source_name": "استمارة صوت الأسرة",
+        "tool_id": "TOOL-002",
+        "date": "2026-05-10"
+      }
+    },
+    "life_domains_priorities": [
+      {
+        "domain": "daily_living",
+        "priority_level": "high",
+        "notes_ar": "العناية الذاتية أولوية قصوى"
+      },
+      {
+        "domain": "community_living",
+        "priority_level": "high",
+        "notes_ar": "المجلس والمسجد أهداف الأسرة"
+      },
+      {
+        "domain": "self_determination",
+        "priority_level": "medium",
+        "notes_ar": "تعزيز الاختيارات اليومية"
+      },
+      {
+        "domain": "health_wellness",
+        "priority_level": "medium",
+        "notes_ar": "النوم والأكل المنظم"
+      }
+    ]
+  },
+  "concepts": {
+    "SAFETY": {
+      "concept_id": "SAFETY",
+      "calibration_status": "incomplete",
+      "evidence": [],
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في SAFETY — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "high",
+      "goal_indicators": []
+    },
+    "SELF_DET": {
+      "concept_id": "SELF_DET",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في SELF_DET — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    },
+    "COMM": {
+      "concept_id": "COMM",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في COMM — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    },
+    "SELF_CARE": {
+      "concept_id": "SELF_CARE",
+      "calibration_status": "provisional",
+      "evidence": [
+        {
+          "evidence_id": "EV-SC-001",
+          "description_ar": "يُكمل 4 من 6 خطوات الروتين الصباحي بدون تذكير في البيت",
+          "evidence_type": "strength",
+          "source_ref": {
+            "source_type": "family_voice",
+            "source_name": "استمارة صوت الأسرة",
+            "tool_id": "TOOL-002",
+            "date": "2026-05-10"
+          },
+          "context": {
+            "environment": "home",
+            "routine": "waking_up",
+            "support_present": "none"
+          },
+          "weights": {
+            "source_type_score": 2,
+            "context_strength_score": 3,
+            "repetition_score": 1,
+            "relevance_score": 3,
+            "independence_score": 3,
+            "total_weight": 12
+          }
+        },
+        {
+          "evidence_id": "EV-SC-002",
+          "description_ar": "يحتاج تذكيراً لغسل الأسنان والشعر",
+          "evidence_type": "need",
+          "source_ref": {
+            "source_type": "family_voice",
+            "source_name": "استمارة صوت الأسرة",
+            "tool_id": "TOOL-002",
+            "date": "2026-05-10"
+          },
+          "context": {
+            "environment": "home",
+            "routine": "waking_up",
+            "support_present": "minimal_reminder"
+          },
+          "weights": {
+            "source_type_score": 2,
+            "context_strength_score": 3,
+            "repetition_score": 1,
+            "relevance_score": 3,
+            "independence_score": 2,
+            "total_weight": 11
+          }
+        },
+        {
+          "evidence_id": "EV-SC-003",
+          "description_ar": "TTAP-3 IF: أداء ناشئ في مهام النظافة الشخصية خارج البيت",
+          "evidence_type": "emerging",
+          "source_ref": {
+            "source_type": "formal_tool",
+            "source_name": "TTAP-3",
+            "tool_id": "TOOL-001",
+            "date": "2026-04-20"
+          },
+          "context": {
+            "environment": "center_school",
+            "support_present": "moderate"
+          },
+          "weights": {
+            "source_type_score": 3,
+            "context_strength_score": 1,
+            "repetition_score": 0,
+            "relevance_score": 3,
+            "independence_score": 1,
+            "total_weight": 8
+          }
+        }
+      ],
+      "current_level": 4,
+      "level_description_ar": "يظهر الأداء بشكل وظيفي في مواقف مألوفة مع دعم خفيف أو تذكير",
+      "coverage": "moderate",
+      "confidence": "high",
+      "evidence_summary": {
+        "what_learner_does_ar": "يُكمل 4 من 6 خطوات الروتين الصباحي بدون تذكير في البيت",
+        "what_is_emerging_ar": "TTAP-3 IF: أداء ناشئ في مهام النظافة الشخصية خارج البيت",
+        "what_needs_support_ar": "يحتاج تذكيراً لغسل الأسنان والشعر",
+        "effective_supports_ar": "لم تُحدد بعد",
+        "contexts_where_visible_ar": "center_school | home"
+      },
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "no_natural_environment_observation",
+        "tool_recommended": "ملاحظة وظيفية في البيئة الطبيعية",
+        "target_environment": "home أو community",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في SELF_CARE — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "high",
+      "goal_indicators": [
+        "يُكمل 6/6 خطوات الروتين الصباحي بدون تذكير في البيت",
+        "يُطبّق روتين النظافة الشخصية في المركز مع تذكير واحد فقط"
+      ]
+    },
+    "MOBILITY": {
+      "concept_id": "MOBILITY",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في MOBILITY — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    },
+    "SOCIAL": {
+      "concept_id": "SOCIAL",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في SOCIAL — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    },
+    "COMMUNITY": {
+      "concept_id": "COMMUNITY",
+      "calibration_status": "provisional",
+      "evidence": [
+        {
+          "evidence_id": "EV-COM-001",
+          "description_ar": "يحضر مجلس العائلة الأسبوعي ويوزّع التمر بمبادرة ذاتية ثابتة",
+          "evidence_type": "strength",
+          "source_ref": {
+            "source_type": "family_voice",
+            "source_name": "استمارة صوت الأسرة",
+            "tool_id": "TOOL-002",
+            "date": "2026-05-10"
+          },
+          "context": {
+            "environment": "community",
+            "routine": "family_gathering",
+            "support_present": "none"
+          },
+          "weights": {
+            "source_type_score": 2,
+            "context_strength_score": 3,
+            "repetition_score": 1,
+            "relevance_score": 3,
+            "independence_score": 3,
+            "total_weight": 12
+          }
+        },
+        {
+          "evidence_id": "EV-COM-002",
+          "description_ar": "يصعب عليه في التجمعات الكبيرة أكثر من 15 شخصاً — يطلب الخروج",
+          "evidence_type": "need",
+          "source_ref": {
+            "source_type": "family_voice",
+            "source_name": "استمارة صوت الأسرة",
+            "tool_id": "TOOL-002",
+            "date": "2026-05-10"
+          },
+          "context": {
+            "environment": "community",
+            "routine": "family_gathering",
+            "support_present": "none"
+          },
+          "weights": {
+            "source_type_score": 2,
+            "context_strength_score": 3,
+            "repetition_score": 1,
+            "relevance_score": 3,
+            "independence_score": 3,
+            "total_weight": 12
+          }
+        }
+      ],
+      "current_level": 4,
+      "level_description_ar": "يظهر الأداء بشكل وظيفي في مواقف مألوفة مع دعم خفيف أو تذكير",
+      "coverage": "limited",
+      "confidence": "medium",
+      "evidence_summary": {
+        "what_learner_does_ar": "يحضر مجلس العائلة الأسبوعي ويوزّع التمر بمبادرة ذاتية ثابتة",
+        "what_is_emerging_ar": "لا يوجد",
+        "what_needs_support_ar": "يصعب عليه في التجمعات الكبيرة أكثر من 15 شخصاً — يطلب الخروج",
+        "effective_supports_ar": "لم تُحدد بعد",
+        "contexts_where_visible_ar": "community"
+      },
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في COMMUNITY — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "high",
+      "goal_indicators": [
+        "يحضر 3 أنشطة مجتمعية مختلفة شهرياً ويؤدي دوراً فيها",
+        "يبقى في تجمع من 10–20 شخصاً لمدة 30 دقيقة مع تذكير واحد"
+      ]
+    },
+    "HEALTH": {
+      "concept_id": "HEALTH",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في HEALTH — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    },
+    "ACADEMIC": {
+      "concept_id": "ACADEMIC",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في ACADEMIC — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    },
+    "LEARNING_TECH": {
+      "concept_id": "LEARNING_TECH",
+      "evidence": [],
+      "calibration_status": "incomplete",
+      "current_level": null,
+      "level_description_ar": null,
+      "coverage": "limited",
+      "confidence": "low",
+      "evidence_summary": null,
+      "conflicts": [],
+      "completion_recommendation": {
+        "trigger": "single_source_only",
+        "tool_recommended": "ملاحظة وظيفية مباشرة أو مقابلة مستقلة",
+        "target_environment": "بيئة طبيعية",
+        "target_routine": "يُحدد بحسب المفهوم",
+        "purpose_ar": "استكمال فجوة التغطية في LEARNING_TECH — رفع الثقة ودقة المستوى"
+      },
+      "priority_level": "not_assessed",
+      "goal_indicators": []
+    }
+  },
+  "tools_coverage": [
+    {
+      "tool_id": "TOOL-001",
+      "tool_name": "TTAP-3",
+      "tool_type": "formal_standardized",
+      "date_administered": "2026-04-20",
+      "administered_by": "specialist-001",
+      "concepts_covered": [
+        "SELF_CARE",
+        "MOBILITY",
+        "COMM",
+        "SOCIAL",
+        "ACADEMIC"
+      ],
+      "environments_covered": [
+        "center_school"
+      ],
+      "coverage_level": "primary",
+      "notes": "طُبّق في المركز — يغطي بيئة واحدة فقط"
+    },
+    {
+      "tool_id": "TOOL-002",
+      "tool_name": "استمارة صوت الأسرة — همم",
+      "tool_type": "family_interview",
+      "date_administered": "2026-05-10",
+      "administered_by": "specialist-001",
+      "concepts_covered": [
+        "SELF_CARE",
+        "COMMUNITY",
+        "SOCIAL",
+        "SAFETY",
+        "MOBILITY",
+        "HEALTH"
+      ],
+      "environments_covered": [
+        "home",
+        "community"
+      ],
+      "coverage_level": "primary",
+      "notes": "أعطت أدلة قوية للبيئات الطبيعية"
+    },
+    {
+      "tool_id": "TOOL-003",
+      "tool_name": "ملاحظة وظيفية مباشرة",
+      "tool_type": "functional_observation",
+      "date_administered": "2026-05-15",
+      "administered_by": "specialist-001",
+      "concepts_covered": [
+        "SELF_CARE",
+        "ACADEMIC",
+        "SOCIAL"
+      ],
+      "environments_covered": [
+        "center_school"
+      ],
+      "coverage_level": "primary"
+    },
+    {
+      "tool_id": "TOOL-004",
+      "tool_name": "استمارة صوت المتعلم — همم",
+      "tool_type": "learner_interview",
+      "date_administered": "2026-05-12",
+      "administered_by": "specialist-001",
+      "concepts_covered": [
+        "SELF_DET",
+        "COMMUNITY",
+        "SOCIAL"
+      ],
+      "environments_covered": [
+        "center_school"
+      ],
+      "coverage_level": "supporting"
+    }
+  ],
+  "engine_meta": {
+    "engine": "silent_engine",
+    "version": "1.0",
+    "calibration_summary": [
+      {
+        "concept_id": "SAFETY",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "SELF_DET",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "COMM",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "SELF_CARE",
+        "status": "provisional",
+        "level": 4,
+        "coverage": "moderate",
+        "confidence": "high",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "MOBILITY",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "SOCIAL",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "COMMUNITY",
+        "status": "provisional",
+        "level": 4,
+        "coverage": "limited",
+        "confidence": "medium",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "HEALTH",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "ACADEMIC",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      },
+      {
+        "concept_id": "LEARNING_TECH",
+        "status": "incomplete",
+        "level": null,
+        "coverage": "limited",
+        "confidence": "low",
+        "has_recommendation": true,
+        "conflicts": 0
+      }
+    ],
+    "concepts_total": 10,
+    "concepts_final": 0,
+    "concepts_provisional": 2,
+    "concepts_incomplete": 8
+  }
+}

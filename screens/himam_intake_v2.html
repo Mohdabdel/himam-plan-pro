@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>واجهة إدخال بروفايل المتعلم — همم</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--teal:#1D9E75;--teal-light:#E1F5EE;--teal-dark:#085041;--teal-mid:#5DCAA5;--bg:#F8F9FA;--card:#FFFFFF;--border:#E0E0E0;--text:#1A1A1A;--text-muted:#666;--text-hint:#999;--radius:10px;--radius-lg:14px;}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl}
+.shell{max-width:720px;margin:0 auto;padding:24px 16px 80px}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.logo{width:44px;height:44px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:600;flex-shrink:0}
+.steps-bar{display:flex;gap:4px;margin-bottom:8px}
+.step-seg{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s}
+.step-seg.done{background:#5DCAA5}.step-seg.active{background:var(--teal)}
+.steps-labels{display:flex;gap:4px;margin-bottom:20px}
+.step-lbl{flex:1;font-size:11px;color:var(--text-hint);text-align:center}
+.step-lbl.active{color:var(--teal);font-weight:500}.step-lbl.done{color:#5DCAA5}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:14px}
+.field{margin-bottom:14px}.field:last-child{margin-bottom:0}
+.field label{font-size:13px;color:var(--text-muted);margin-bottom:5px;display:block}
+input,select,textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--text);background:var(--card);outline:none;direction:rtl}
+input:focus,select:focus,textarea:focus{border-color:var(--teal)}
+textarea{min-height:72px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tag{padding:5px 12px;font-size:13px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--text-muted);font-family:inherit}
+.tag.on{background:var(--teal-light);border-color:var(--teal);color:var(--teal-dark);font-weight:500}
+.concept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:16px}
+.ccard{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;cursor:pointer}
+.ccard.on{background:var(--teal-light);border-color:var(--teal)}
+.ccard-ar{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+.ccard-en{font-size:11px;color:var(--text-hint)}
+.cdetail{background:var(--card);border:1.5px solid var(--teal);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:14px}
+.lvl-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.lvl-btn{width:38px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;font-size:15px;font-weight:500;color:var(--text-muted);font-family:inherit}
+.lvl-btn.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.nav-bar{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)}
+.btn{padding:9px 20px;font-size:14px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:500;border:1px solid transparent}
+.btn-sec{background:transparent;border-color:#BDBDBD;color:var(--text-muted)}
+.btn-pri{background:var(--teal);color:#fff}
+.btn-engine{background:#1D9E75;color:#fff;padding:10px 24px;font-size:15px;border-radius:10px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.sum-row:last-child{border-bottom:none}
+.badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.badge-g{background:var(--teal-light);color:var(--teal-dark)}
+.badge-a{background:#FAEEDA;color:#633806}
+.badge-gray{background:#F1F1F1;color:var(--text-muted)}
+.page{display:none}.page.show{display:block}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="header">
+  <div class="logo">ه</div>
+  <div><h1 style="font-size:20px;font-weight:600">منصة همم — بروفايل المتعلم</h1><p style="font-size:13px;color:var(--text-muted)">إدخال بيانات الانتقال والتقييم</p></div>
+</div>
+<div class="steps-bar">
+  <div class="step-seg active" id="seg0"></div><div class="step-seg" id="seg1"></div>
+  <div class="step-seg" id="seg2"></div><div class="step-seg" id="seg3"></div><div class="step-seg" id="seg4"></div>
+</div>
+<div class="steps-labels">
+  <div class="step-lbl active" id="lbl0">المتعلم</div><div class="step-lbl" id="lbl1">الأدوات</div>
+  <div class="step-lbl" id="lbl2">المفاهيم</div><div class="step-lbl" id="lbl3">الرؤية</div><div class="step-lbl" id="lbl4">مراجعة</div>
+</div>
+
+<div class="page show" id="p0">
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:4px">بيانات المتعلم</h2>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">المعلومات الأساسية للبروفايل</p>
+  <div class="card">
+    <div class="grid2">
+      <div class="field"><label>الاسم الأول</label><input type="text" id="nameFirst" placeholder="مثال: محمد"></div>
+      <div class="field"><label>رمز المتعلم</label><input type="text" id="learnerId" placeholder="L-2025-001"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>سنة الميلاد</label><input type="number" id="dob" placeholder="2002" min="1950" max="2020"></div>
+      <div class="field"><label>الجنس</label><select id="gender"><option value="">اختر...</option><option>ذكر</option><option>أنثى</option></select></div>
+    </div>
+    <div class="field"><label>التشخيص الأساسي</label><input type="text" id="diagnosis" placeholder="مثال: إعاقة ذهنية متوسطة، اضطراب طيف التوحد..."></div>
+    <div class="field"><label>المدينة / الإمارة</label>
+      <select id="city"><option value="">اختر...</option><option>أبوظبي</option><option>دبي</option><option>الشارقة</option><option>عجمان</option><option>رأس الخيمة</option><option>الفجيرة</option><option>أم القيوين</option><option>الرياض</option><option>جدة</option><option>الكويت</option><option>المنامة</option><option>مسقط</option><option>الدوحة</option></select>
+    </div>
+  </div>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px">PINS — التفضيلات والاهتمامات ونقاط القوة</p>
+    <div class="field"><label>تفضيلات المتعلم</label><textarea id="preferences" placeholder="مثال: يحب الموسيقى، يفضل البيئات الهادئة..."></textarea></div>
+    <div class="field"><label>اهتمامات ودوافع</label><textarea id="interests" placeholder="مثال: مهتم بالطبخ، يحب الحيوانات..."></textarea></div>
+    <div class="field"><label>نقاط القوة</label><textarea id="strengths" placeholder="مثال: ذاكرة بصرية قوية، اجتماعي..."></textarea></div>
+    <div class="field"><label>احتياجات الدعم</label><textarea id="needs" placeholder="مثال: يحتاج دعم بصري، تنظيم حسي..."></textarea></div>
+  </div>
+  <div class="nav-bar"><span></span><span style="font-size:12px;color:var(--text-hint)">1 من 5</span><button class="btn btn-pri" onclick="go(1)">التالي ←</button></div>
+</div>
+
+<div class="page" id="p1">
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">أدوات التقييم</h2>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px">الأدوات الرسمية</p>
+    <div class="tags" id="formalTools">
+      <button class="tag" onclick="tog(this)">TTAP-3</button><button class="tag" onclick="tog(this)">Vineland-3</button>
+      <button class="tag" onclick="tog(this)">AEPS-3</button><button class="tag" onclick="tog(this)">ABAS-3</button>
+      <button class="tag" onclick="tog(this)">CARS-2</button><button class="tag" onclick="tog(this)">Brigance</button><button class="tag" onclick="tog(this)">PLS-5</button>
+    </div>
+    <div class="field" style="margin-top:12px"><label>أدوات أخرى</label><input type="text" id="otherFormal" placeholder="أضف أداة رسمية..."></div>
+  </div>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px">مصادر غير رسمية</p>
+    <div class="tags" id="informalTools">
+      <button class="tag" onclick="tog(this)">ملاحظة وظيفية</button><button class="tag" onclick="tog(this)">استمارة صوت المتعلم</button>
+      <button class="tag" onclick="tog(this)">استمارة صوت الأسرة</button><button class="tag" onclick="tog(this)">تقرير مصير</button>
+      <button class="tag" onclick="tog(this)">تحليل بيئي</button><button class="tag" onclick="tog(this)">قائمة مهارات حياة</button><button class="tag" onclick="tog(this)">مقابلة مهنية</button>
+    </div>
+  </div>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px">البيئات التي جُمعت منها الأدلة</p>
+    <div class="tags" id="envTags">
+      <button class="tag" onclick="tog(this)">البيت</button><button class="tag" onclick="tog(this)">المركز</button>
+      <button class="tag" onclick="tog(this)">المسجد</button><button class="tag" onclick="tog(this)">المجتمع</button>
+      <button class="tag" onclick="tog(this)">العمل</button><button class="tag" onclick="tog(this)">المدرسة</button>
+      <button class="tag" onclick="tog(this)">المجلس</button><button class="tag" onclick="tog(this)">الحديقة / الكورنيش</button>
+    </div>
+  </div>
+  <div class="nav-bar"><button class="btn btn-sec" onclick="go(0)">→ السابق</button><span style="font-size:12px;color:var(--text-hint)">2 من 5</span><button class="btn btn-pri" onclick="go(2)">التالي ←</button></div>
+</div>
+
+<div class="page" id="p2">
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:4px">المفاهيم العشرة</h2>
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">اضغط على مفهوم لفتحه وإدخال المستوى والأدلة</p>
+  <div class="concept-grid" id="conceptGrid"></div>
+  <div id="conceptDetail"></div>
+  <div class="nav-bar"><button class="btn btn-sec" onclick="go(1)">→ السابق</button><span style="font-size:12px;color:var(--text-hint)">3 من 5</span><button class="btn btn-pri" onclick="go(3)">التالي ←</button></div>
+</div>
+
+<div class="page" id="p3">
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">الرؤية المستقبلية</h2>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px">صوت المتعلم</p>
+    <div class="field"><label>ماذا يريد في المستقبل؟</label><textarea id="learnerVoice" placeholder="بكلماته أو كلمات المختص..."></textarea></div>
+    <div class="field"><label>أين يريد أن يعيش؟</label>
+      <div class="tags"><button class="tag" onclick="single(this)">مع الأسرة</button><button class="tag" onclick="single(this)">سكن مدعوم</button><button class="tag" onclick="single(this)">مستقل</button><button class="tag" onclick="single(this)">غير محدد بعد</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px">صوت الأسرة</p>
+    <div class="field"><label>تطلعات الأسرة</label><textarea id="familyVoice" placeholder="ما الذي تأمله الأسرة؟"></textarea></div>
+    <div class="field"><label>أولويات الأسرة</label>
+      <div class="tags"><button class="tag" onclick="tog(this)">العمل والإنتاجية</button><button class="tag" onclick="tog(this)">الاستقلالية</button><button class="tag" onclick="tog(this)">المشاركة المجتمعية</button><button class="tag" onclick="tog(this)">السلامة</button><button class="tag" onclick="tog(this)">الصحة والعافية</button><button class="tag" onclick="tog(this)">العلاقات والصداقات</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px">وسائل الدعم الحالية</p>
+    <div class="tags"><button class="tag" onclick="tog(this)">أسرة داعمة</button><button class="tag" onclick="tog(this)">مركز متخصص</button><button class="tag" onclick="tog(this)">معالج وظيفي</button><button class="tag" onclick="tog(this)">معالج نطق</button><button class="tag" onclick="tog(this)">دعم بصري / AAC</button><button class="tag" onclick="tog(this)">دواء</button><button class="tag" onclick="tog(this)">مرافق شخصي</button><button class="tag" onclick="tog(this)">أخصائي سلوك</button></div>
+  </div>
+  <div class="nav-bar"><button class="btn btn-sec" onclick="go(2)">→ السابق</button><span style="font-size:12px;color:var(--text-hint)">4 من 5</span><button class="btn btn-pri" onclick="go(4)">مراجعة ←</button></div>
+</div>
+
+<div class="page" id="p4">
+  <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">مراجعة البروفايل</h2>
+  <div id="summaryBody"></div>
+  <div class="card" style="background:#F0FAF6;border-color:var(--teal)">
+    <div style="font-size:14px;color:var(--teal-dark);font-weight:500;margin-bottom:8px">🔬 محرك المعايرة — Silent Engine</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">سيتم معالجة البروفايل وفق القواعد A–E وإنتاج تقرير المعايرة الكامل.</div>
+    <button class="btn btn-engine" onclick="exportJSON()">📤 تصدير JSON</button>
+  </div>
+  <div class="nav-bar"><button class="btn btn-sec" onclick="go(3)">→ تعديل</button><span style="font-size:12px;color:var(--text-hint)">5 من 5</span><span></span></div>
+</div>
+</div>
+
+<script>
+const CONCEPTS=[
+  {id:'SAFETY',ar:'السلامة الشخصية',en:'Personal Safety'},
+  {id:'SELF_DET',ar:'تقرير المصير',en:'Self-Determination'},
+  {id:'COMM',ar:'الاتصال الوظيفي',en:'Functional Communication'},
+  {id:'SELF_CARE',ar:'العناية الذاتية',en:'Self-Care'},
+  {id:'MOBILITY',ar:'التنقل الوظيفي',en:'Functional Mobility'},
+  {id:'SOCIAL',ar:'الكفاءة الاجتماعية',en:'Social Competence'},
+  {id:'COMMUNITY',ar:'المشاركة المجتمعية',en:'Community Participation'},
+  {id:'HEALTH',ar:'الصحة وجودة الحياة',en:'Health & Well-Being'},
+  {id:'ACADEMIC',ar:'الأكاديميات الوظيفية',en:'Functional Academics'},
+  {id:'LEARNING_TECH',ar:'التعلم والتكنولوجيا',en:'Learning & Technology'}
+];
+const LVL_DESC=['','يبدأ في الإدراك — إشراف لصيق','يستجيب مدعوماً — توجيه مباشر','يطبق في البيئات المألوفة — موجّه','شبه مستقل في بيئات متعددة','يخطط ويدير ذاتياً','استقلال وظيفي كامل — راشد'];
+const state={step:0,concepts:{}};
+let activeC=null;
+
+function go(n){
+  document.getElementById('p'+state.step).classList.remove('show');
+  state.step=n;
+  document.getElementById('p'+n).classList.add('show');
+  for(let i=0;i<5;i++){
+    const s=document.getElementById('seg'+i),l=document.getElementById('lbl'+i);
+    s.className='step-seg'+(i<n?' done':i===n?' active':'');
+    l.className='step-lbl'+(i<n?' done':i===n?' active':'');
+  }
+  if(n===2)buildGrid();
+  if(n===4)buildSummary();
+  window.scrollTo(0,0);
+}
+function tog(btn){btn.classList.toggle('on');}
+function single(btn){btn.parentNode.querySelectorAll('.tag').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function buildGrid(){
+  const g=document.getElementById('conceptGrid');g.innerHTML='';
+  CONCEPTS.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='ccard'+(state.concepts[c.id]?' on':'');d.id='cc-'+c.id;
+    d.innerHTML=`<div class="ccard-ar">${c.ar}</div><div class="ccard-en">${c.en}</div>`;
+    d.onclick=()=>openConcept(c.id);g.appendChild(d);
+  });
+  if(activeC)renderDetail(activeC);
+}
+function openConcept(cid){
+  if(!state.concepts[cid])state.concepts[cid]={level:null,ev_type:[],src_type:[],env:[],notes:''};
+  if(activeC===cid){activeC=null;document.getElementById('conceptDetail').innerHTML='';return;}
+  activeC=cid;document.getElementById('cc-'+cid).classList.add('on');renderDetail(cid);
+}
+function renderDetail(cid){
+  const c=CONCEPTS.find(x=>x.id===cid),d=state.concepts[cid]||{};
+  document.getElementById('conceptDetail').innerHTML=`
+  <div class="cdetail">
+    <div style="font-size:14px;font-weight:600;color:var(--teal-dark);margin-bottom:14px;display:flex;justify-content:space-between">${c.ar}<span style="font-size:11px;color:var(--text-hint)">${c.id}</span></div>
+    <div class="field"><label>المستوى الحالي (1–6)</label>
+      <div class="lvl-row">${[1,2,3,4,5,6].map(n=>`<button class="lvl-btn${d.level===n?' on':''}" onclick="setLvl('${cid}',${n})">${n}</button>`).join('')}</div>
+      <div style="font-size:11px;color:var(--text-hint);margin-top:6px" id="ldesc-${cid}">${d.level?LVL_DESC[d.level]:''}</div>
+    </div>
+    <div class="field"><label>نوع الدليل</label>
+      <div class="tags">${['قوة','ناشئ','حاجة دعم','صوت شخصي'].map(t=>`<button class="tag${(d.ev_type||[]).includes(t)?' on':''}" onclick="togCArr('${cid}','ev_type','${t}',this)">${t}</button>`).join('')}</div>
+    </div>
+    <div class="field"><label>نوع المصدر</label>
+      <div class="tags">${['أداة رسمية','ملاحظة وظيفية','صوت الأسرة','صوت المتعلم','تقرير فريق'].map(t=>`<button class="tag${(d.src_type||[]).includes(t)?' on':''}" onclick="togCArr('${cid}','src_type','${t}',this)">${t}</button>`).join('')}</div>
+    </div>
+    <div class="field"><label>بيئة الدليل</label>
+      <div class="tags">${['البيت','المركز','المجتمع','العمل'].map(t=>`<button class="tag${(d.env||[]).includes(t)?' on':''}" onclick="togCArr('${cid}','env','${t}',this)">${t}</button>`).join('')}</div>
+    </div>
+    <div class="field"><label>ملاحظات الدليل</label><textarea id="cn-${cid}" placeholder="وصف الأداء الملاحظ...">${d.notes||''}</textarea></div>
+  </div>`;
+  document.getElementById('cn-'+cid).oninput=e=>{state.concepts[cid].notes=e.target.value;};
+}
+function setLvl(cid,n){
+  state.concepts[cid].level=n;
+  document.querySelectorAll('#conceptDetail .lvl-btn').forEach((b,i)=>{b.classList.toggle('on',i+1===n);});
+  const ld=document.getElementById('ldesc-'+cid);if(ld)ld.textContent=LVL_DESC[n];
+}
+function togCArr(cid,field,val,btn){
+  const arr=state.concepts[cid][field];const i=arr.indexOf(val);
+  if(i===-1)arr.push(val);else arr.splice(i,1);btn.classList.toggle('on');
+}
+function buildSummary(){
+  const nm=document.getElementById('nameFirst').value||'غير محدد';
+  const diag=document.getElementById('diagnosis').value||'—';
+  const city=document.getElementById('city').value||'—';
+  const dob=document.getElementById('dob').value;
+  const age=dob?new Date().getFullYear()-parseInt(dob)+'سنة':'—';
+  const formal=[...document.querySelectorAll('#formalTools .tag.on')].map(t=>t.textContent);
+  const inf=[...document.querySelectorAll('#informalTools .tag.on')].map(t=>t.textContent);
+  const envs=[...document.querySelectorAll('#envTags .tag.on')].map(t=>t.textContent);
+  const filled=CONCEPTS.filter(c=>state.concepts[c.id]&&state.concepts[c.id].level);
+  const rows=filled.length?filled.map(c=>{const d=state.concepts[c.id];const bc=d.level>=5?'badge-g':d.level>=3?'badge-a':'badge-gray';return `<div class="sum-row"><span>${c.ar}</span><span class="badge ${bc}">مستوى ${d.level}</span></div>`;}).join(''):'<div style="font-size:13px;color:#999;padding:8px 0">لا توجد مفاهيم مُدخلة</div>';
+  document.getElementById('summaryBody').innerHTML=`
+  <div class="card"><p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px">المتعلم</p>
+    <div class="sum-row"><span style="color:var(--text-muted)">الاسم</span><span>${nm}</span></div>
+    <div class="sum-row"><span style="color:var(--text-muted)">العمر</span><span>${age}</span></div>
+    <div class="sum-row"><span style="color:var(--text-muted)">التشخيص</span><span>${diag}</span></div>
+    <div class="sum-row"><span style="color:var(--text-muted)">المدينة</span><span>${city}</span></div>
+  </div>
+  <div class="card"><p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px">الأدوات</p>
+    <div class="sum-row"><span style="color:var(--text-muted)">رسمية</span><span>${formal.join(' · ')||'—'}</span></div>
+    <div class="sum-row"><span style="color:var(--text-muted)">غير رسمية</span><span>${inf.join(' · ')||'—'}</span></div>
+    <div class="sum-row"><span style="color:var(--text-muted)">البيئات</span><span>${envs.join(' · ')||'—'}</span></div>
+  </div>
+  <div class="card"><p style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:12px">المفاهيم المُدخلة — ${filled.length}/10</p>${rows}</div>`;
+}
+function exportJSON(){
+  const profile={profile_meta:{learner_name:document.getElementById('nameFirst').value,learner_id:document.getElementById('learnerId').value,dob:document.getElementById('dob').value,gender:document.getElementById('gender').value,city:document.getElementById('city').value,diagnosis:document.getElementById('diagnosis').value,created_at:new Date().toISOString().split('T')[0]},pins:{preferences:document.getElementById('preferences').value,interests:document.getElementById('interests').value,strengths:document.getElementById('strengths').value,needs:document.getElementById('needs').value},tools_coverage:{formal_tools:[...document.querySelectorAll('#formalTools .tag.on')].map(t=>t.textContent),informal_tools:[...document.querySelectorAll('#informalTools .tag.on')].map(t=>t.textContent),environments:[...document.querySelectorAll('#envTags .tag.on')].map(t=>t.textContent),other_formal:document.getElementById('otherFormal').value},vision:{learner_voice:document.getElementById('learnerVoice').value,family_voice:document.getElementById('familyVoice').value},concepts:{}};
+  CONCEPTS.forEach(c=>{if(state.concepts[c.id])profile.concepts[c.id]=state.concepts[c.id];});
+  const blob=new Blob([JSON.stringify(profile,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='himam_profile_'+profile.profile_meta.learner_id+'.json';a.click();
+}
+buildGrid();
+</script>
+</body>
+</html>
