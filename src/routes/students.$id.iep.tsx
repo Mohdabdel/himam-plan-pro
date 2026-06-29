@@ -65,7 +65,7 @@ const TEAL = "#0F3D3E";
 const ORANGE = "#D9764A";
 
 function emptyGoalMap(domains: { code: DomainCode }[]): Record<DomainCode, Goal[]> {
-  return Object.fromEntries(domains.map((d) => [d.code, []])) as Record<DomainCode, Goal[]>;
+  return Object.fromEntries(domains.map((d): [DomainCode, Goal[]] => [d.code, []])) as Record<DomainCode, Goal[]>;
 }
 function emptyOpenMap(domains: { code: DomainCode }[]): Record<DomainCode, boolean> {
   return Object.fromEntries(domains.map((d) => [d.code, false])) as Record<DomainCode, boolean>;
@@ -143,7 +143,7 @@ function IEPPage() {
       }
     } catch {}
     toast.success("تم حفظ الخطة بنجاح ✓");
-    navigate({ to: "/students/$id/family", params: { id } });
+    navigate({ to: "/students/$id/report", params: { id } });
   }
 
   return (
@@ -156,7 +156,7 @@ function IEPPage() {
       >
         <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
         <Link
-          to="/students/$id/coverage"
+          to="/students/$id/family"
           params={{ id }}
           style={{
             color: "white", textDecoration: "none", fontSize: 15,
@@ -344,7 +344,7 @@ function IEPPage() {
         >
           <span style={{ fontSize: 18, lineHeight: 1.4 }}>ℹ️</span>
           <span>
-            بعد حفظ الخطة، ستُستكمل المعلومات من قسم الطالب والأسرة — وقد تعوض أي فجوات في بيانات التقييم الحالية
+            بعد حفظ الخطة، سيتم إنشاء التقرير النهائي الذي يجمع التقييم وصوت الأسرة والمتعلم والخطة التربوية.
           </span>
         </div>
 
@@ -359,7 +359,7 @@ function IEPPage() {
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
-            حفظ الخطة وإرسال قسم الطالب ←
+            حفظ الخطة وإنشاء التقرير ←
           </button>
         </div>
       </main>

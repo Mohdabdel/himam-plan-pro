@@ -16,11 +16,105 @@ type StoredStudent = {
   id: string; name: string; birthDate: string;
   center: string; tool: string; createdAt: string; status: string;
 };
-type DomainScore = { success: string; emerging: string; fail: string };
 type Goal = { id: string; text: string; category: string };
 
-type AssessmentData = { domains: Record<string, DomainScore>; savedAt?: string };
-type IEPData = { vision: string; goals: Record<string, Goal[]>; services: string[]; startDate: string };
+// Normalised internal shape — always an object keyed by domain code
+type NormalisedDomain = { success: number; emerging: number; fail: number; note?: string };
+type NormalisedDomains = Record<string, NormalisedDomain>;
+
+// Raw storage shapes (either old object map or new array)
+type RawDomainEntry = { code: string; score: string; note?: string };
+type RawAssessment = {
+  domains?:
+    | Record<string, { success?: string | number; emerging?: string | number; fail?: string | number; score?: string; note?: string }>
+    | RawDomainEntry[];
+  savedAt?: string;
+  updatedAt?: string;
+};
+
+// ── Assessment normalisation ───────────────────────────────────────────────────
+function scoreToNums(score: string): { success: number; emerging: number; fail: number } {
+  if (score === "pass")   return { success: 100, emerging: 0,   fail: 0   };
+  if (score === "emerge") return { success: 0,   emerging: 100, fail: 0   };
+  if (score === "fail")   return { success: 0,   emerging: 0,   fail: 100 };
+  return { success: 0, emerging: 0, fail: 0 };
+}
+
+function normaliseDomains(raw: RawAssessment | null): NormalisedDomains {
+  if (!raw?.domains) return {};
+
+  // New array format: [{ code, score, note }]
+  if (Array.isArray(raw.domains)) {
+    const out: NormalisedDomains = {};
+    for (const entry of raw.domains) {
+      if (!entry.code) continue;
+      out[entry.code] = { ...scoreToNums(entry.score ?? ""), note: entry.note };
+    }
+    return out;
+  }
+
+  // Old object format: { VS: { success, emerging, fail } }
+  // Also handles the intermediate format that had a `score` field alongside numerics
+  const out: NormalisedDomains = {};
+  for (const [code, v] of Object.entries(raw.domains)) {
+    if (v.score !== undefined && typeof v.score === "string" && v.success === undefined) {
+      // Object format with only score field (no numeric fields)
+      out[code] = { ...scoreToNums(v.score), note: v.note };
+    } else {
+      out[code] = {
+        success:  Number(v.success)  || 0,
+        emerging: Number(v.emerging) || 0,
+        fail:     Number(v.fail)     || 0,
+        note:     v.note,
+      };
+    }
+  }
+  return out;
+}
+
+type AssessmentData = RawAssessment;
+
+// Raw IEP goal (flat array entry may carry domainCode)
+type RawGoal = { id?: string; text?: string; category?: string; domainCode?: string };
+type RawIEP = {
+  vision?:    string;
+  goals?:
+    | Record<string, RawGoal[]>   // grouped by domain code (existing format)
+    | RawGoal[];                  // flat array with domainCode field
+  services?:  string[];
+  startDate?: string;
+};
+
+// ── IEP goals normalisation ───────────────────────────────────────────────────
+function normaliseIEPGoals(raw: RawIEP | null): Record<string, Goal[]> {
+  if (!raw?.goals) return {};
+
+  const out: Record<string, Goal[]> = {};
+
+  function push(code: string, g: RawGoal, fallbackIndex: number) {
+    const text = g.text?.trim();
+    if (!text) return;
+    const bucket = code || "UNSPECIFIED";
+    if (!out[bucket]) out[bucket] = [];
+    out[bucket].push({
+      id:       g.id ?? `${bucket}-${fallbackIndex}`,
+      text,
+      category: g.category ?? "",
+    });
+  }
+
+  if (Array.isArray(raw.goals)) {
+    (raw.goals as RawGoal[]).forEach((g, i) => push(g.domainCode ?? "", g, i));
+  } else {
+    Object.entries(raw.goals as Record<string, RawGoal[]>).forEach(([code, goals]) => {
+      (goals ?? []).forEach((g, i) => push(code, g, i));
+    });
+  }
+
+  return out;
+}
+
+type IEPData = RawIEP;
 type FamilyData = { method: string; sessionDate: string; attendees: string; priorities: string[]; concernsChecked: string[]; concernsText: string; vision5y: string; quality: string };
 type LearnerData = { method: string; q_love: string; q_good: string; q_future: string; q_happy: string; q_hard: string; environments: string[]; quality: string };
 
@@ -44,11 +138,6 @@ const GRAY   = "#94a3b8";
 const ORANGE = "#D9764A";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function pct(val: string, total: number) {
-  if (!total) return 0;
-  return Math.round((Number(val) || 0) / total * 100);
-}
-
 function safeParse<T>(key: string): T | null {
   try { return JSON.parse(localStorage.getItem(key) || "null"); }
   catch { return null; }
@@ -138,17 +227,24 @@ function ReportPage() {
   }, [id]);
 
   // ── Domain score calculations ─────────────────────────────────────────────
-  const domainStats = Object.entries(assess?.domains ?? {}).map(([code, v]) => {
-    const total = (Number(v.success) || 0) + (Number(v.emerging) || 0) + (Number(v.fail) || 0);
-    const sp = pct(v.success, total);
-    const ep = pct(v.emerging, total);
-    const fp = pct(v.fail, total);
-    return { code, name: DOMAIN_NAMES[code] ?? code, successPct: sp, emergingPct: ep, failPct: fp, total };
+  const normDomains = normaliseDomains(assess);
+  const domainStats = Object.entries(normDomains).map(([code, v]) => {
+    const total = v.success + v.emerging + v.fail;
+    return {
+      code,
+      name:        DOMAIN_NAMES[code] ?? code,
+      successPct:  total ? Math.round(v.success  / total * 100) : 0,
+      emergingPct: total ? Math.round(v.emerging / total * 100) : 0,
+      failPct:     total ? Math.round(v.fail     / total * 100) : 0,
+      total,
+    };
   }).filter((d) => d.total > 0);
 
   const avgSuccess = domainStats.length
     ? Math.round(domainStats.reduce((s, d) => s + d.successPct, 0) / domainStats.length)
     : null;
+
+  const normIEPGoals = normaliseIEPGoals(iep);
 
   // ── Recommendation logic ──────────────────────────────────────────────────
   function mainRec(avg: number | null) {
@@ -182,6 +278,20 @@ function ReportPage() {
       <header className="no-print" style={{ background: TEAL, color: "white", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
         <div style={{ display: "flex", gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/students/$id/iep", params: { id } })}
+            style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.4)", padding: "9px 18px", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            → رجوع للخطة التربوية
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/students/$id/plan", params: { id } })}
+            style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.4)", padding: "9px 18px", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            الخطة النهائية
+          </button>
           <button
             type="button"
             onClick={() => window.print()}
@@ -258,10 +368,10 @@ function ReportPage() {
                 <p style={{ margin: "4px 0 0", fontSize: 15, color: "#1F2937" }}>{iep.vision}</p>
               </div>
             )}
-            {!iep?.goals || Object.values(iep.goals).every((g) => g.length === 0) ? (
+            {Object.keys(normIEPGoals).length === 0 ? (
               <p style={{ color: "#94A3B8", fontSize: 14 }}>لا توجد أهداف مسجّلة بعد.</p>
             ) : (
-              Object.entries(iep.goals).filter(([, goals]) => goals.length > 0).map(([code, goals]) => (
+              Object.entries(normIEPGoals).map(([code, goals]) => (
                 <div key={code} style={{ marginBottom: 16 }}>
                   <p style={{ fontWeight: 700, color: TEAL, fontSize: 15, margin: "0 0 8px" }}>
                     {DOMAIN_NAMES[code] ?? code}
@@ -398,6 +508,20 @@ function ReportPage() {
 
         {/* Bottom buttons (no-print) */}
         <div className="no-print" style={{ display: "flex", gap: 12, marginTop: 8 }}>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/students/$id/iep", params: { id } })}
+            style={{ flex: 1, background: "white", color: TEAL, border: `2px solid ${TEAL}`, padding: "14px", borderRadius: 10, fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            → رجوع للخطة التربوية
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/students/$id/plan", params: { id } })}
+            style={{ flex: 1, background: ORANGE, color: "white", border: "none", padding: "14px", borderRadius: 10, fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            الخطة النهائية
+          </button>
           <button
             type="button"
             onClick={() => window.print()}
