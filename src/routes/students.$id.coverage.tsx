@@ -149,15 +149,15 @@ function RecommendationPage() {
         {/* Section 4 — Continue */}
         <div className="mt-8">
           <p className="mb-3 text-center text-xs text-stone-500">
-            هذه المرحلة اختيارية — يمكنك المتابعة مباشرةً لوضع الخطة في أي وقت
+            الخطوة التالية: جمع صوت الأسرة والمتعلم
           </p>
           <Link
-            to="/students/$id/iep"
+            to="/students/$id/family"
             params={{ id }}
             className="block w-full rounded-xl px-5 py-3.5 text-center text-base font-bold text-white shadow-sm transition hover:opacity-90"
             style={{ backgroundColor: "#0F3D3E" }}
           >
-            المتابعة لوضع الخطة التربوية ←
+            التالي: صوت الأسرة والمتعلم ←
           </Link>
         </div>
       </main>

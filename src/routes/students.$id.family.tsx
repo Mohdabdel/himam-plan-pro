@@ -222,7 +222,7 @@ function FamilyPage() {
       }
     } catch {}
     toast.success("تم حفظ بيانات الأسرة والمتعلم ✓");
-    navigate({ to: "/students/$id/report", params: { id } });
+    navigate({ to: "/students/$id/iep", params: { id } });
   }
 
   const familyValid = family.method !== "" && family.priorities.length > 0;
@@ -234,7 +234,7 @@ function FamilyPage() {
       <header style={{ background: TEAL, color: "white", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
         <Link
-          to="/students/$id/iep"
+          to="/students/$id/coverage"
           params={{ id }}
           style={{ color: "white", textDecoration: "none", fontSize: 15, padding: "8px 14px", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8 }}
         >
@@ -429,7 +429,7 @@ function FamilyPage() {
                   opacity: familyValid && learnerValid ? 1 : 0.5, fontFamily: "inherit",
                 }}
               >
-                حفظ وإنشاء التقرير النهائي ←
+                حفظ والمتابعة للخطة التربوية ←
               </button>
               {(!familyValid || !learnerValid) && (
                 <p style={{ textAlign: "center", color: "#94A3B8", fontSize: 13, marginTop: 8 }}>

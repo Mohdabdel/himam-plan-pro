@@ -109,23 +109,38 @@ function HomePage() {
                     <StatusBadge status={s.status} />
                   </td>
                   <td className="px-4 py-3">
-                    {s.status === "إدخال التقييم" && s.id ? (
-                      <Link
-                        to="/students/$id/assessment"
-                        params={{ id: s.id }}
-                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
-                        style={{ backgroundColor: "#D9764A" }}
-                      >
-                        إدخال التقييم
-                      </Link>
-                    ) : s.status === "مكتمل" && s.id ? (
-                      <Link
-                        to="/students/$id/framework"
-                        params={{ id: s.id }}
-                        className="rounded-lg border border-[#0F3D3E] px-3 py-1.5 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
-                      >
-                        عرض الإطار
-                      </Link>
+                    {s.id ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        <Link
+                          to="/students/$id/assessment"
+                          params={{ id: s.id }}
+                          className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                        >
+                          التقييم
+                        </Link>
+                        <Link
+                          to="/students/$id/family"
+                          params={{ id: s.id }}
+                          className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                        >
+                          الأصوات
+                        </Link>
+                        <Link
+                          to="/students/$id/plan"
+                          params={{ id: s.id }}
+                          className="rounded-lg border border-[#D9764A] px-2.5 py-1 text-xs font-medium text-[#D9764A] transition hover:bg-[#D9764A] hover:text-white"
+                        >
+                          الخطة
+                        </Link>
+                        <Link
+                          to="/students/$id/report"
+                          params={{ id: s.id }}
+                          className="rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90"
+                          style={{ backgroundColor: "#0F3D3E" }}
+                        >
+                          التقرير
+                        </Link>
+                      </div>
                     ) : (
                       <button className="rounded-lg border border-[#0F3D3E] px-3 py-1.5 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
                         عرض الإطار

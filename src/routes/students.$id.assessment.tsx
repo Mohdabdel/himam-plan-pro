@@ -1,7 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getItemsByDomain, TTAP_ITEMS, type TTAPDomain } from "../data/ttap-items";
-import { ITEM_RATING_LABELS, ITEM_RATING_WEIGHTS, computeCoverage, type ItemRating, type ItemClassifications, type DomainScores } from "../lib/coverage-engine";
+import {
+  ITEM_RATING_LABELS,
+  ITEM_RATING_WEIGHTS,
+  computeCoverage,
+  type ItemRating,
+  type ItemClassifications,
+  type DomainScores,
+} from "../lib/coverage-engine";
 
 export const Route = createFileRoute("/students/$id/assessment")({
   component: AssessmentPage,
@@ -13,15 +20,20 @@ export const Route = createFileRoute("/students/$id/assessment")({
   }),
 });
 
-const TOOLS = [
-  "TTAP - Transition Assessment Profile (2nd Edition)",
-  "TEACCH Transition Assessment Profile - Informal Assessment",
-  "School Inventory of Problem Solving Skills (SIPSS)",
-  "مقياس مناصرة الذات للمراهقين ذوي الإعاقة الذهنية البسيطة",
-  "مقياس تطور السلوك التواصلي والرمزي (CSBS)",
-  "مصفوفة التواصل (Communication Matrix)",
-  "أداة أخرى",
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const TOOLS = ["TTAP-3", "Vineland-3", "AEPS-3", "أداة أخرى"];
+
+const DOMAINS: DomainDef[] = [
+  { code: "VS", name: "المهارات المهنية" },
+  { code: "VB", name: "السلوكيات المهنية" },
+  { code: "IF", name: "الأداء الوظيفي المستقل" },
+  { code: "LS", name: "مهارات الترفيه" },
+  { code: "FC", name: "التواصل الوظيفي" },
+  { code: "IB", name: "السلوك البينشخصي" },
 ];
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type StoredStudent = {
   id: string;
@@ -34,74 +46,92 @@ type StoredStudent = {
 };
 
 type DomainDef = { code: string; name: string };
+type ScoreValue = "pass" | "emerge" | "fail" | "";
+type DomainEntry = { score: ScoreValue; note: string };
 
-const TTAP_DOMAINS: DomainDef[] = [
-  { code: "VS", name: "المهارات المهنية" },
-  { code: "VB", name: "السلوكيات المهنية" },
-  { code: "IF", name: "الأداء الوظيفي المستقل" },
-  { code: "LS", name: "مهارات الترفيه" },
-  { code: "FC", name: "التواصل الوظيفي" },
-  { code: "IB", name: "السلوك البينشخصي" },
-];
-
-const GENERIC_DOMAINS: DomainDef[] = [
-  { code: "FN", name: "المهارات الوظيفية" },
-  { code: "SO", name: "المهارات الاجتماعية" },
-  { code: "IL", name: "مهارات الحياة المستقلة" },
-  { code: "CM", name: "مهارات التواصل" },
-];
-
-type DomainValues = { success: string; emerging: string; fail: string };
-const emptyDomain = (): DomainValues => ({ success: "", emerging: "", fail: "" });
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function isTTAP(tool: string) {
   return tool.includes("TTAP");
 }
 
+function scoreToNumeric(score: ScoreValue) {
+  if (score === "pass")   return { success: 100, emerging: 0, fail: 0 };
+  if (score === "emerge") return { success: 0, emerging: 100, fail: 0 };
+  if (score === "fail")   return { success: 0, emerging: 0, fail: 100 };
+  return { success: 0, emerging: 0, fail: 0 };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 function AssessmentPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
 
-  const [student, setStudent] = useState<StoredStudent | null>(null);
-  const [tool, setTool] = useState("");
-  const [domainScores, setDomainScores] = useState<Record<string, DomainValues>>({});
-  const [itemRatings, setItemRatings] = useState<ItemClassifications>({});
+  const [loaded, setLoaded]           = useState(false);
+  const [student, setStudent]         = useState<StoredStudent | null>(null);
+  const [tool, setTool]               = useState("");
+  const [assessorName, setAssessorName]     = useState("");
+  const [assessmentDate, setAssessmentDate] = useState("");
+  const [domainScores, setDomainScores]     = useState<Record<string, DomainEntry>>({});
+  const [itemRatings, setItemRatings]       = useState<ItemClassifications>({});
   const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
   const [showItemsSection, setShowItemsSection] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [showError, setShowError]     = useState(false);
 
-  const domains = useMemo<DomainDef[]>(() => (isTTAP(tool) ? TTAP_DOMAINS : GENERIC_DOMAINS), [tool]);
+  const domains = DOMAINS;
 
-  const scoreKey = `himam_assessment_${id}`;
-  const itemKey = `himam_items_${id}`;
+  const assessmentKey = `himam_assessment_${id}`;
+  const itemKey       = `himam_items_${id}`;
 
+  // ── Initial load ────────────────────────────────────────────────────────────
   useEffect(() => {
+    // 1. Load learner
     try {
       const list: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
       const s = list.find((x) => x.id === id) ?? null;
       setStudent(s);
       if (s) setTool(s.tool);
-    } catch {
-      /* noop */
-    }
+    } catch { /* noop */ }
+
+    // 2. Prefill domain scores from saved assessment (handles both array and legacy object format)
     try {
-      const saved = JSON.parse(localStorage.getItem(scoreKey) || "null");
-      if (saved?.domains) {
-        const restored: Record<string, DomainValues> = {};
-        for (const k of Object.keys(saved.domains)) {
-          const d = saved.domains[k];
-          restored[k] = {
-            success: d.success != null ? String(d.success) : "",
-            emerging: d.emerging != null ? String(d.emerging) : "",
-            fail: d.fail != null ? String(d.fail) : "",
-          };
+      const saved = JSON.parse(localStorage.getItem(assessmentKey) || "null");
+      if (saved) {
+        if (saved.assessorName)   setAssessorName(saved.assessorName);
+        if (saved.assessmentDate) setAssessmentDate(saved.assessmentDate);
+
+        const restored: Record<string, DomainEntry> = {};
+
+        if (Array.isArray(saved.domains)) {
+          // Current array format: [{ code, score, note }]
+          for (const entry of saved.domains as Array<{ code: string; score: string; note: string }>) {
+            restored[entry.code] = { score: (entry.score as ScoreValue) || "", note: entry.note || "" };
+          }
+        } else if (saved.domains && typeof saved.domains === "object") {
+          // Legacy object format: { VS: { score?, success?, emerging?, fail?, note? } }
+          for (const [code, d] of Object.entries(saved.domains as Record<string, any>)) {
+            if (d.score !== undefined) {
+              restored[code] = { score: (d.score as ScoreValue) || "", note: d.note || "" };
+            } else {
+              // Very old percentage-only format — convert best-effort
+              const s = Number(d.success) || 0;
+              const e = Number(d.emerging) || 0;
+              const f = Number(d.fail) || 0;
+              let sc: ScoreValue = "";
+              if (s >= 50) sc = "pass";
+              else if (e >= 50) sc = "emerge";
+              else if (f >= 50) sc = "fail";
+              restored[code] = { score: sc, note: "" };
+            }
+          }
         }
-        setDomainScores(restored);
+
+        if (Object.keys(restored).length) setDomainScores(restored);
       }
-    } catch {
-      /* noop */
-    }
+    } catch { /* noop */ }
+
+    // 3. Prefill item ratings
     try {
       const savedItems = JSON.parse(localStorage.getItem(itemKey) || "null");
       if (savedItems && typeof savedItems === "object") {
@@ -111,95 +141,124 @@ function AssessmentPage() {
         }
         setItemRatings(parsed);
       }
-    } catch {
-      /* noop */
-    }
-  }, [id, scoreKey, itemKey]);
+    } catch { /* noop */ }
 
-  // Initialise missing domain entries when domains change
+    setLoaded(true);
+  }, [id, assessmentKey, itemKey]);
+
+  // Ensure all current domains have an initialised entry
   useEffect(() => {
     setDomainScores((prev) => {
       let changed = false;
       const next = { ...prev };
       for (const d of domains) {
         if (!next[d.code]) {
-          next[d.code] = emptyDomain();
+          next[d.code] = { score: "", note: "" };
           changed = true;
         }
       }
       return changed ? next : prev;
     });
-  }, [domains]);
+  }, []);
 
-  const sums = useMemo(() => {
-    const out: Record<string, number> = {};
-    for (const d of domains) {
-      const v = domainScores[d.code] ?? emptyDomain();
-      out[d.code] = (Number(v.success) || 0) + (Number(v.emerging) || 0) + (Number(v.fail) || 0);
-    }
-    return out;
-  }, [domainScores, domains]);
+  // ── Derived counts ──────────────────────────────────────────────────────────
+  const completedCount   = domains.filter((d) => (domainScores[d.code]?.score || "") !== "").length;
+  const totalItems       = TTAP_ITEMS.length;
+  const classifiedCount  = Object.values(itemRatings).filter((v) => v != null).length;
 
-  const completedCount = domains.filter((d) => sums[d.code] === 100).length;
-
-  const totalItems = TTAP_ITEMS.length;
-  const classifiedCount = Object.values(itemRatings).filter((v) => v != null).length;
-
+  // ── Persist ─────────────────────────────────────────────────────────────────
   const persistAll = () => {
-    const numericDomains = Object.fromEntries(
-      domains.map((d) => {
-        const v = domainScores[d.code] ?? emptyDomain();
-        return [d.code, { success: Number(v.success) || 0, emerging: Number(v.emerging) || 0, fail: Number(v.fail) || 0 }];
-      }),
-    );
+    const now = new Date().toISOString();
+
+    // Build canonical array format for himam_assessment_${id}
+    const domainsArray = domains.map((d) => {
+      const entry = domainScores[d.code] ?? { score: "", note: "" };
+      return { code: d.code, score: entry.score, note: entry.note };
+    });
+
     try {
-      localStorage.setItem(scoreKey, JSON.stringify({ tool, domains: numericDomains, savedAt: new Date().toISOString() }));
-    } catch {
-      /* noop */
-    }
+      localStorage.setItem(assessmentKey, JSON.stringify({
+        learnerId:      id,
+        tool,
+        assessorName,
+        assessmentDate,
+        domains:        domainsArray,
+        updatedAt:      now,
+      }));
+    } catch { /* noop */ }
+
     try {
       localStorage.setItem(itemKey, JSON.stringify(itemRatings));
-    } catch {
-      /* noop */
-    }
-    // Run engine and store concept profile for downstream pages.
+    } catch { /* noop */ }
+
+    // Write himam_profile_${id} — consumed by existing coverage.tsx (backward compat)
     try {
-      const conceptProfile = computeCoverage(numericDomains as DomainScores, itemRatings);
-      localStorage.setItem(`himam_profile_${id}`, JSON.stringify({ conceptProfile, computedAt: new Date().toISOString() }));
-    } catch {
-      /* noop */
-    }
+      const numericDomains: DomainScores = Object.fromEntries(
+        domains.map((d) => {
+          const entry = domainScores[d.code] ?? { score: "", note: "" };
+          return [d.code, scoreToNumeric(entry.score)];
+        }),
+      ) as DomainScores;
+      const conceptProfile = computeCoverage(numericDomains, itemRatings);
+      localStorage.setItem(`himam_profile_${id}`, JSON.stringify({
+        conceptProfile,
+        computedAt: now,
+      }));
+    } catch { /* noop */ }
+
+    // Write himam_coverage_${id} — lightweight spec-compliant coverage for S8
+    try {
+      const filledDomains   = domains.filter((d) => (domainScores[d.code]?.score || "") !== "").map((d) => d.code);
+      const uncoveredDomains = domains.filter((d) => (domainScores[d.code]?.score || "") === "").map((d) => d.code);
+      const passedDomains   = domains.filter((d) => domainScores[d.code]?.score === "pass").map((d) => d.code);
+      const emergingDomains = domains.filter((d) => domainScores[d.code]?.score === "emerge").map((d) => d.code);
+      const failedDomains   = domains.filter((d) => domainScores[d.code]?.score === "fail").map((d) => d.code);
+      const completionPercent = Math.round((filledDomains.length / Math.max(domains.length, 1)) * 100);
+      const warning = filledDomains.length < 4 ? "coverage_low" : "coverage_ok";
+
+      localStorage.setItem(`himam_coverage_${id}`, JSON.stringify({
+        learnerId: id,
+        tool,
+        filledDomains,
+        uncoveredDomains,
+        passedDomains,
+        emergingDomains,
+        failedDomains,
+        completionPercent,
+        warning,
+        updatedAt: now,
+      }));
+    } catch { /* noop */ }
   };
 
+  // Auto-save every 30 s
   const persistRef = useRef(persistAll);
   persistRef.current = persistAll;
   useEffect(() => {
-    const t = setInterval(() => persistRef.current(), 30000);
+    const t = setInterval(() => persistRef.current(), 30_000);
     return () => clearInterval(t);
   }, []);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const updateStudentTool = (newTool: string) => {
     setTool(newTool);
     try {
       const list: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
-      const updated = list.map((s) => (s.id === id ? { ...s, tool: newTool } : s));
-      localStorage.setItem("himam_students", JSON.stringify(updated));
-    } catch {
-      /* noop */
-    }
+      localStorage.setItem("himam_students", JSON.stringify(
+        list.map((s) => (s.id === id ? { ...s, tool: newTool } : s)),
+      ));
+    } catch { /* noop */ }
   };
 
-  const setDomainField = (code: string, key: keyof DomainValues, raw: string) => {
-    let v = raw.replace(/[^0-9]/g, "");
-    if (v !== "") v = String(Math.min(100, Math.max(0, Number(v))));
-    setDomainScores((prev) => ({ ...prev, [code]: { ...(prev[code] ?? emptyDomain()), [key]: v } }));
+  const setDomainField = (code: string, key: keyof DomainEntry, value: string) => {
+    setDomainScores((prev) => ({
+      ...prev,
+      [code]: { ...(prev[code] ?? { score: "", note: "" }), [key]: value },
+    }));
   };
 
   const setItemRating = (itemId: number, rating: ItemRating | "") => {
-    setItemRatings((prev) => ({
-      ...prev,
-      [itemId]: rating === "" ? null : rating,
-    }));
+    setItemRatings((prev) => ({ ...prev, [itemId]: rating === "" ? null : rating }));
   };
 
   const toggleDomain = (code: string) => {
@@ -210,9 +269,10 @@ function AssessmentPage() {
     });
   };
 
-  const handleSubmit = () => {
-    const allValid = domains.every((d) => sums[d.code] === 100);
-    if (!allValid) { setShowError(true); return; }
+  const handleSave = () => {
+    const allScored = domains.every((d) => (domainScores[d.code]?.score || "") !== "");
+    if (!allScored) { setShowError(true); return; }
+    setShowError(false);
     persistAll();
     navigate({ to: "/students/$id/coverage", params: { id } });
   };
@@ -222,6 +282,32 @@ function AssessmentPage() {
     navigate({ to: "/" });
   };
 
+  // ── Missing learner fallback ─────────────────────────────────────────────────
+  if (loaded && !student) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2]">
+        <header className="flex items-center justify-between px-8 py-4" style={{ backgroundColor: "#0F3D3E" }}>
+          <Link to="/" className="rounded-lg border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10">
+            → رجوع
+          </Link>
+          <h1 className="text-2xl font-bold text-white">همم</h1>
+        </header>
+        <div className="flex flex-col items-center justify-center px-6 py-32 text-center">
+          <p className="text-lg font-semibold text-stone-700">لم يُعثر على بيانات هذا المتعلم</p>
+          <p className="mt-2 text-sm text-stone-500">قد يكون السجل محذوفاً أو الرابط غير صحيح.</p>
+          <Link
+            to="/"
+            className="mt-8 rounded-xl px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
+            style={{ backgroundColor: "#0F3D3E" }}
+          >
+            → العودة إلى لوحة التحكم
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main render ──────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
       <header className="flex items-center justify-between px-8 py-4" style={{ backgroundColor: "#0F3D3E" }}>
@@ -232,12 +318,16 @@ function AssessmentPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8 md:px-8">
-        {/* Student card + tool selector */}
+
+        {/* Learner context card */}
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-[#0F3D3E]">{student?.name ?? "—"}</h2>
               <p className="mt-0.5 text-sm text-stone-500">{student?.center ?? ""}</p>
+              <p className="mt-2 text-xs leading-5 text-stone-400">
+                هذا التقييم هو خط الأساس الرسمي للمتعلم — ستُبنى عليه تغطية مفاهيم الانتقال والخطة اللاحقة.
+              </p>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-stone-600">أداة التقييم</label>
@@ -254,50 +344,76 @@ function AssessmentPage() {
             </div>
           </div>
 
-          {/* Progress */}
-          <div className="mt-5 flex items-center justify-between text-sm font-medium text-stone-700">
-            <span>تم إدخال {completedCount} من {domains.length} مجالات</span>
-            {classifiedCount > 0 && (
-              <span className="text-xs text-stone-500">{classifiedCount} / {totalItems} بند مصنَّف</span>
-            )}
+          {/* Optional: assessor name + date */}
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">اسم المُقيّم (اختياري)</label>
+              <input
+                type="text"
+                value={assessorName}
+                onChange={(e) => setAssessorName(e.target.value)}
+                placeholder="أ. اسم المختص"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">تاريخ التطبيق (اختياري)</label>
+              <input
+                type="date"
+                value={assessmentDate}
+                onChange={(e) => setAssessmentDate(e.target.value)}
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+              />
+            </div>
           </div>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-stone-100">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${(completedCount / domains.length) * 100}%`, backgroundColor: "#0F3D3E" }}
-            />
+
+          {/* Progress bar */}
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between text-sm font-medium text-stone-700">
+              <span>تم إدخال {completedCount} من {domains.length} مجالات</span>
+              {classifiedCount > 0 && (
+                <span className="text-xs text-stone-500">{classifiedCount} / {totalItems} بند مصنَّف</span>
+              )}
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${(completedCount / Math.max(domains.length, 1)) * 100}%`,
+                  backgroundColor: "#0F3D3E",
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Domain percentage cards */}
+        {/* Domain score cards */}
         <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
           {domains.map((d) => {
-            const v = domainScores[d.code] ?? emptyDomain();
-            const sum = sums[d.code] ?? 0;
-            const ok = sum === 100;
-            const touched = v.success !== "" || v.emerging !== "" || v.fail !== "";
+            const entry = domainScores[d.code] ?? { score: "", note: "" };
             return (
               <div key={d.code} className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-lg font-bold text-[#0F3D3E]">{d.name}</h3>
-                  <span className="text-xs font-semibold text-stone-500">{d.code}</span>
+                <div className="mb-4 flex items-baseline justify-between">
+                  <h3 className="text-base font-bold text-[#0F3D3E]">{d.name}</h3>
+                  <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-500">{d.code}</span>
                 </div>
-                <div className="mt-4 space-y-3">
-                  <PercentField label="نسبة النجاح"      value={v.success}  onChange={(x) => setDomainField(d.code, "success",  x)} />
-                  <PercentField label="نسبة الناشئة"     value={v.emerging} onChange={(x) => setDomainField(d.code, "emerging", x)} />
-                  <PercentField label="نسبة عدم النجاح"  value={v.fail}     onChange={(x) => setDomainField(d.code, "fail",     x)} />
-                </div>
-                <p className="mt-3 text-xs text-stone-500">يجب أن يكون المجموع 100%</p>
-                {touched && !ok && (
-                  <p className="mt-1 text-xs font-semibold text-red-600">المجموع الحالي: {sum}%</p>
-                )}
-                {ok && <p className="mt-1 text-xs font-semibold text-green-700">✓ المجموع صحيح</p>}
+                <ScoreSelect
+                  value={entry.score}
+                  onChange={(v) => setDomainField(d.code, "score", v)}
+                />
+                <textarea
+                  placeholder="ملاحظة (اختياري)"
+                  value={entry.note}
+                  onChange={(e) => setDomainField(d.code, "note", e.target.value)}
+                  rows={2}
+                  className="mt-3 w-full resize-none rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 outline-none focus:border-[#0F3D3E]"
+                />
               </div>
             );
           })}
         </section>
 
-        {/* Optional items classification — TTAP only */}
+        {/* Optional item classification — TTAP only */}
         {isTTAP(tool) && (
           <div className="mt-6">
             <button
@@ -307,12 +423,15 @@ function AssessmentPage() {
               <div className="flex-1">
                 <p className="text-sm font-bold text-[#0F3D3E]">تصنيف بنود الأداة</p>
                 <p className="mt-1 text-sm leading-6 text-stone-600">
-                  عزيزي المختص، بإدخالك مزيداً من المعلومات عن نقاط القوة والاحتياج، تُثري الملف الشخصي للطالب
+                  بإدخالك مزيداً من المعلومات عن نقاط القوة والاحتياج، تُثري الملف الشخصي للمتعلم
                 </p>
               </div>
               <span className="mr-4 flex shrink-0 items-center gap-2 pt-0.5 text-sm text-stone-500">
                 {classifiedCount > 0 && (
-                  <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-bold"
+                    style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}
+                  >
                     {classifiedCount} / {totalItems}
                   </span>
                 )}
@@ -322,7 +441,7 @@ function AssessmentPage() {
 
             {showItemsSection && (
               <div className="mt-3 space-y-3">
-                {TTAP_DOMAINS.map((d) => {
+                {DOMAINS.map((d) => {
                   const items = getItemsByDomain(d.code as TTAPDomain);
                   const domainClassified = items.filter((i) => itemRatings[i.id] != null).length;
                   const expanded = expandedDomains.has(d.code);
@@ -338,7 +457,10 @@ function AssessmentPage() {
                         </span>
                         <span className="flex items-center gap-2 text-sm text-stone-500">
                           {domainClassified > 0 && (
-                            <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}>
+                            <span
+                              className="rounded-full px-2 py-0.5 text-xs font-bold"
+                              style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}
+                            >
                               {domainClassified}/{items.length}
                             </span>
                           )}
@@ -380,22 +502,25 @@ function AssessmentPage() {
           </div>
         )}
 
+        {/* Info banner */}
         <div
           className="mt-6 rounded-2xl border p-5 text-sm leading-7 text-[#0F3D3E]"
           style={{ backgroundColor: "#E6F2F1", borderColor: "#C8DEDD" }}
         >
-          همم سيترجم هذه النتائج تلقائياً إلى مستوى الأداء الحالي لكل مفهوم انتقالي
+          همم سيترجم هذه النتائج تلقائياً إلى تغطية مفاهيم الانتقال
         </div>
 
+        {/* Validation error */}
         {showError && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            يرجى التأكد أن مجموع كل مجال يساوي 100% قبل المتابعة
+            يرجى اختيار النتيجة (نجح / ناشئ / لم ينجح) لجميع المجالات قبل المتابعة
           </div>
         )}
 
+        {/* Actions */}
         <div className="mt-6 flex flex-col gap-3">
           <button
-            onClick={handleSubmit}
+            onClick={handleSave}
             className="w-full rounded-xl px-5 py-3.5 text-base font-bold text-white shadow-sm transition hover:opacity-90"
             style={{ backgroundColor: "#0F3D3E" }}
           >
@@ -413,24 +538,22 @@ function AssessmentPage() {
   );
 }
 
-function PercentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+// ── ScoreSelect ───────────────────────────────────────────────────────────────
+
+function ScoreSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const bg = value === "pass" ? "#F0FFF4" : value === "emerge" ? "#FFFBEB" : value === "fail" ? "#FEF2F2" : "white";
+  const border = value === "pass" ? "#86EFAC" : value === "emerge" ? "#FCD34D" : value === "fail" ? "#FCA5A5" : "#E7E5E4";
   return (
-    <label className="flex items-center justify-between gap-3">
-      <span className="text-sm text-stone-700">{label}</span>
-      <span className="flex items-center gap-1">
-        <input
-          type="number"
-          min={0}
-          max={100}
-          inputMode="numeric"
-          placeholder="0"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={(e) => e.target.select()}
-          className="w-20 rounded-lg border border-stone-300 px-3 py-2 text-center text-sm font-semibold text-stone-900 outline-none focus:border-[#0F3D3E]"
-        />
-        <span className="text-sm text-stone-500">%</span>
-      </span>
-    </label>
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{ background: bg, borderColor: border, borderWidth: 1, borderStyle: "solid" }}
+      className="w-full rounded-lg px-3 py-2.5 text-sm font-semibold text-stone-900 outline-none transition focus:border-[#0F3D3E]"
+    >
+      <option value="">— اختر النتيجة —</option>
+      <option value="pass">✓ نجح</option>
+      <option value="emerge">◑ ناشئ</option>
+      <option value="fail">✗ لم ينجح</option>
+    </select>
   );
 }
