@@ -158,7 +158,7 @@ function IEPPage() {
       >
         <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
         <Link
-          to="/students/$id/family"
+          to="/students/$id/student-voice"
           params={{ id }}
           style={{
             color: "white", textDecoration: "none", fontSize: 15,
