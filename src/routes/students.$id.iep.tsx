@@ -74,6 +74,7 @@ function emptyOpenMap(domains: { code: DomainCode }[]): Record<DomainCode, boole
 function IEPPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const [loaded, setLoaded] = useState(false);
   const [student, setStudent] = useState<StoredStudent | null>(null);
   const [vision, setVision] = useState("");
 
@@ -102,6 +103,7 @@ function IEPPage() {
         if (data.startDate) setStartDate(data.startDate);
       }
     } catch {}
+    setLoaded(true);
   }, [id]);
 
   function addGoal(code: DomainCode) {
@@ -198,7 +200,7 @@ function IEPPage() {
             أدخل الأهداف تحت كل مجال بحرية كاملة
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            {domains.map((d) => (
+            {!loaded ? null : domains.map((d) => (
               <div key={d.code} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
                 <button
                   type="button"

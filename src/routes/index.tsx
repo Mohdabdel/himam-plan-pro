@@ -76,14 +76,14 @@ function HomePage() {
           className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
           style={{ backgroundColor: "#D9764A" }}
         >
-          ＋ إضافة طالب جديد
+          ＋ إضافة متعلم جديد
         </Link>
         <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <section className="grid grid-cols-3 gap-5">
-          <StatCard label="إجمالي الطلاب" value={String(total)} />
+          <StatCard label="إجمالي المتعلمين" value={String(total)} />
           <StatCard label="المكتملون" value={String(completed)} />
           <StatCard label="قيد التنفيذ" value={String(inProgress)} />
         </section>
