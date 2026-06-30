@@ -18,6 +18,21 @@ type StoredStudent = {
   center: string;
 };
 
+type CoverageData = {
+  passedDomains:     string[];
+  emergingDomains:   string[];
+  failedDomains:     string[];
+  completionPercent: number;
+  filledDomains?:    string[];
+  uncoveredDomains?: string[];
+  warning?:          string;
+};
+
+function safeParse<T>(key: string): T | null {
+  try { return JSON.parse(localStorage.getItem(key) || "null"); }
+  catch { return null; }
+}
+
 // Structural analysis per tool — independent of student scores.
 type ToolAnalysis = {
   hasMultiplePerformances: boolean;
@@ -40,9 +55,30 @@ function analyzeToolCoverage(tool: string): ToolAnalysis {
   };
 }
 
+const DOMAIN_NAMES: Record<string, string> = {
+  VS: "المهارات المهنية",
+  VB: "السلوكيات المهنية",
+  IF: "الأداء الوظيفي المستقل",
+  LS: "مهارات الترفيه",
+  FC: "التواصل الوظيفي",
+  IB: "السلوك البينشخصي",
+};
+
+function readinessSentence(cov: CoverageData): string {
+  const p = cov.passedDomains.length;
+  const e = cov.emergingDomains.length;
+  const f = cov.failedDomains.length;
+  if (p + e + f === 0) return "التقييم لا يزال في مراحله الأولى — أكمل تقييم جميع المجالات.";
+  if (f >= 3)          return "يحتاج المتعلم تدخلاً مكثفاً — ركّز الخطة على المجالات ذات الاحتياج العالي.";
+  if (p >= 4)          return "يملك المتعلم قاعدة قوية — وجّه الدعم نحو المجالات الناشئة المتبقية.";
+  if (e >= 3)          return "معظم المجالات في طور النمو — وسّع فرص الممارسة لتعزيز التقدم.";
+  return "نتائج متوازنة — راجع كل مجال واضبط الأولويات في الخطة.";
+}
+
 function RecommendationPage() {
   const { id } = Route.useParams();
-  const [student, setStudent] = useState<StoredStudent | null>(null);
+  const [student,  setStudent]  = useState<StoredStudent | null>(null);
+  const [coverage, setCoverage] = useState<CoverageData | null>(null);
 
   useEffect(() => {
     try {
@@ -51,6 +87,7 @@ function RecommendationPage() {
     } catch {
       /* noop */
     }
+    setCoverage(safeParse<CoverageData>(`himam_coverage_${id}`));
   }, [id]);
 
   const tool = student?.tool ?? "";
@@ -79,6 +116,69 @@ function RecommendationPage() {
             <p className="mt-1 text-sm text-stone-500">{student.name} — {student.center}</p>
           )}
         </div>
+
+        {/* ── Domain Readiness Summary ─────────────────────────────────── */}
+        {!coverage ? (
+          <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-semibold text-stone-500">لم يتم حفظ التقييم بعد</p>
+            <p className="mt-1 text-sm text-stone-400">
+              أدخل نتائج التقييم واحفظها لعرض ملخص جاهزية المتعلم هنا.
+            </p>
+            <Link
+              to="/students/$id/assessment"
+              params={{ id }}
+              className="mt-4 inline-block rounded-lg border border-[#0F3D3E] px-4 py-2 text-sm font-semibold text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+            >
+              → إدخال التقييم
+            </Link>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="text-base font-bold text-[#0F3D3E]">ملخص جاهزية الانتقال</h3>
+              <span
+                className="rounded-full px-3 py-1 text-xs font-bold"
+                style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}
+              >
+                {coverage.completionPercent}% من المجالات مُقيَّمة
+              </span>
+            </div>
+
+            {[
+              { label: "نجح",      list: coverage.passedDomains,   bg: "#F0FFF4", color: "#15803D" },
+              { label: "ناشئ",     list: coverage.emergingDomains, bg: "#FFFBEB", color: "#92400E" },
+              { label: "لم ينجح",  list: coverage.failedDomains,   bg: "#FEF2F2", color: "#991B1B" },
+            ].map((row) => (
+              <div key={row.label} className="mb-3">
+                <p className="mb-1.5 text-xs font-semibold" style={{ color: row.color }}>
+                  {row.label} ({row.list.length})
+                </p>
+                {row.list.length === 0 ? (
+                  <p className="text-xs text-stone-400">—</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {row.list.map((code) => (
+                      <span
+                        key={code}
+                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{ backgroundColor: row.bg, color: row.color }}
+                      >
+                        {DOMAIN_NAMES[code] ?? code}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <div
+              className="mt-4 rounded-xl p-3 text-sm text-stone-700"
+              style={{ backgroundColor: "#F8F7F4", borderRight: "3px solid #0F3D3E" }}
+            >
+              {readinessSentence(coverage)}
+            </div>
+          </div>
+        )}
 
         {/* Section 1 — Tool evaluation */}
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
