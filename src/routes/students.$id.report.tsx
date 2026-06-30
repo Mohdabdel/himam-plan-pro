@@ -631,13 +631,82 @@ function ReportPage() {
         <div className="report-section">
           <Card>
             <SectionTitle num="٥" title="التوصيات" />
-            <div style={{ padding: "14px 16px", background: "#F0FAF7", borderRadius: 10, borderRight: `4px solid ${GREEN}`, marginBottom: 12 }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#065F46" }}>{mainRec(avgSuccess)}</p>
-            </div>
-            <div style={{ padding: "12px 16px", background: "#FEF3C7", borderRadius: 10, borderRight: `4px solid ${YELLOW}` }}>
-              <p style={{ margin: 0, fontSize: 14, color: "#78350F" }}>
-                راجع هذا التقرير مع الأسرة والمتعلم قبل اعتماده
-              </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+              {/* Row 1 — Strengths */}
+              <div style={{ padding: "12px 16px", background: "#F0FFF4", borderRadius: 10, borderRight: `4px solid ${GREEN}` }}>
+                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#15803D" }}>نقاط القوة</p>
+                {(coverage?.passedDomains ?? []).length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+                    {(coverage?.passedDomains ?? []).map((code) => (
+                      <Tag key={code} text={DOMAIN_NAMES[code] ?? code} color={GREEN} />
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}>لم تُسجَّل نتائج نجاح بعد</p>
+                )}
+              </div>
+
+              {/* Row 2 — Focus areas */}
+              <div style={{ padding: "12px 16px", background: "#FFF7F7", borderRadius: 10, borderRight: "4px solid #dc2626" }}>
+                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#991B1B" }}>مجالات التركيز</p>
+                {!coverage ? (
+                  <p style={{ margin: 0, fontSize: 13, color: "#374151", fontWeight: 600 }}>{mainRec(avgSuccess)}</p>
+                ) : (coverage.failedDomains.length === 0 && coverage.emergingDomains.length === 0) ? (
+                  <p style={{ margin: 0, fontSize: 13, color: GREEN, fontWeight: 600 }}>جميع المجالات المُقيَّمة عند مستوى النجاح</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+                    {coverage.failedDomains.map((code) => (
+                      <Tag key={code} text={DOMAIN_NAMES[code] ?? code} color="#dc2626" />
+                    ))}
+                    {coverage.emergingDomains.map((code) => (
+                      <Tag key={code} text={DOMAIN_NAMES[code] ?? code} color={YELLOW} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Row 3 — Family priorities */}
+              <div style={{ padding: "12px 16px", background: "#F5F3FF", borderRadius: 10, borderRight: "4px solid #7c3aed" }}>
+                <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#5B21B6" }}>أولويات الأسرة</p>
+                {(family?.priorities ?? []).length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+                    {(family?.priorities ?? []).map((p) => (
+                      <Tag key={p} text={p} color="#7c3aed" />
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 13, color: "#64748B" }}>لم تُسجَّل أولويات الأسرة بعد</p>
+                )}
+              </div>
+
+              {/* Row 4 — Plan readiness */}
+              {(() => {
+                const totalGoals  = (plan?.goals ?? []).length;
+                const activeGoals = (plan?.goals ?? []).filter((g) => g.selectedActivities.length > 0).length;
+                const msg = !plan || totalGoals === 0
+                  ? "لم تُنشأ الخطة التنفيذية بعد"
+                  : activeGoals === 0
+                    ? "لم تُختَر أنشطة بعد — أكمل الخطة التنفيذية"
+                    : activeGoals === totalGoals
+                      ? `اكتملت الخطة — تم اختيار أنشطة لجميع الأهداف (${totalGoals})`
+                      : `تم اختيار أنشطة لـ ${activeGoals} من أصل ${totalGoals} ${totalGoals === 1 ? "هدف" : "أهداف"}`;
+                const msgColor = activeGoals > 0 && activeGoals === totalGoals ? GREEN : "#374151";
+                return (
+                  <div style={{ padding: "12px 16px", background: "#E6F2F1", borderRadius: 10, borderRight: `4px solid ${TEAL}` }}>
+                    <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: TEAL }}>جاهزية الخطة</p>
+                    <p style={{ margin: 0, fontSize: 13, color: msgColor }}>{msg}</p>
+                  </div>
+                );
+              })()}
+
+              {/* Amber reminder footer */}
+              <div style={{ padding: "10px 16px", background: "#FEF3C7", borderRadius: 10, borderRight: `4px solid ${YELLOW}` }}>
+                <p style={{ margin: 0, fontSize: 13, color: "#78350F" }}>
+                  راجع هذا التقرير مع الأسرة والمتعلم قبل اعتماده
+                </p>
+              </div>
+
             </div>
           </Card>
         </div>
