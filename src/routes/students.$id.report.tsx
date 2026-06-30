@@ -667,9 +667,9 @@ function ReportPage() {
                           {/* Selected activities */}
                           <div>
                             <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 600, color: "#94A3B8" }}>الأنشطة المختارة</p>
-                            <ul style={{ margin: 0, paddingRight: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                            <ul style={{ margin: 0, paddingRight: 22, listStyleType: "disc" }}>
                               {g.selectedActivities.map((a) => (
-                                <li key={a} style={{ fontSize: 13, color: "#374151" }}>{a}</li>
+                                <li key={a} style={{ fontSize: 13, color: "#374151", marginBottom: 3 }}>{a}</li>
                               ))}
                             </ul>
                           </div>
