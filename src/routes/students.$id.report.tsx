@@ -117,6 +117,7 @@ function normaliseIEPGoals(raw: RawIEP | null): Record<string, Goal[]> {
 type IEPData = RawIEP;
 type FamilyData = { method: string; sessionDate: string; attendees: string; priorities: string[]; concernsChecked: string[]; concernsText: string; vision5y: string; quality: string };
 type LearnerData = { method: string; q_love: string; q_good: string; q_future: string; q_happy: string; q_hard: string; environments: string[]; quality: string };
+type CoverageData = { completionPercent: number; passedDomains: string[]; emergingDomains: string[]; failedDomains: string[]; filledDomains: string[] };
 
 // ── Domain name maps ──────────────────────────────────────────────────────────
 const DOMAIN_NAMES: Record<string, string> = {
@@ -206,6 +207,28 @@ function Tag({ text, color }: { text: string; color?: string }) {
   );
 }
 
+function statusLabel(s: string | undefined): string {
+  if (!s) return "—";
+  const map: Record<string, string> = {
+    voice_completed:  "اكتمل صوت الأسرة والمتعلم",
+    family_completed: "اكتمل صوت الأسرة",
+    iep_completed:    "اكتملت الخطة التربوية",
+    assessment:       "قيد التقييم",
+  };
+  return map[s] ?? s;
+}
+
+function QualityBadge({ q }: { q: string }) {
+  const map: Record<string, { label: string; color: string }> = {
+    strong: { label: "✅ جودة المعلومات: قوية",   color: "#16a34a" },
+    usable: { label: "⚠️ جودة المعلومات: مقبولة", color: "#d97706" },
+    weak:   { label: "❌ جودة المعلومات: ضعيفة",  color: "#dc2626" },
+  };
+  const m = map[q];
+  if (!m) return null;
+  return <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 700, color: m.color }}>{m.label}</p>;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 function ReportPage() {
   const { id } = Route.useParams();
@@ -216,6 +239,7 @@ function ReportPage() {
   const [iep,      setIep]      = useState<IEPData | null>(null);
   const [family,   setFamily]   = useState<FamilyData | null>(null);
   const [learner,  setLearner]  = useState<LearnerData | null>(null);
+  const [coverage, setCoverage] = useState<CoverageData | null>(null);
 
   useEffect(() => {
     const list = safeParse<StoredStudent[]>("himam_students");
@@ -224,6 +248,7 @@ function ReportPage() {
     setIep(safeParse<IEPData>(`himam_iep_${id}`));
     setFamily(safeParse<FamilyData>(`himam_family_${id}`));
     setLearner(safeParse<LearnerData>(`himam_learner_voice_${id}`));
+    setCoverage(safeParse<CoverageData>(`himam_coverage_${id}`));
   }, [id]);
 
   // ── Domain score calculations ─────────────────────────────────────────────
@@ -319,6 +344,88 @@ function ReportPage() {
           </p>
         </div>
 
+        {/* ── Snapshot card (لمحة عامة) ──────────────────────────────────── */}
+        {(() => {
+          const hasAssessment  = !!assess;
+          const hasCoverage    = !!coverage;
+          const hasFamily      = !!family;
+          const hasLearner     = !!learner;
+          const hasGoals       = Object.keys(normIEPGoals).length > 0;
+          const totalGoals     = Object.values(normIEPGoals).reduce((s, g) => s + g.length, 0);
+          const coveragePct    = coverage?.completionPercent ?? null;
+          const passedCount    = coverage?.passedDomains?.length  ?? 0;
+          const emergingCount  = coverage?.emergingDomains?.length ?? 0;
+          const failedCount    = coverage?.failedDomains?.length   ?? 0;
+
+          const steps = [
+            { label: "التقييم",       done: hasAssessment },
+            { label: "التغطية",       done: hasCoverage   },
+            { label: "صوت الأسرة",    done: hasFamily      },
+            { label: "صوت المتعلم",   done: hasLearner     },
+            { label: "الخطة التربوية", done: hasGoals       },
+          ];
+
+          return (
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ background: TEAL, color: "white", borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>◉</span>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: TEAL }}>لمحة عامة</h2>
+              </div>
+
+              {/* Row 1 – completion chips */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                {steps.map((s) => (
+                  <span key={s.label} style={{
+                    padding: "5px 14px", borderRadius: 20, fontSize: 13, fontWeight: 700,
+                    background: s.done ? "#E6F2F1" : "#F1F5F9",
+                    color: s.done ? TEAL : "#94A3B8",
+                    border: `1px solid ${s.done ? TEAL : "#E5E7EB"}`,
+                  }}>
+                    {s.done ? "✓" : "✗"} {s.label}
+                  </span>
+                ))}
+              </div>
+
+              {/* Row 2 – domain readiness */}
+              <div style={{ display: "flex", gap: 24, flexWrap: "wrap", padding: "12px 14px", background: "#F8F7F4", borderRadius: 8, marginBottom: 12 }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: TEAL }}>{coveragePct !== null ? `${coveragePct}%` : "—"}</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>تغطية المجالات</div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: GREEN }}>{passedCount}</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>نجاح</div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: YELLOW }}>{emergingCount}</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>ناشئة</div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: GRAY }}>{failedCount}</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>لم ينجح</div>
+                </div>
+              </div>
+
+              {/* Row 3 – goals and quality */}
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 13, color: "#475569" }}>
+                <span>
+                  <strong style={{ color: TEAL }}>{totalGoals}</strong> {totalGoals === 1 ? "هدف مسجّل" : "أهداف مسجّلة"}
+                </span>
+                {family?.quality && (
+                  <span style={{ color: family.quality === "strong" ? GREEN : family.quality === "usable" ? YELLOW : "#dc2626", fontWeight: 700 }}>
+                    {family.quality === "strong" ? "✅" : family.quality === "usable" ? "⚠️" : "❌"} جودة صوت الأسرة
+                  </span>
+                )}
+                {learner?.quality && (
+                  <span style={{ color: learner.quality === "strong" ? GREEN : learner.quality === "usable" ? YELLOW : "#dc2626", fontWeight: 700 }}>
+                    {learner.quality === "strong" ? "✅" : learner.quality === "usable" ? "⚠️" : "❌"} جودة صوت المتعلم
+                  </span>
+                )}
+              </div>
+            </Card>
+          );
+        })()}
+
         {/* ── Section 1: Student info ─────────────────────────────────────── */}
         <div className="report-section">
           <Card>
@@ -328,7 +435,7 @@ function ReportPage() {
             <InfoRow label="المركز / المؤسسة"    value={student?.center ?? ""} />
             <InfoRow label="أداة التقييم"        value={student?.tool ?? ""} />
             <InfoRow label="تاريخ الإضافة"       value={formatDate(student?.createdAt ?? "")} />
-            <InfoRow label="الحالة"              value={student?.status ?? ""} />
+            <InfoRow label="الحالة"              value={statusLabel(student?.status)} />
           </Card>
         </div>
 
@@ -412,6 +519,7 @@ function ReportPage() {
               ) : (
                 <>
                   <InfoRow label="طريقة الحصول" value={family.method} />
+                  <QualityBadge q={family.quality} />
                   <InfoRow label="تاريخ الجلسة"  value={formatDate(family.sessionDate)} />
                   <InfoRow label="من حضر"         value={family.attendees} />
                   {family.priorities.length > 0 && (
@@ -445,6 +553,7 @@ function ReportPage() {
               ) : (
                 <>
                   <InfoRow label="طريقة التواصل" value={learner.method} />
+                  <QualityBadge q={learner.quality} />
                   {([
                     { emoji: "❤️", label: "ماذا يحب؟",         val: learner.q_love   },
                     { emoji: "💪", label: "ما الذي يجيده؟",     val: learner.q_good   },
