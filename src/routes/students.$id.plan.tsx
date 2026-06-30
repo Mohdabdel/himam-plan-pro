@@ -102,6 +102,8 @@ type FamilyData = {
 // Learner voice is stored separately in himam_learner_voice_${id}
 type LearnerVoiceData = {
   environments?: string[];
+  q_love?:       string;
+  q_future?:     string;
 };
 
 type GoalEntry = {
@@ -207,11 +209,14 @@ function PlanPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
 
-  const [loaded,      setLoaded]      = useState(false);
-  const [student,     setStudent]     = useState<StoredStudent | null>(null);
-  const [goalEntries, setGoalEntries] = useState<GoalEntry[]>([]);
-  const [hasGoals,    setHasGoals]    = useState(true); // optimistic; set false if IEP is empty
-  const [saved,       setSaved]       = useState(false);
+  const [loaded,           setLoaded]           = useState(false);
+  const [student,          setStudent]          = useState<StoredStudent | null>(null);
+  const [goalEntries,      setGoalEntries]      = useState<GoalEntry[]>([]);
+  const [hasGoals,         setHasGoals]         = useState(true); // optimistic; set false if IEP is empty
+  const [saved,            setSaved]            = useState(false);
+  const [contextHint,      setContextHint]      = useState<{ context: string; reason: string }>({ context: "", reason: "" });
+  const [familyPriorities, setFamilyPriorities] = useState<string[]>([]);
+  const [learnedLove,      setLearnedLove]      = useState("");
 
   useEffect(() => {
     // 1. Load student
@@ -234,6 +239,18 @@ function PlanPage() {
       prefersHome || HOME_KEYWORDS.some((k) => visionHint.includes(k))
         ? "البيت"
         : "المركز / المدرسة";
+
+    // 3b. Expose context origin and voice cues to the UI
+    setContextHint({
+      context: defaultContext,
+      reason: prefersHome
+        ? "بناءً على بيئات المتعلم"
+        : HOME_KEYWORDS.some((k) => visionHint.includes(k))
+          ? "بناءً على رؤية الأسرة"
+          : "افتراضي",
+    });
+    setFamilyPriorities((family.priorities ?? []).slice(0, 3));
+    setLearnedLove(learnerV.q_love?.trim() ?? "");
 
     // 4. Normalise goals
     const flatGoals = normalizeGoals(rawIEP);
@@ -361,6 +378,42 @@ function PlanPage() {
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 60px" }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>اختيار الأنشطة والخطة النهائية</h1>
         <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>{student?.name ?? "—"}</p>
+
+        {/* ── Plan context strip ────────────────────────────────────────────── */}
+        {loaded && hasGoals && (
+          <div style={{ marginTop: 20, background: "#F0F9F8", border: "1px solid #B2D8D8", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Context origin */}
+            {contextHint.reason && (
+              <p style={{ margin: 0, fontSize: 13, color: TEAL }}>
+                <strong>السياق الافتراضي:</strong> {contextHint.context} — {contextHint.reason}
+              </p>
+            )}
+            {/* Family top priorities */}
+            {familyPriorities.length > 0 && (
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: "#64748B", flexShrink: 0 }}>أولويات الأسرة:</span>
+                {familyPriorities.map((p) => (
+                  <span key={p} style={{ fontSize: 12, padding: "2px 10px", borderRadius: 12, background: "#E6F2F1", color: TEAL, fontWeight: 600 }}>
+                    {p}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* Learner love cue */}
+            {learnedLove && (
+              <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>
+                ❤️ <strong>ماذا يحب المتعلم:</strong> {learnedLove}
+              </p>
+            )}
+            {/* Live completion counter */}
+            <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+              <strong style={{ color: TEAL }}>{goalEntries.filter((e) => e.selectedActivities.length > 0).length}</strong>
+              {" "}من{" "}
+              <strong style={{ color: TEAL }}>{goalEntries.length}</strong>
+              {" "}أهداف بها أنشطة محددة
+            </p>
+          </div>
+        )}
 
         {/* No goals empty state */}
         {showEmptyState && (
