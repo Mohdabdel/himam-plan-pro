@@ -304,6 +304,7 @@ function ReportPage() {
       .no-print { display: none !important; }
       .report-section { page-break-inside: avoid; margin-top: 14pt; }
       body { font-size: 12pt; direction: rtl; background: white !important; }
+      * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     }
   `;
 
@@ -349,7 +350,7 @@ function ReportPage() {
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 80px" }}>
 
         {/* Report header */}
-        <div style={{ marginBottom: 28, borderBottom: "3px solid " + TEAL, paddingBottom: 18 }}>
+        <div style={{ marginBottom: 28, borderBottom: "3px solid " + TEAL, paddingBottom: 18, pageBreakInside: "avoid" }}>
           <h1 style={{ fontSize: 26, fontWeight: 900, color: TEAL, margin: "0 0 16px", textAlign: "center" }}>
             التقرير الشامل لخطة الانتقال
           </h1>
@@ -370,7 +371,7 @@ function ReportPage() {
                 </div>
               )}
               {student?.tool && (
-                <div style={{ fontSize: 13, color: "#94A3B8" }}>
+                <div style={{ fontSize: 13, color: "#94A3B8", overflowWrap: "break-word" }}>
                   الأداة: <strong style={{ color: "#475569" }}>{student.tool}</strong>
                 </div>
               )}
