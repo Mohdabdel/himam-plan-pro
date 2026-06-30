@@ -18,7 +18,7 @@ type StoredStudent = {
   center: string;
   tool: string;
   createdAt: string;
-  status: "assessment";
+  status: string;
 };
 
 type Row = {
@@ -27,6 +27,7 @@ type Row = {
   center: string;
   tool: string;
   status: "مكتمل" | "قيد التنفيذ" | "إدخال التقييم";
+  flowStatus?: string;
 };
 
 const seedRows: Row[] = [
@@ -53,6 +54,7 @@ function HomePage() {
           center: s.center,
           tool: s.tool,
           status: "إدخال التقييم" as const,
+          flowStatus: s.status,
         })),
       );
     } catch {
@@ -62,8 +64,8 @@ function HomePage() {
 
   const rows = [...seedRows, ...extra];
   const total = rows.length;
-  const completed = rows.filter((r) => r.status === "مكتمل").length;
-  const inProgress = rows.filter((r) => r.status !== "مكتمل").length;
+  const completed  = rows.filter((r) => r.status === "مكتمل" || r.flowStatus === "iep_completed").length;
+  const inProgress = rows.filter((r) => r.status !== "مكتمل" && r.flowStatus !== "iep_completed").length;
 
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
@@ -106,40 +108,48 @@ function HomePage() {
                   <td className="max-w-[160px] truncate px-4 py-3 text-stone-700">{s.center}</td>
                   <td className="max-w-[200px] truncate px-4 py-3 text-stone-700">{s.tool}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={s.status} />
+                    {s.flowStatus !== undefined
+                      ? <FlowStageLabel flowStatus={s.flowStatus} />
+                      : <StatusBadge status={s.status} />
+                    }
                   </td>
                   <td className="px-4 py-3">
                     {s.id ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        <Link
-                          to="/students/$id/assessment"
-                          params={{ id: s.id }}
-                          className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
-                        >
-                          التقييم
-                        </Link>
-                        <Link
-                          to="/students/$id/family"
-                          params={{ id: s.id }}
-                          className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
-                        >
-                          الأصوات
-                        </Link>
-                        <Link
-                          to="/students/$id/plan"
-                          params={{ id: s.id }}
-                          className="rounded-lg border border-[#D9764A] px-2.5 py-1 text-xs font-medium text-[#D9764A] transition hover:bg-[#D9764A] hover:text-white"
-                        >
-                          الخطة
-                        </Link>
-                        <Link
-                          to="/students/$id/report"
-                          params={{ id: s.id }}
-                          className="rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90"
-                          style={{ backgroundColor: "#0F3D3E" }}
-                        >
-                          التقرير
-                        </Link>
+                      <div className="flex flex-col gap-2">
+                        {s.flowStatus !== undefined && (
+                          <ResumeLink flowStatus={s.flowStatus} id={s.id} />
+                        )}
+                        <div className="flex flex-wrap gap-1.5">
+                          <Link
+                            to="/students/$id/assessment"
+                            params={{ id: s.id }}
+                            className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                          >
+                            التقييم
+                          </Link>
+                          <Link
+                            to="/students/$id/family"
+                            params={{ id: s.id }}
+                            className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+                          >
+                            الأصوات
+                          </Link>
+                          <Link
+                            to="/students/$id/plan"
+                            params={{ id: s.id }}
+                            className="rounded-lg border border-[#D9764A] px-2.5 py-1 text-xs font-medium text-[#D9764A] transition hover:bg-[#D9764A] hover:text-white"
+                          >
+                            الخطة
+                          </Link>
+                          <Link
+                            to="/students/$id/report"
+                            params={{ id: s.id }}
+                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90"
+                            style={{ backgroundColor: "#0F3D3E" }}
+                          >
+                            التقرير
+                          </Link>
+                        </div>
                       </div>
                     ) : (
                       <button className="rounded-lg border border-[#0F3D3E] px-3 py-1.5 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
@@ -178,4 +188,40 @@ function StatusBadge({ status }: { status: Row["status"] }) {
       {status}
     </span>
   );
+}
+
+const FLOW_LABEL: Record<string, string> = {
+  assessment:       "التقييم والتغطية",
+  family_completed: "في انتظار صوت المتعلم",
+  voice_completed:  "الخطة التربوية",
+  iep_completed:    "الخطة النهائية والتقرير",
+};
+
+const FLOW_COLOR: Record<string, string> = {
+  assessment:       "bg-orange-100 text-orange-800 border-orange-200",
+  family_completed: "bg-violet-100 text-violet-800 border-violet-200",
+  voice_completed:  "bg-blue-100 text-blue-800 border-blue-200",
+  iep_completed:    "bg-green-100 text-green-800 border-green-200",
+};
+
+function FlowStageLabel({ flowStatus }: { flowStatus: string }) {
+  const label    = FLOW_LABEL[flowStatus] ?? "—";
+  const colorCls = FLOW_COLOR[flowStatus] ?? "bg-stone-100 text-stone-600 border-stone-200";
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${colorCls}`}>
+      {label}
+    </span>
+  );
+}
+
+function ResumeLink({ flowStatus, id }: { flowStatus: string; id: string }) {
+  const cls = "inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90";
+  const sty = { backgroundColor: "#0F3D3E" };
+  if (flowStatus === "family_completed")
+    return <Link to="/students/$id/student-voice" params={{ id }} className={cls} style={sty}>استكمال →</Link>;
+  if (flowStatus === "voice_completed")
+    return <Link to="/students/$id/iep"           params={{ id }} className={cls} style={sty}>استكمال →</Link>;
+  if (flowStatus === "iep_completed")
+    return <Link to="/students/$id/plan"          params={{ id }} className={cls} style={sty}>استكمال →</Link>;
+  return   <Link to="/students/$id/assessment"    params={{ id }} className={cls} style={sty}>استكمال →</Link>;
 }
