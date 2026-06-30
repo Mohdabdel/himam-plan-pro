@@ -118,6 +118,8 @@ type IEPData = RawIEP;
 type FamilyData = { method: string; sessionDate: string; attendees: string; priorities: string[]; concernsChecked: string[]; concernsText: string; vision5y: string; quality: string };
 type LearnerData = { method: string; q_love: string; q_good: string; q_future: string; q_happy: string; q_hard: string; environments: string[]; quality: string };
 type CoverageData = { completionPercent: number; passedDomains: string[]; emergingDomains: string[]; failedDomains: string[]; filledDomains: string[] };
+type PlanGoal = { goalId: string; domainCode: string; goalText: string; selectedActivities: string[]; context: string; specialistNote: string; priority: string };
+type PlanData  = { learnerId: string; generatedAt?: string; goals: PlanGoal[] };
 
 // ── Domain name maps ──────────────────────────────────────────────────────────
 const DOMAIN_NAMES: Record<string, string> = {
@@ -240,6 +242,7 @@ function ReportPage() {
   const [family,   setFamily]   = useState<FamilyData | null>(null);
   const [learner,  setLearner]  = useState<LearnerData | null>(null);
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
+  const [plan,     setPlan]     = useState<PlanData | null>(null);
 
   useEffect(() => {
     const list = safeParse<StoredStudent[]>("himam_students");
@@ -249,6 +252,7 @@ function ReportPage() {
     setFamily(safeParse<FamilyData>(`himam_family_${id}`));
     setLearner(safeParse<LearnerData>(`himam_learner_voice_${id}`));
     setCoverage(safeParse<CoverageData>(`himam_coverage_${id}`));
+    setPlan(safeParse<PlanData>(`himam_plan_${id}`));
   }, [id]);
 
   // ── Domain score calculations ─────────────────────────────────────────────
@@ -287,11 +291,8 @@ function ReportPage() {
   const printStyle = `
     @media print {
       .no-print { display: none !important; }
-      .report-section { page-break-before: always; }
-      .report-section:first-child { page-break-before: avoid; }
-      body { font-size: 12pt; direction: rtl; }
-      h1 { font-size: 18pt; color: #085041; }
-      h2 { font-size: 14pt; color: #1D9E75; }
+      .report-section { page-break-inside: avoid; margin-top: 14pt; }
+      body { font-size: 12pt; direction: rtl; background: white !important; }
     }
   `;
 
@@ -366,7 +367,7 @@ function ReportPage() {
           ];
 
           return (
-            <Card>
+            <Card className="report-section">
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <span style={{ background: TEAL, color: "white", borderRadius: "50%", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>◉</span>
                 <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: TEAL }}>لمحة عامة</h2>
@@ -614,6 +615,80 @@ function ReportPage() {
             </Card>
           </div>
         )}
+
+        {/* ── Section 7: Selected Activities Plan ─────────────────────── */}
+        <div className="report-section">
+          <Card>
+            <SectionTitle num="٧" title="الأنشطة المختارة والخطة التنفيذية" />
+            {(() => {
+              const activeGoals = (plan?.goals ?? []).filter((g) => g.selectedActivities.length > 0);
+              if (!plan || activeGoals.length === 0) {
+                return (
+                  <div style={{ padding: "16px", background: "#F8F7F4", borderRadius: 8, textAlign: "center" }}>
+                    <p style={{ color: "#94A3B8", fontSize: 14, margin: 0 }}>لم تُختر أنشطة بعد.</p>
+                    <p style={{ color: "#94A3B8", fontSize: 13, marginTop: 6 }}>
+                      اذهب إلى صفحة الخطة النهائية لاختيار الأنشطة المناسبة لكل هدف.
+                    </p>
+                  </div>
+                );
+              }
+              const PLBL: Record<string, string> = { high: "أولوية عالية", medium: "أولوية متوسطة", low: "أولوية منخفضة" };
+              const PBG:  Record<string, string> = { high: "#FEE2E2",       medium: "#FEF3C7",        low: "#F3F4F6"       };
+              const PCLR: Record<string, string> = { high: "#B91C1C",       medium: "#92400E",        low: "#374151"       };
+              return (
+                <>
+                  {plan.generatedAt && (
+                    <p style={{ fontSize: 12, color: "#94A3B8", margin: "0 0 14px" }}>
+                      آخر تحديث للخطة: {formatDate(plan.generatedAt)}
+                    </p>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {activeGoals.map((g) => (
+                      <div key={g.goalId} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
+                        {/* Goal header */}
+                        <div style={{ padding: "10px 14px", background: "#F8F7F4", borderBottom: "1px solid #E5E7EB", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: TEAL }}>
+                            {DOMAIN_NAMES[g.domainCode] ?? g.domainCode}
+                          </span>
+                          {g.priority && (
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20, background: PBG[g.priority] ?? "#F3F4F6", color: PCLR[g.priority] ?? "#374151" }}>
+                              {PLBL[g.priority] ?? g.priority}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+                          {/* Goal text */}
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1F2937" }}>{g.goalText}</p>
+                          {/* Context */}
+                          <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+                            <span style={{ fontWeight: 600 }}>سياق التدريب: </span>
+                            <span style={{ background: "#E6F2F1", color: TEAL, padding: "2px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{g.context}</span>
+                          </p>
+                          {/* Selected activities */}
+                          <div>
+                            <p style={{ margin: "0 0 6px", fontSize: 12, fontWeight: 600, color: "#94A3B8" }}>الأنشطة المختارة</p>
+                            <ul style={{ margin: 0, paddingRight: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                              {g.selectedActivities.map((a) => (
+                                <li key={a} style={{ fontSize: 13, color: "#374151" }}>{a}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          {/* Specialist note */}
+                          {g.specialistNote?.trim() && (
+                            <div style={{ padding: "8px 12px", background: "#FEF3C7", borderRadius: 8, borderRight: `3px solid ${ORANGE}` }}>
+                              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#92400E" }}>ملاحظة الأخصائي</p>
+                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#78350F" }}>{g.specialistNote}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </Card>
+        </div>
 
         {/* Bottom buttons (no-print) */}
         <div className="no-print" style={{ display: "flex", gap: 12, marginTop: 8 }}>
