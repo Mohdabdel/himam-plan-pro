@@ -30,6 +30,8 @@ type RawAssessment = {
     | RawDomainEntry[];
   savedAt?: string;
   updatedAt?: string;
+  assessorName?: string;
+  assessmentDate?: string;
 };
 
 // ── Assessment normalisation ───────────────────────────────────────────────────
@@ -220,6 +222,15 @@ function statusLabel(s: string | undefined): string {
   return map[s] ?? s;
 }
 
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: "flex", gap: 8, fontSize: 13, alignItems: "baseline" }}>
+      <span style={{ color: "#94A3B8", whiteSpace: "nowrap" }}>{label}:</span>
+      <span style={{ color: "#1F2937", fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
 function QualityBadge({ q }: { q: string }) {
   const map: Record<string, { label: string; color: string }> = {
     strong: { label: "✅ جودة المعلومات: قوية",   color: "#16a34a" },
@@ -338,11 +349,47 @@ function ReportPage() {
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 80px" }}>
 
         {/* Report header */}
-        <div style={{ textAlign: "center", marginBottom: 28, borderBottom: "3px solid " + TEAL, paddingBottom: 18 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: TEAL, margin: 0 }}>التقرير الشامل لخطة الانتقال</h1>
-          <p style={{ color: "#64748B", marginTop: 6, fontSize: 14 }}>
-            منصة همم · {formatDate(new Date().toISOString())}
-          </p>
+        <div style={{ marginBottom: 28, borderBottom: "3px solid " + TEAL, paddingBottom: 18 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: TEAL, margin: "0 0 16px", textAlign: "center" }}>
+            التقرير الشامل لخطة الانتقال
+          </h1>
+          <div style={{ display: "flex", gap: 24, justifyContent: "space-between", flexWrap: "wrap", alignItems: "flex-start" }}>
+            {/* Primary identity */}
+            <div style={{ flex: "1 1 220px" }}>
+              {student?.name && (
+                <div style={{ fontSize: 20, fontWeight: 800, color: "#1F2937", marginBottom: 6 }}>
+                  {student.name}
+                </div>
+              )}
+              {student?.center && (
+                <div style={{ fontSize: 14, color: "#64748B", marginBottom: 4 }}>{student.center}</div>
+              )}
+              {student?.birthDate && (
+                <div style={{ fontSize: 13, color: "#94A3B8", marginBottom: 3 }}>
+                  تاريخ الميلاد: <strong style={{ color: "#475569" }}>{formatDate(student.birthDate)}</strong>
+                </div>
+              )}
+              {student?.tool && (
+                <div style={{ fontSize: 13, color: "#94A3B8" }}>
+                  الأداة: <strong style={{ color: "#475569" }}>{student.tool}</strong>
+                </div>
+              )}
+            </div>
+            {/* Document metadata */}
+            <div style={{ flex: "0 1 auto", display: "flex", flexDirection: "column", gap: 5 }}>
+              {assess?.assessmentDate && (
+                <MetaRow label="تاريخ التقييم" value={formatDate(assess.assessmentDate)} />
+              )}
+              {assess?.assessorName && (
+                <MetaRow label="المقيِّم" value={assess.assessorName} />
+              )}
+              {iep?.startDate && (
+                <MetaRow label="بداية الخطة" value={formatDate(iep.startDate)} />
+              )}
+              <MetaRow label="تاريخ الإصدار" value={formatDate(new Date().toISOString())} />
+              <div style={{ marginTop: 4, fontSize: 12, color: "#94A3B8" }}>منصة همم</div>
+            </div>
+          </div>
         </div>
 
         {/* ── Snapshot card (لمحة عامة) ──────────────────────────────────── */}
