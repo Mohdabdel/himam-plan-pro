@@ -33,6 +33,83 @@ const DOMAINS: DomainDef[] = [
   { code: "IB", name: "السلوك البينشخصي" },
 ];
 
+// ── Simple item prototype (8 items × 6 domains) ───────────────────────────────
+// Additive layer — does not replace the existing domain-level score contract.
+const SIMPLE_ITEMS: Record<string, string[]> = {
+  VS: [
+    "يفرز الأدوات",
+    "يصحح أخطاء الفرز",
+    "مطابقة صور التركيب",
+    "مطابقة وفرز الألوان",
+    "يفرز ويرتب الأوراق",
+    "يستخدم التطابق مع شخص آخر",
+    "يجمع معدات السفر",
+    "يرتب البطاقات أبجدياً",
+  ],
+  VB: [
+    "يستخدم طريقة خط التجميع",
+    "يعمل باستمرار في المهمة",
+    "لا يتشتت انتباهه جراء ضوضاء المكتب",
+    "يعمل بدون إشراف",
+    "يعمل بصورة منتجة",
+    "يعمل بدقة وانتظام",
+    "يتجاوب مع البيئة",
+    "يحسن التعامل مع الانتقالات",
+  ],
+  IF: [
+    "يخبر عن الوقت",
+    "يتعرف على الأموال",
+    "يحسب المبالغ المالية",
+    "يتعرف على علامات البقاء",
+    "يغسل اليدين",
+    "يستخدم آلات البيع",
+    "يُظهر آداب الأكل المناسبة",
+    "يستخدم المال",
+  ],
+  LS: [
+    "يندمج في الأنشطة الفردية",
+    "يضع الأدوات جانباً في نهاية الاستراحة",
+    "يلعب لعبة السهام",
+    "يسجّل النقاط في لعبة السهام",
+    "يلعب لعبة ورق بسيطة",
+    "يرمي الكرات في السلة",
+    "يستخدم العدادات لمعرفة نهاية النشاط",
+    "يقرأ مجلة أو كتالوج",
+  ],
+  FC: [
+    "يتبع التعليمات اللفظية",
+    "يتواصل مع الزملاء في بيئة العمل",
+    "يطلب المساعدة بشكل مناسب",
+    "يفهم الإشارات غير اللفظية",
+    "يستخدم الهاتف بشكل مناسب",
+    "يقرأ التعليمات المكتوبة",
+    "يكتب رسائل أو ملاحظات بسيطة",
+    "يتبع جداول العمل المكتوبة",
+  ],
+  IB: [
+    "يُحيّي الآخرين بشكل مناسب",
+    "يتعاون مع الزملاء",
+    "يحل النزاعات بشكل سلمي",
+    "يحترم الحدود الشخصية للآخرين",
+    "يشارك في الأنشطة الجماعية",
+    "يُعبّر عن مشاعره بشكل مناسب",
+    "يقبل النقد البنّاء",
+    "يُظهر سلوكاً اجتماعياً ملائماً للبيئة",
+  ],
+};
+
+// Derives domain score from simple items.
+// Rule: need ≥4 items scored; pass≥60%→pass, need≥60%→fail, else emerge.
+function deriveScoreFromItems(statuses: SimpleStatus[]): ScoreValue | "" {
+  const scored = statuses.filter((s) => s !== null) as SimpleStatus[];
+  if (scored.length < 4) return "";
+  const passN = scored.filter((s) => s === "pass").length;
+  const needN = scored.filter((s) => s === "need").length;
+  if (passN / scored.length >= 0.6) return "pass";
+  if (needN / scored.length >= 0.6) return "fail";
+  return "emerge";
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type StoredStudent = {
@@ -48,6 +125,12 @@ type StoredStudent = {
 type DomainDef = { code: string; name: string };
 type ScoreValue = "pass" | "emerge" | "fail" | "";
 type DomainEntry = { score: ScoreValue; note: string };
+type SimpleStatus = "pass" | "emerge" | "need" | null;
+type SimpleScores = Record<string, SimpleStatus[]>; // 8 entries per domain code
+
+function emptySimpleScores(): SimpleScores {
+  return Object.fromEntries(DOMAINS.map((d) => [d.code, Array(8).fill(null) as SimpleStatus[]]));
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -78,6 +161,9 @@ function AssessmentPage() {
   const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
   const [showItemsSection, setShowItemsSection] = useState(false);
   const [showError, setShowError]     = useState(false);
+  // ── Simple item prototype state (additive) ──────────────────────────────────
+  const [simpleScores, setSimpleScores] = useState<SimpleScores>(emptySimpleScores);
+  const [expandedItemDomains, setExpandedItemDomains] = useState<Set<string>>(new Set());
 
   const domains = DOMAINS;
 
@@ -128,6 +214,20 @@ function AssessmentPage() {
         }
 
         if (Object.keys(restored).length) setDomainScores(restored);
+
+        // Load simple item scores (new additive field — safe to skip if absent)
+        if (saved.itemScores && typeof saved.itemScores === "object" && !Array.isArray(saved.itemScores)) {
+          const base = emptySimpleScores();
+          for (const code of Object.keys(base)) {
+            const arr = (saved.itemScores as Record<string, unknown>)[code];
+            if (Array.isArray(arr)) {
+              base[code] = arr.slice(0, 8).map((v) =>
+                v === "pass" || v === "emerge" || v === "need" ? v : null,
+              ) as SimpleStatus[];
+            }
+          }
+          setSimpleScores(base);
+        }
       }
     } catch { /* noop */ }
 
@@ -183,6 +283,7 @@ function AssessmentPage() {
         assessorName,
         assessmentDate,
         domains:        domainsArray,
+        itemScores:     simpleScores,   // additive — downstream ignores unknown fields
         updatedAt:      now,
       }));
     } catch { /* noop */ }
@@ -231,6 +332,23 @@ function AssessmentPage() {
     } catch { /* noop */ }
   };
 
+  // Auto-derive domain score from simple item scores
+  useEffect(() => {
+    if (!loaded) return;
+    setDomainScores((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const d of domains) {
+        const derived = deriveScoreFromItems(simpleScores[d.code] ?? Array(8).fill(null));
+        if (derived !== "" && next[d.code]?.score !== derived) {
+          next[d.code] = { ...(next[d.code] ?? { score: "", note: "" }), score: derived };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [simpleScores, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-save every 30 s
   const persistRef = useRef(persistAll);
   persistRef.current = persistAll;
@@ -266,6 +384,22 @@ function AssessmentPage() {
       const next = new Set(prev);
       next.has(code) ? next.delete(code) : next.add(code);
       return next;
+    });
+  };
+
+  const toggleItemDomain = (code: string) => {
+    setExpandedItemDomains((prev) => {
+      const next = new Set(prev);
+      next.has(code) ? next.delete(code) : next.add(code);
+      return next;
+    });
+  };
+
+  const setSimpleItem = (code: string, idx: number, status: SimpleStatus) => {
+    setSimpleScores((prev) => {
+      const arr = [...(prev[code] ?? Array(8).fill(null))] as SimpleStatus[];
+      arr[idx] = arr[idx] === status ? null : status; // toggle off if same
+      return { ...prev, [code]: arr };
     });
   };
 
@@ -397,10 +531,28 @@ function AssessmentPage() {
                   <h3 className="text-base font-bold text-[#0F3D3E]">{d.name}</h3>
                   <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-500">{d.code}</span>
                 </div>
-                <ScoreSelect
-                  value={entry.score}
-                  onChange={(v) => setDomainField(d.code, "score", v)}
-                />
+                {/* Domain score — read-only when derived from items, manual otherwise */}
+                {(() => {
+                  const derived = deriveScoreFromItems(simpleScores[d.code] ?? Array(8).fill(null));
+                  const itemsDone = (simpleScores[d.code] ?? []).filter((s) => s !== null).length;
+                  return derived !== "" ? (
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold"
+                        style={{
+                          background: derived === "pass" ? "#F0FFF4" : derived === "emerge" ? "#FFFBEB" : "#FEF2F2",
+                          border: `1px solid ${derived === "pass" ? "#86EFAC" : derived === "emerge" ? "#FCD34D" : "#FCA5A5"}`,
+                          color: "#1C1917",
+                        }}
+                      >
+                        {derived === "pass" ? "✓ نجح" : derived === "emerge" ? "◑ ناشئ" : "✗ لم ينجح"}
+                      </div>
+                      <span className="shrink-0 text-xs text-stone-400">مستنبط ({itemsDone}/8)</span>
+                    </div>
+                  ) : (
+                    <ScoreSelect value={entry.score} onChange={(v) => setDomainField(d.code, "score", v)} />
+                  );
+                })()}
                 <textarea
                   placeholder="ملاحظة (اختياري)"
                   value={entry.note}
@@ -408,6 +560,55 @@ function AssessmentPage() {
                   rows={2}
                   className="mt-3 w-full resize-none rounded-lg border border-stone-200 px-3 py-2 text-sm text-stone-700 outline-none focus:border-[#0F3D3E]"
                 />
+                {/* ── Simple item rows (additive) ──────────────────────── */}
+                {isTTAP(tool) && (
+                  <div className="mt-3 border-t border-stone-100 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleItemDomain(d.code)}
+                      className="flex w-full items-center justify-between text-xs font-semibold text-stone-500 hover:text-[#0F3D3E]"
+                    >
+                      <span>
+                        بنود التقييم —{" "}
+                        {(simpleScores[d.code] ?? []).filter((s) => s !== null).length}/8 مُقيَّم
+                      </span>
+                      <span>{expandedItemDomains.has(d.code) ? "▲" : "▼"}</span>
+                    </button>
+                    {expandedItemDomains.has(d.code) && (
+                      <ul className="mt-2 space-y-1.5">
+                        {(SIMPLE_ITEMS[d.code] ?? []).map((label, idx) => {
+                          const cur = (simpleScores[d.code] ?? [])[idx] ?? null;
+                          return (
+                            <li key={idx} className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2">
+                              <span className="flex-1 text-xs text-stone-700">
+                                <span className="ml-1.5 text-stone-400">{idx + 1}.</span>
+                                {label}
+                              </span>
+                              <div className="flex shrink-0 gap-1">
+                                {(["pass", "emerge", "need"] as const).map((s) => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setSimpleItem(d.code, idx, s)}
+                                    className="rounded px-2 py-0.5 text-xs font-bold transition"
+                                    style={{
+                                      background: cur === s
+                                        ? s === "pass" ? "#16a34a" : s === "emerge" ? "#d97706" : "#dc2626"
+                                        : "#F1F5F9",
+                                      color: cur === s ? "white" : "#64748B",
+                                    }}
+                                  >
+                                    {s === "pass" ? "✓" : s === "emerge" ? "◑" : "✗"}
+                                  </button>
+                                ))}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
