@@ -1,9 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { getItemsByDomain, TTAP_ITEMS, type TTAPDomain } from "../data/ttap-items";
 import {
-  ITEM_RATING_LABELS,
-  ITEM_RATING_WEIGHTS,
   computeCoverage,
   type ItemRating,
   type ItemClassifications,
@@ -157,9 +154,9 @@ function AssessmentPage() {
   const [assessorName, setAssessorName]     = useState("");
   const [assessmentDate, setAssessmentDate] = useState("");
   const [domainScores, setDomainScores]     = useState<Record<string, DomainEntry>>({});
+  // itemRatings is retained only to round-trip legacy per-item classifications
+  // saved by the old TTAP item-classification UI (now removed) — see persistAll().
   const [itemRatings, setItemRatings]       = useState<ItemClassifications>({});
-  const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
-  const [showItemsSection, setShowItemsSection] = useState(false);
   const [showError, setShowError]     = useState(false);
   // ── Simple item prototype state (additive) ──────────────────────────────────
   const [simpleScores, setSimpleScores] = useState<SimpleScores>(emptySimpleScores);
@@ -263,8 +260,6 @@ function AssessmentPage() {
 
   // ── Derived counts ──────────────────────────────────────────────────────────
   const completedCount   = domains.filter((d) => (domainScores[d.code]?.score || "") !== "").length;
-  const totalItems       = TTAP_ITEMS.length;
-  const classifiedCount  = Object.values(itemRatings).filter((v) => v != null).length;
 
   // ── Persist ─────────────────────────────────────────────────────────────────
   const persistAll = () => {
@@ -373,18 +368,6 @@ function AssessmentPage() {
       ...prev,
       [code]: { ...(prev[code] ?? { score: "", note: "" }), [key]: value },
     }));
-  };
-
-  const setItemRating = (itemId: number, rating: ItemRating | "") => {
-    setItemRatings((prev) => ({ ...prev, [itemId]: rating === "" ? null : rating }));
-  };
-
-  const toggleDomain = (code: string) => {
-    setExpandedDomains((prev) => {
-      const next = new Set(prev);
-      next.has(code) ? next.delete(code) : next.add(code);
-      return next;
-    });
   };
 
   const toggleItemDomain = (code: string) => {
@@ -505,9 +488,6 @@ function AssessmentPage() {
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between text-sm font-medium text-stone-700">
               <span>تم إدخال {completedCount} من {domains.length} مجالات</span>
-              {classifiedCount > 0 && (
-                <span className="text-xs text-stone-500">{classifiedCount} / {totalItems} بند مصنَّف</span>
-              )}
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-stone-100">
               <div
@@ -613,95 +593,6 @@ function AssessmentPage() {
             );
           })}
         </section>
-
-        {/* Optional item classification — TTAP only */}
-        {isTTAP(tool) && (
-          <div className="mt-6">
-            <button
-              onClick={() => setShowItemsSection((v) => !v)}
-              className="flex w-full items-start justify-between rounded-2xl border border-stone-200 bg-white px-6 py-5 text-right shadow-sm transition hover:bg-stone-50"
-            >
-              <div className="flex-1">
-                <p className="text-sm font-bold text-[#0F3D3E]">تصنيف بنود الأداة</p>
-                <p className="mt-1 text-sm leading-6 text-stone-600">
-                  بإدخالك مزيداً من المعلومات عن نقاط القوة والاحتياج، تُثري الملف الشخصي للمتعلم
-                </p>
-              </div>
-              <span className="mr-4 flex shrink-0 items-center gap-2 pt-0.5 text-sm text-stone-500">
-                {classifiedCount > 0 && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-xs font-bold"
-                    style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}
-                  >
-                    {classifiedCount} / {totalItems}
-                  </span>
-                )}
-                <span>{showItemsSection ? "▲" : "▼"}</span>
-              </span>
-            </button>
-
-            {showItemsSection && (
-              <div className="mt-3 space-y-3">
-                {DOMAINS.map((d) => {
-                  const items = getItemsByDomain(d.code as TTAPDomain);
-                  const domainClassified = items.filter((i) => itemRatings[i.id] != null).length;
-                  const expanded = expandedDomains.has(d.code);
-                  return (
-                    <div key={d.code} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-                      <button
-                        onClick={() => toggleDomain(d.code)}
-                        className="flex w-full items-center justify-between px-5 py-4 text-right transition hover:bg-stone-50"
-                      >
-                        <span className="flex items-center gap-3">
-                          <span className="text-sm font-bold text-[#0F3D3E]">{d.name}</span>
-                          <span className="text-xs font-semibold text-stone-500">{d.code}</span>
-                        </span>
-                        <span className="flex items-center gap-2 text-sm text-stone-500">
-                          {domainClassified > 0 && (
-                            <span
-                              className="rounded-full px-2 py-0.5 text-xs font-bold"
-                              style={{ backgroundColor: "#E6F2F1", color: "#0F3D3E" }}
-                            >
-                              {domainClassified}/{items.length}
-                            </span>
-                          )}
-                          <span>{expanded ? "▲" : "▼"}</span>
-                        </span>
-                      </button>
-
-                      {expanded && (
-                        <ul className="divide-y divide-stone-100 border-t border-stone-100 px-5">
-                          {items.map((item) => {
-                            const current = itemRatings[item.id] ?? null;
-                            return (
-                              <li key={item.id} className="flex items-center justify-between gap-3 py-2.5">
-                                <span className="flex-1 text-sm text-stone-800">
-                                  <span className="ml-1 text-xs text-stone-400">{item.id}.</span>
-                                  {item.name}
-                                </span>
-                                <select
-                                  value={current ?? ""}
-                                  onChange={(e) => setItemRating(item.id, e.target.value as ItemRating | "")}
-                                  className="shrink-0 rounded-lg border border-stone-300 bg-white px-2 py-1.5 text-xs text-stone-800 outline-none focus:border-[#0F3D3E]"
-                                  style={{ minWidth: 180 }}
-                                >
-                                  <option value="">لم يُصنَّف</option>
-                                  {(Object.keys(ITEM_RATING_WEIGHTS) as ItemRating[]).map((r) => (
-                                    <option key={r} value={r}>{ITEM_RATING_LABELS[r]}</option>
-                                  ))}
-                                </select>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Info banner */}
         <div
