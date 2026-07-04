@@ -314,10 +314,17 @@ function PlanPage() {
 
   function handleSave() {
     try {
+      // Small completion signal — lets report.tsx (and future consumers) tell
+      // whether the specialist actually selected real-context activities,
+      // vs. just visiting/saving the page with everything left unchecked.
+      const status = goalEntries.some((g) => g.selectedActivities.length > 0)
+        ? "activities_selected"
+        : "no_activities";
       localStorage.setItem(`himam_plan_${id}`, JSON.stringify({
         learnerId:   id,
         generatedAt: new Date().toISOString(),
         goals:       goalEntries,
+        status,
       }));
       setSaved(true);
     } catch { /* noop */ }

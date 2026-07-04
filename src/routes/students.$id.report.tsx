@@ -121,7 +121,7 @@ type FamilyData = { method: string; sessionDate: string; attendees: string; prio
 type LearnerData = { method: string; q_love: string; q_good: string; q_future: string; q_happy: string; q_hard: string; environments: string[]; quality: string };
 type CoverageData = { completionPercent: number; passedDomains: string[]; emergingDomains: string[]; failedDomains: string[]; filledDomains: string[] };
 type PlanGoal = { goalId: string; domainCode: string; goalText: string; selectedActivities: string[]; context: string; specialistNote: string; priority: string };
-type PlanData  = { learnerId: string; generatedAt?: string; goals: PlanGoal[] };
+type PlanData  = { learnerId: string; generatedAt?: string; goals: PlanGoal[]; status?: "activities_selected" | "no_activities" };
 
 // ── Domain name maps ──────────────────────────────────────────────────────────
 const DOMAIN_NAMES: Record<string, string> = {
@@ -739,13 +739,27 @@ function ReportPage() {
             <SectionTitle num="٧" title="الأنشطة المختارة والخطة التنفيذية" />
             {(() => {
               const activeGoals = (plan?.goals ?? []).filter((g) => g.selectedActivities.length > 0);
-              if (!plan || activeGoals.length === 0) {
+              // Prefer the persisted completion signal from plan.tsx; fall back to a
+              // computed check for plan records saved before that signal existed.
+              const noActivities = plan
+                ? (plan.status ? plan.status !== "activities_selected" : activeGoals.length === 0)
+                : true;
+              if (!plan || noActivities) {
                 return (
-                  <div style={{ padding: "16px", background: "#F8F7F4", borderRadius: 8, textAlign: "center" }}>
-                    <p style={{ color: "#94A3B8", fontSize: 14, margin: 0 }}>لم تُختر أنشطة بعد.</p>
-                    <p style={{ color: "#94A3B8", fontSize: 13, marginTop: 6 }}>
-                      اذهب إلى صفحة الخطة النهائية لاختيار الأنشطة المناسبة لكل هدف.
+                  <div style={{ padding: "16px", background: "#FEF2F2", borderRadius: 10, border: "1px solid #FCA5A5" }}>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#991B1B" }}>
+                      ⚠️ لم تُختر أي أنشطة تشاركية بعد
                     </p>
+                    <p style={{ margin: "6px 0 0", fontSize: 13, color: "#7F1D1D", lineHeight: 1.6 }}>
+                      هذا التقرير لا يحتوي حالياً على فرص مشاركة واقعية مرتبطة بالأهداف. يُنصح بعدم اعتماد الخطة قبل اختيار الأنشطة المناسبة لكل هدف.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate({ to: "/students/$id/plan", params: { id } })}
+                      style={{ marginTop: 12, background: "#991B1B", color: "white", border: "none", padding: "10px 20px", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      → اختيار الأنشطة الآن
+                    </button>
                   </div>
                 );
               }

@@ -145,7 +145,7 @@ function IEPPage() {
       }
     } catch {}
     toast.success("تم حفظ الخطة بنجاح ✓");
-    navigate({ to: "/students/$id/report", params: { id } });
+    navigate({ to: "/students/$id/plan", params: { id } });
   }
 
   return (
@@ -346,7 +346,7 @@ function IEPPage() {
         >
           <span style={{ fontSize: 18, lineHeight: 1.4 }}>ℹ️</span>
           <span>
-            بعد حفظ الخطة، سيتم إنشاء التقرير النهائي الذي يجمع التقييم وصوت الأسرة والمتعلم والخطة التربوية.
+            بعد حفظ الخطة، ستنتقل لاختيار الأنشطة التشاركية لكل هدف، ثم إنشاء التقرير النهائي الذي يجمع التقييم وصوت الأسرة والمتعلم والخطة التربوية.
           </span>
         </div>
 
@@ -361,7 +361,7 @@ function IEPPage() {
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
-            حفظ الخطة وإنشاء التقرير ←
+            حفظ الخطة واختيار الأنشطة ←
           </button>
         </div>
       </main>
