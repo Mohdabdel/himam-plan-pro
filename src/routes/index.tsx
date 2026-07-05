@@ -1,5 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import {
+  JOURNEY_STEPS,
+  getStudentStage,
+  getFurthestAccessibleStepIndex,
+  getNextAction,
+} from "../lib/journey";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -64,8 +70,15 @@ function HomePage() {
 
   const rows = [...seedRows, ...extra];
   const total = rows.length;
-  const completed  = rows.filter((r) => r.status === "مكتمل" || r.flowStatus === "iep_completed").length;
-  const inProgress = rows.filter((r) => r.status !== "مكتمل" && r.flowStatus !== "iep_completed").length;
+  // Seed rows carry no real flowStatus — their completion reads from the
+  // static demo label; real students are "complete" once the report stage
+  // has actually been reached.
+  const completed = rows.filter((r) =>
+    r.flowStatus !== undefined
+      ? getStudentStage(r.flowStatus) === "report_generated"
+      : r.status === "مكتمل",
+  ).length;
+  const inProgress = total - completed;
 
   return (
     <div className="min-h-screen bg-[#FAF7F2]">
@@ -97,7 +110,7 @@ function HomePage() {
                 <th className="px-4 py-3 font-semibold">الاسم</th>
                 <th className="px-4 py-3 font-semibold">المركز / البرنامج</th>
                 <th className="px-4 py-3 font-semibold">أداة التقييم</th>
-                <th className="px-4 py-3 font-semibold">الحالة</th>
+                <th className="px-4 py-3 font-semibold">التقدّم</th>
                 <th className="px-4 py-3 font-semibold">الإجراء</th>
               </tr>
             </thead>
@@ -109,48 +122,13 @@ function HomePage() {
                   <td className="max-w-[200px] truncate px-4 py-3 text-stone-700">{s.tool}</td>
                   <td className="px-4 py-3">
                     {s.flowStatus !== undefined
-                      ? <FlowStageLabel flowStatus={s.flowStatus} />
+                      ? <ProgressIndicator flowStatus={s.flowStatus} />
                       : <StatusBadge status={s.status} />
                     }
                   </td>
                   <td className="px-4 py-3">
-                    {s.id ? (
-                      <div className="flex flex-col gap-2">
-                        {s.flowStatus !== undefined && (
-                          <ResumeLink flowStatus={s.flowStatus} id={s.id} />
-                        )}
-                        <div className="flex flex-wrap gap-1.5">
-                          <Link
-                            to="/students/$id/assessment"
-                            params={{ id: s.id }}
-                            className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
-                          >
-                            التقييم
-                          </Link>
-                          <Link
-                            to="/students/$id/family"
-                            params={{ id: s.id }}
-                            className="rounded-lg border border-[#0F3D3E] px-2.5 py-1 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
-                          >
-                            الأصوات
-                          </Link>
-                          <Link
-                            to="/students/$id/plan"
-                            params={{ id: s.id }}
-                            className="rounded-lg border border-[#D9764A] px-2.5 py-1 text-xs font-medium text-[#D9764A] transition hover:bg-[#D9764A] hover:text-white"
-                          >
-                            الخطة
-                          </Link>
-                          <Link
-                            to="/students/$id/report"
-                            params={{ id: s.id }}
-                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition hover:opacity-90"
-                            style={{ backgroundColor: "#0F3D3E" }}
-                          >
-                            التقرير
-                          </Link>
-                        </div>
-                      </div>
+                    {s.id && s.flowStatus !== undefined ? (
+                      <PrimaryAction flowStatus={s.flowStatus} id={s.id} />
                     ) : (
                       <button className="rounded-lg border border-[#0F3D3E] px-3 py-1.5 text-xs font-medium text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white">
                         عرض الإطار
@@ -190,38 +168,50 @@ function StatusBadge({ status }: { status: Row["status"] }) {
   );
 }
 
-const FLOW_LABEL: Record<string, string> = {
-  assessment:       "التقييم والتغطية",
-  family_completed: "في انتظار صوت المتعلم",
-  voice_completed:  "الخطة التربوية",
-  iep_completed:    "الخطة النهائية والتقرير",
-};
+// ── Unified progress signal — one compact read per row ──────────────────────
+function ProgressIndicator({ flowStatus }: { flowStatus: string }) {
+  const stage = getStudentStage(flowStatus);
+  const furthest = getFurthestAccessibleStepIndex(flowStatus);
+  const total = JOURNEY_STEPS.length;
+  const done = stage === "report_generated";
 
-const FLOW_COLOR: Record<string, string> = {
-  assessment:       "bg-orange-100 text-orange-800 border-orange-200",
-  family_completed: "bg-violet-100 text-violet-800 border-violet-200",
-  voice_completed:  "bg-blue-100 text-blue-800 border-blue-200",
-  iep_completed:    "bg-green-100 text-green-800 border-green-200",
-};
-
-function FlowStageLabel({ flowStatus }: { flowStatus: string }) {
-  const label    = FLOW_LABEL[flowStatus] ?? "—";
-  const colorCls = FLOW_COLOR[flowStatus] ?? "bg-stone-100 text-stone-600 border-stone-200";
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${colorCls}`}>
-      {label}
-    </span>
+    <div className="flex flex-col gap-1">
+      <span
+        className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+          done
+            ? "border-green-200 bg-green-100 text-green-800"
+            : "border-[#C8DEDD] bg-[#E6F2F1] text-[#0F3D3E]"
+        }`}
+      >
+        {done ? "التقرير جاهز" : JOURNEY_STEPS[furthest].label}
+      </span>
+      <div className="flex items-center gap-1">
+        {JOURNEY_STEPS.map((step, i) => (
+          <span
+            key={step.id}
+            className="h-1.5 w-4 rounded-full"
+            style={{ backgroundColor: i <= furthest ? "#0F3D3E" : "#E5E7EB" }}
+          />
+        ))}
+        <span className="mr-1 text-[11px] text-stone-400">{furthest + 1}/{total}</span>
+      </div>
+    </div>
   );
 }
 
-function ResumeLink({ flowStatus, id }: { flowStatus: string; id: string }) {
-  const cls = "inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90";
-  const sty = { backgroundColor: "#0F3D3E" };
-  if (flowStatus === "family_completed")
-    return <Link to="/students/$id/student-voice" params={{ id }} className={cls} style={sty}>استكمال →</Link>;
-  if (flowStatus === "voice_completed")
-    return <Link to="/students/$id/iep"           params={{ id }} className={cls} style={sty}>استكمال →</Link>;
-  if (flowStatus === "iep_completed")
-    return <Link to="/students/$id/plan"          params={{ id }} className={cls} style={sty}>استكمال →</Link>;
-  return   <Link to="/students/$id/assessment"    params={{ id }} className={cls} style={sty}>استكمال →</Link>;
+// ── Single primary CTA per row — resume, or view the finished report ───────
+function PrimaryAction({ flowStatus, id }: { flowStatus: string; id: string }) {
+  const { label, to } = getNextAction(flowStatus);
+  const isTerminal = label === "عرض التقرير";
+  return (
+    <Link
+      to={to}
+      params={{ id }}
+      className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+      style={{ backgroundColor: isTerminal ? "#D9764A" : "#0F3D3E" }}
+    >
+      {label} ←
+    </Link>
+  );
 }

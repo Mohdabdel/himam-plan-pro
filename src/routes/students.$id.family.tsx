@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { advanceStage } from "../lib/journey";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/family")({
   component: FamilyPage,
@@ -170,7 +172,7 @@ function FamilyPage() {
       const raw = localStorage.getItem("himam_students");
       if (raw) {
         const list: StoredStudent[] = JSON.parse(raw);
-        const updated = list.map((s) => s.id === id ? { ...s, status: "family_completed" } : s);
+        const updated = list.map((s) => s.id === id ? { ...s, status: advanceStage(s.status, "family_completed") } : s);
         localStorage.setItem("himam_students", JSON.stringify(updated));
       }
     } catch {}
@@ -194,6 +196,8 @@ function FamilyPage() {
       </header>
 
       <main style={{ maxWidth: 800, margin: "0 auto", padding: "28px 20px 80px" }}>
+        <JourneyStepper studentId={id} currentStep="family" status={student?.status} />
+
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>صوت الأسرة</h1>
         <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>{student?.name ?? "—"}</p>
 

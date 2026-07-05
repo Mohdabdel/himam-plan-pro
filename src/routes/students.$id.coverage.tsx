@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { advanceStage } from "../lib/journey";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/coverage")({
   component: RecommendationPage,
@@ -16,6 +18,7 @@ type StoredStudent = {
   name: string;
   tool: string;
   center: string;
+  status: string;
 };
 
 type CoverageData = {
@@ -83,7 +86,9 @@ function RecommendationPage() {
   useEffect(() => {
     try {
       const list: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
-      setStudent(list.find((x) => x.id === id) ?? null);
+      const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "coverage_ready") } : s));
+      localStorage.setItem("himam_students", JSON.stringify(updated));
+      setStudent(updated.find((x) => x.id === id) ?? null);
     } catch {
       /* noop */
     }
@@ -110,6 +115,8 @@ function RecommendationPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-8 md:px-8">
+        <JourneyStepper studentId={id} currentStep="coverage" status={student?.status} />
+
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-[#0F3D3E]">توصيات أداة التقييم</h2>
           {student && (

@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { advanceStage } from "../lib/journey";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/plan")({
   component: PlanPage,
@@ -77,7 +79,7 @@ const CONCEPT_ACTIVITIES: Record<string, string[]> = {
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type StoredStudent = { id: string; name: string; center: string; tool: string };
+type StoredStudent = { id: string; name: string; center: string; tool: string; status: string };
 
 // IEP goals may arrive in two shapes — normalised below
 type RawGoal = { id?: string; text?: string; category?: string; domainCode?: string };
@@ -313,20 +315,35 @@ function PlanPage() {
   }
 
   function handleSave() {
+    // Small completion signal — lets report.tsx (and the journey stage
+    // below) tell whether the specialist actually selected real-context
+    // activities, vs. just visiting/saving the page with nothing checked.
+    // Named planRecordStatus (not `status`) to avoid shadowing the ambient
+    // DOM global `window.status`, which TypeScript resolves silently.
+    const planRecordStatus = goalEntries.some((g) => g.selectedActivities.length > 0)
+      ? "activities_selected"
+      : "no_activities";
+
     try {
-      // Small completion signal — lets report.tsx (and future consumers) tell
-      // whether the specialist actually selected real-context activities,
-      // vs. just visiting/saving the page with everything left unchecked.
-      const status = goalEntries.some((g) => g.selectedActivities.length > 0)
-        ? "activities_selected"
-        : "no_activities";
       localStorage.setItem(`himam_plan_${id}`, JSON.stringify({
         learnerId:   id,
         generatedAt: new Date().toISOString(),
         goals:       goalEntries,
-        status,
+        status:      planRecordStatus,
       }));
       setSaved(true);
+    } catch { /* noop */ }
+
+    try {
+      // report_ready (not just plan_completed) once real activities are
+      // selected — that's the point the report stops showing its warning.
+      const journeyStage = planRecordStatus === "activities_selected" ? "report_ready" : "plan_completed";
+      const raw = localStorage.getItem("himam_students");
+      if (raw) {
+        const list: StoredStudent[] = JSON.parse(raw);
+        const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, journeyStage) } : s));
+        localStorage.setItem("himam_students", JSON.stringify(updated));
+      }
     } catch { /* noop */ }
   }
 
@@ -383,6 +400,8 @@ function PlanPage() {
       </header>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 60px" }}>
+        <JourneyStepper studentId={id} currentStep="plan" status={student?.status} />
+
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>اختيار الأنشطة والخطة النهائية</h1>
         <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>{student?.name ?? "—"}</p>
 

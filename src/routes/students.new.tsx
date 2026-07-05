@@ -48,7 +48,7 @@ function NewStudentPage() {
       communicationMode: communicationMode.trim(),
       notes: notes.trim(),
       createdAt: new Date().toISOString(),
-      status: "assessment" as const,
+      status: "not_started" as const,
     };
     try {
       const existing = JSON.parse(localStorage.getItem("himam_students") || "[]");

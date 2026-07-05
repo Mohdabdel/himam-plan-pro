@@ -8,6 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { advanceStage } from "../lib/journey";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/iep")({
   component: IEPPage,
@@ -140,7 +142,7 @@ function IEPPage() {
       const raw = localStorage.getItem("himam_students");
       if (raw) {
         const list: StoredStudent[] = JSON.parse(raw);
-        const updated = list.map((s) => (s.id === id ? { ...s, status: "iep_completed" } : s));
+        const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "iep_completed") } : s));
         localStorage.setItem("himam_students", JSON.stringify(updated));
       }
     } catch {}
@@ -170,6 +172,8 @@ function IEPPage() {
       </header>
 
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "28px 20px 60px" }}>
+        <JourneyStepper studentId={id} currentStep="iep" status={student?.status} />
+
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>
           الخطة التربوية الفردية
         </h1>

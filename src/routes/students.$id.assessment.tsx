@@ -6,6 +6,8 @@ import {
   type ItemClassifications,
   type DomainScores,
 } from "../lib/coverage-engine";
+import { advanceStage } from "../lib/journey";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/assessment")({
   component: AssessmentPage,
@@ -325,6 +327,18 @@ function AssessmentPage() {
         updatedAt: now,
       }));
     } catch { /* noop */ }
+
+    // Advance journey stage — only once at least one domain has a score.
+    try {
+      const anyScored = domains.some((d) => (domainScores[d.code]?.score || "") !== "");
+      if (anyScored) {
+        const candidate = completedCount === domains.length ? "assessment_completed" : "assessment_in_progress";
+        const list: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
+        localStorage.setItem("himam_students", JSON.stringify(
+          list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, candidate) } : s)),
+        ));
+      }
+    } catch { /* noop */ }
   };
 
   // Auto-derive domain score from simple item scores
@@ -435,6 +449,8 @@ function AssessmentPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8 md:px-8">
+
+        <JourneyStepper studentId={id} currentStep="assessment" status={student?.status} />
 
         {/* Learner context card */}
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">

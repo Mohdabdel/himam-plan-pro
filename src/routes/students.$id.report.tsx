@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { advanceStage } from "../lib/journey";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/report")({
   component: ReportPage,
@@ -256,8 +258,10 @@ function ReportPage() {
   const [plan,     setPlan]     = useState<PlanData | null>(null);
 
   useEffect(() => {
-    const list = safeParse<StoredStudent[]>("himam_students");
-    setStudent(list?.find((s) => s.id === id) ?? null);
+    const list = safeParse<StoredStudent[]>("himam_students") ?? [];
+    const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "report_generated") } : s));
+    try { localStorage.setItem("himam_students", JSON.stringify(updated)); } catch { /* noop */ }
+    setStudent(updated.find((s) => s.id === id) ?? null);
     setAssess(safeParse<AssessmentData>(`himam_assessment_${id}`));
     setIep(safeParse<IEPData>(`himam_iep_${id}`));
     setFamily(safeParse<FamilyData>(`himam_family_${id}`));
@@ -348,6 +352,10 @@ function ReportPage() {
       </header>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 80px" }}>
+
+        <div className="no-print">
+          <JourneyStepper studentId={id} currentStep="report" status={student?.status} />
+        </div>
 
         {/* Report header */}
         <div style={{ marginBottom: 28, borderBottom: "3px solid " + TEAL, paddingBottom: 18, pageBreakInside: "avoid" }}>
