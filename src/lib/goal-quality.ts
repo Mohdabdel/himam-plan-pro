@@ -15,6 +15,16 @@ export type QualityItem = {
   state: QualityState;
   note?: string;
   hardStop?: boolean;
+  /** True when this hard-stop item is still unresolved but a documented
+   *  professional override exists for it — it no longer blocks saving,
+   *  but stays visibly "needs" rather than silently flipping to "done". */
+  overridden?: boolean;
+};
+
+export type GoalOverride = {
+  reason: string;
+  note?: string;
+  at: string;
 };
 
 export type GoalQualityInput = {
@@ -38,6 +48,7 @@ export type GoalQualityInput = {
     q_love?: string;
     q_good?: string;
   } | null;
+  override?: GoalOverride | null;
 };
 
 function normalizeWords(text: string): Set<string> {
@@ -127,7 +138,7 @@ export function computeGoalQuality(input: GoalQualityInput): QualityItem[] {
     transitionNote = "هذا المجال لم يُقيَّم بعد ضمن التغطية الحالية.";
   }
 
-  return [
+  const items: QualityItem[] = [
     {
       axis: 1, label: "مرتبط بمصدر", state: hasEvidence ? "done" : "needs",
       note: hasEvidence ? undefined : "اربط بند تقييم أو مصدر أدلة في «الدليل المرتبط».",
@@ -172,6 +183,17 @@ export function computeGoalQuality(input: GoalQualityInput): QualityItem[] {
       note: hasEvidence ? undefined : "اربط بند تقييم أو ملاحظة داعمة.",
     },
   ];
+
+  if (input.override) {
+    for (const item of items) {
+      if (item.hardStop && item.state === "needs") {
+        item.overridden = true;
+        item.note = `متجاوَز مهنيًا — السبب: ${input.override.reason}`;
+      }
+    }
+  }
+
+  return items;
 }
 
 export function summarizeQuality(items: QualityItem[]): { done: number; needs: number; advisory: number } {
@@ -180,9 +202,10 @@ export function summarizeQuality(items: QualityItem[]): { done: number; needs: n
   return summary;
 }
 
-/** Whether this goal has any unresolved hard-stop item. Only meaningful once
- *  the goal has actual text — an empty, not-yet-started goal is not a blocker. */
+/** Whether this goal has any unresolved, non-overridden hard-stop item. Only
+ *  meaningful once the goal has actual text — an empty, not-yet-started goal
+ *  is not a blocker. */
 export function hasHardStopViolation(goalText: string, items: QualityItem[]): boolean {
   if (!goalText.trim()) return false;
-  return items.some((item) => item.hardStop && item.state === "needs");
+  return items.some((item) => item.hardStop && item.state === "needs" && !item.overridden);
 }

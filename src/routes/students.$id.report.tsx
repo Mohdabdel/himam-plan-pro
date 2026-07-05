@@ -18,7 +18,14 @@ type StoredStudent = {
   id: string; name: string; birthDate: string;
   center: string; tool: string; createdAt: string; status: string;
 };
-type Goal = { id: string; text: string; category: string };
+type GoalOverride = { reason: string; note?: string; at: string };
+type Goal = {
+  id: string; text: string; category: string;
+  // Structured fields from the IEP goal-quality workspace — optional so
+  // goals saved before that feature still normalise fine.
+  context?: string; criterion?: string; measurementMethod?: string;
+  evidenceRef?: string; lifePractice?: string; override?: GoalOverride;
+};
 
 // Normalised internal shape — always an object keyed by domain code
 type NormalisedDomain = { success: number; emerging: number; fail: number; note?: string };
@@ -79,7 +86,11 @@ function normaliseDomains(raw: RawAssessment | null): NormalisedDomains {
 type AssessmentData = RawAssessment;
 
 // Raw IEP goal (flat array entry may carry domainCode)
-type RawGoal = { id?: string; text?: string; category?: string; domainCode?: string };
+type RawGoal = {
+  id?: string; text?: string; category?: string; domainCode?: string;
+  context?: string; criterion?: string; measurementMethod?: string;
+  evidenceRef?: string; lifePractice?: string; override?: GoalOverride;
+};
 type RawIEP = {
   vision?:    string;
   goals?:
@@ -104,6 +115,8 @@ function normaliseIEPGoals(raw: RawIEP | null): Record<string, Goal[]> {
       id:       g.id ?? `${bucket}-${fallbackIndex}`,
       text,
       category: g.category ?? "",
+      context: g.context, criterion: g.criterion, measurementMethod: g.measurementMethod,
+      evidenceRef: g.evidenceRef, lifePractice: g.lifePractice, override: g.override,
     });
   }
 
@@ -542,9 +555,24 @@ function ReportPage() {
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {goals.map((g) => (
-                      <div key={g.id} style={{ padding: "10px 14px", background: "#F8F7F4", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                        <span style={{ fontSize: 14, color: "#1F2937", flex: 1 }}>{g.text || "—"}</span>
-                        {g.category && <Tag text={g.category} />}
+                      <div key={g.id} style={{ padding: "10px 14px", background: "#F8F7F4", borderRadius: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 14, color: "#1F2937", flex: 1 }}>{g.text || "—"}</span>
+                          {g.category && <Tag text={g.category} />}
+                        </div>
+                        {(g.criterion || g.measurementMethod || g.evidenceRef || g.lifePractice || g.override) && (
+                          <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid #E5E7EB", display: "flex", flexDirection: "column", gap: 2 }}>
+                            {g.criterion && <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}><strong>المعيار:</strong> {g.criterion}</p>}
+                            {g.measurementMethod && <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}><strong>طريقة القياس:</strong> {g.measurementMethod}</p>}
+                            {g.evidenceRef && <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}><strong>الدليل المرتبط:</strong> {g.evidenceRef}</p>}
+                            {g.lifePractice && <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}><strong>ممارسة حياتية مرتبطة:</strong> {g.lifePractice}</p>}
+                            {g.override && (
+                              <p style={{ margin: 0, fontSize: 12, color: "#92400E", fontWeight: 700 }}>
+                                ⚠ تجاوز مهني موثّق — {g.override.reason}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

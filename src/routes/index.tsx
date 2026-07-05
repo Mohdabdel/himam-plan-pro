@@ -6,6 +6,7 @@ import {
   getFurthestAccessibleStepIndex,
   getNextAction,
 } from "../lib/journey";
+import { seedSampleStudent } from "../lib/seed-sample-student";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -47,26 +48,33 @@ const seedRows: Row[] = [
   { name: "سارة علي الزهراني", center: "برنامج التأهيل المهني", tool: "VB-MAPP", status: "قيد التنفيذ" },
 ];
 
+function loadExtraRows(): Row[] {
+  try {
+    const stored: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
+    return stored.map((s) => ({
+      id: s.id,
+      name: s.name,
+      center: s.center,
+      tool: s.tool,
+      status: "إدخال التقييم" as const,
+      flowStatus: s.status,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function HomePage() {
   const [extra, setExtra] = useState<Row[]>([]);
 
   useEffect(() => {
-    try {
-      const stored: StoredStudent[] = JSON.parse(localStorage.getItem("himam_students") || "[]");
-      setExtra(
-        stored.map((s) => ({
-          id: s.id,
-          name: s.name,
-          center: s.center,
-          tool: s.tool,
-          status: "إدخال التقييم" as const,
-          flowStatus: s.status,
-        })),
-      );
-    } catch {
-      setExtra([]);
-    }
+    setExtra(loadExtraRows());
   }, []);
+
+  function handleSeedSample() {
+    seedSampleStudent();
+    setExtra(loadExtraRows());
+  }
 
   const rows = [...seedRows, ...extra];
   const total = rows.length;
@@ -86,13 +94,23 @@ function HomePage() {
         className="flex items-center justify-between px-8 py-4"
         style={{ backgroundColor: "#0F3D3E" }}
       >
-        <Link
-          to="/students/new"
-          className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
-          style={{ backgroundColor: "#D9764A" }}
-        >
-          ＋ إضافة متعلم جديد
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/students/new"
+            className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90"
+            style={{ backgroundColor: "#D9764A" }}
+          >
+            ＋ إضافة متعلم جديد
+          </Link>
+          <button
+            type="button"
+            onClick={handleSeedSample}
+            title="يضيف طالبًا كاملاً ببيانات واقعية لتجربة المسار الداخلية فقط"
+            className="rounded-lg border border-white/30 px-4 py-2.5 text-xs font-medium text-white/80 transition hover:bg-white/10"
+          >
+            + بيانات تجريبية للاختبار الداخلي
+          </button>
+        </div>
         <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
 

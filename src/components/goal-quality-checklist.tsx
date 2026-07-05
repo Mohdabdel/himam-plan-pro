@@ -73,7 +73,7 @@ function QualityAxisList({ title, items }: { title: string; items: QualityItem[]
 
 function QualityRow({ item }: { item: QualityItem }) {
   const palette = STATE_PALETTE[item.state];
-  const blocked = item.hardStop && item.state === "needs";
+  const blocked = item.hardStop && item.state === "needs" && !item.overridden;
   return (
     <div style={{ display: "flex", gap: 10, padding: "8px 10px", borderRadius: 8, background: "#F8FAFC" }}>
       <span
@@ -90,7 +90,11 @@ function QualityRow({ item }: { item: QualityItem }) {
         <div style={{ fontSize: 13, fontWeight: 600, color: "#1F2937" }}>
           {item.label} <span style={{ fontSize: 11, fontWeight: 700, color: palette.fg }}>— {STATE_LABEL[item.state]}</span>
         </div>
-        {item.note && <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{item.note}</div>}
+        {item.note && (
+          <div style={{ fontSize: 12, color: item.overridden ? "#92400E" : "#64748B", fontWeight: item.overridden ? 700 : 400, marginTop: 2 }}>
+            {item.note}
+          </div>
+        )}
         {blocked && (
           <div style={{ fontSize: 12, color: "#B91C1C", fontWeight: 700, marginTop: 2 }}>
             يمنع اعتماد هذا الهدف حتى استكماله

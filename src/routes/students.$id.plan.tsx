@@ -82,7 +82,14 @@ const CONCEPT_ACTIVITIES: Record<string, string[]> = {
 type StoredStudent = { id: string; name: string; center: string; tool: string; status: string };
 
 // IEP goals may arrive in two shapes — normalised below
-type RawGoal = { id?: string; text?: string; category?: string; domainCode?: string };
+type RawGoalOverride = { reason: string; note?: string; at: string };
+type RawGoal = {
+  id?: string; text?: string; category?: string; domainCode?: string;
+  // Structured fields added by the IEP goal-quality workspace — optional so
+  // goals saved before that feature still normalise fine.
+  context?: string; criterion?: string; measurementMethod?: string;
+  evidenceRef?: string; lifePractice?: string; override?: RawGoalOverride;
+};
 type RawIEP  = {
   goals?:
     | Record<string, RawGoal[]>   // grouped by domain code (existing format)
@@ -118,6 +125,12 @@ type GoalEntry = {
   selectedActivities:  string[];
   context:             string;
   specialistNote:      string;
+  // Read-only, carried over from the IEP goal-quality workspace.
+  iepCriterion?:          string;
+  iepMeasurementMethod?:  string;
+  iepEvidenceRef?:        string;
+  iepLifePractice?:       string;
+  iepOverride?:           RawGoalOverride;
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -138,11 +151,13 @@ function safeParse<T>(key: string): T | null {
   catch { return null; }
 }
 
+type FlatGoal = { goalId: string; domainCode: string; goalText: string; raw: RawGoal };
+
 /** Flatten IEP goals from either storage format into a stable list. */
-function normalizeGoals(raw: RawIEP | null): Array<{ goalId: string; domainCode: string; goalText: string }> {
+function normalizeGoals(raw: RawIEP | null): FlatGoal[] {
   if (!raw?.goals) return [];
 
-  const out: Array<{ goalId: string; domainCode: string; goalText: string }> = [];
+  const out: FlatGoal[] = [];
 
   if (Array.isArray(raw.goals)) {
     // Flat array format: each item should carry domainCode
@@ -153,6 +168,7 @@ function normalizeGoals(raw: RawIEP | null): Array<{ goalId: string; domainCode:
         goalId:     g.id ?? `goal-${i}`,
         domainCode: g.domainCode ?? "VS",
         goalText:   text,
+        raw:        g,
       });
     });
   } else {
@@ -165,6 +181,7 @@ function normalizeGoals(raw: RawIEP | null): Array<{ goalId: string; domainCode:
           goalId:     g.id ?? `${domainCode}-${i}`,
           domainCode,
           goalText:   text,
+          raw:        g,
         });
       });
     });
@@ -174,11 +191,11 @@ function normalizeGoals(raw: RawIEP | null): Array<{ goalId: string; domainCode:
 }
 
 function buildEntry(
-  flat: { goalId: string; domainCode: string; goalText: string },
+  flat: FlatGoal,
   coverage: CoverageData,
   defaultContext: string,
 ): GoalEntry {
-  const { goalId, domainCode, goalText } = flat;
+  const { goalId, domainCode, goalText, raw } = flat;
   const concepts = DOMAIN_CONCEPT_MAP[domainCode] ?? [];
 
   const priority: GoalEntry["priority"] =
@@ -203,6 +220,11 @@ function buildEntry(
     selectedActivities: [],
     context:            defaultContext,
     specialistNote:     "",
+    iepCriterion:          raw.criterion || undefined,
+    iepMeasurementMethod:  raw.measurementMethod || undefined,
+    iepEvidenceRef:        raw.evidenceRef || undefined,
+    iepLifePractice:       raw.lifePractice || undefined,
+    iepOverride:           raw.override,
   };
 }
 
@@ -481,6 +503,22 @@ function PlanPage() {
             </div>
 
             <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
+
+              {/* IEP structured details — read-only, carried from the goal-quality workspace */}
+              {(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride) && (
+                <div style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", margin: "0 0 2px" }}>من الخطة التربوية</p>
+                  {entry.iepCriterion && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>المعيار:</strong> {entry.iepCriterion}</p>}
+                  {entry.iepMeasurementMethod && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>طريقة القياس:</strong> {entry.iepMeasurementMethod}</p>}
+                  {entry.iepEvidenceRef && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>الدليل المرتبط:</strong> {entry.iepEvidenceRef}</p>}
+                  {entry.iepLifePractice && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>ممارسة حياتية مرتبطة:</strong> {entry.iepLifePractice}</p>}
+                  {entry.iepOverride && (
+                    <p style={{ fontSize: 12, margin: "4px 0 0", color: "#92400E", fontWeight: 700 }}>
+                      ⚠ هدف بتجاوز مهني موثّق — {entry.iepOverride.reason}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Concept chips — read-only */}
               {entry.concepts.length > 0 && (

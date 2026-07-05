@@ -12,7 +12,8 @@ import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
 import { getItemsByDomain, type TTAPDomain } from "../data/ttap-items";
 import { GoalQualityChecklist } from "@/components/goal-quality-checklist";
-import { computeGoalQuality, hasHardStopViolation } from "@/lib/goal-quality";
+import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/lib/goal-quality";
+import { GoalReferencePanel } from "@/components/goal-reference-panel";
 
 export const Route = createFileRoute("/students/$id/iep")({
   component: IEPPage,
@@ -47,15 +48,24 @@ type Goal = {
   measurementMethod?: string;
   evidenceRef?: string;
   lifePractice?: string;
+  override?: GoalOverride;
 };
 
 // Same context vocabulary already used in plan.tsx, for consistency.
 const GOAL_CONTEXTS = ["البيت", "المركز / المدرسة", "المجتمع (المسجد، دار الحي، الحديقة)", "مجلس العائلة"];
 const MEASUREMENT_METHODS = ["ملاحظة مباشرة", "سجل تكراري", "عيّنة عمل", "تقرير الأسرة"];
+const OVERRIDE_REASONS = [
+  "تقييم ميداني حديث يدعم القرار",
+  "ملاحظة أسرة موثوقة تبرر الاستثناء",
+  "قيد زمني في الجلسة الحالية",
+  "توجيه إشرافي أو فريق متعدد التخصصات",
+  "سبب آخر",
+];
 
 type FamilyData = { priorities?: string[]; vision5y?: string };
 type LearnerVoiceData = { q_love?: string; q_good?: string };
-type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[] };
+type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[]; completionPercent?: number };
+type AssessmentDomainEntry = { score: string; note?: string };
 
 const TTAP_DOMAINS: { code: DomainCode; name: string }[] = [
   { code: "VS", name: "المهارات المهنية" },
@@ -110,11 +120,17 @@ function IEPPage() {
   const [startDate, setStartDate] = useState("");
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
 
-  // Upstream journey data the quality checklist reads from — additive,
-  // read-only here (each is already collected on its own dedicated page).
+  // Upstream journey data the quality checklist and reference panel read
+  // from — additive, read-only here (each is already collected on its own
+  // dedicated page).
   const [family, setFamily] = useState<FamilyData | null>(null);
   const [learnerVoice, setLearnerVoice] = useState<LearnerVoiceData | null>(null);
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
+  const [assessmentDomains, setAssessmentDomains] = useState<Record<string, AssessmentDomainEntry> | null>(null);
+
+  // Draft state for the "professional override" mini-form, keyed by goal id.
+  const [overrideFormFor, setOverrideFormFor] = useState<string | null>(null);
+  const [overrideDraft, setOverrideDraft] = useState<Record<string, { reason: string; note: string }>>({});
 
   useEffect(() => {
     try {
@@ -138,6 +154,16 @@ function IEPPage() {
     try { setFamily(JSON.parse(localStorage.getItem(`himam_family_${id}`) || "null")); } catch { /* noop */ }
     try { setLearnerVoice(JSON.parse(localStorage.getItem(`himam_learner_voice_${id}`) || "null")); } catch { /* noop */ }
     try { setCoverage(JSON.parse(localStorage.getItem(`himam_coverage_${id}`) || "null")); } catch { /* noop */ }
+    try {
+      const assessRaw = JSON.parse(localStorage.getItem(`himam_assessment_${id}`) || "null");
+      if (assessRaw?.domains && Array.isArray(assessRaw.domains)) {
+        const byCode: Record<string, AssessmentDomainEntry> = {};
+        for (const d of assessRaw.domains as Array<{ code: string; score: string; note?: string }>) {
+          byCode[d.code] = { score: d.score, note: d.note };
+        }
+        setAssessmentDomains(byCode);
+      }
+    } catch { /* noop */ }
 
     setLoaded(true);
   }, [id]);
@@ -183,6 +209,25 @@ function IEPPage() {
     });
   }
 
+  function openOverrideForm(gid: string) {
+    setOverrideFormFor(gid);
+    setOverrideDraft((prev) => ({ ...prev, [gid]: prev[gid] ?? { reason: "", note: "" } }));
+  }
+  function updateOverrideDraft(gid: string, field: "reason" | "note", value: string) {
+    setOverrideDraft((prev) => ({ ...prev, [gid]: { ...(prev[gid] ?? { reason: "", note: "" }), [field]: value } }));
+  }
+  function confirmOverride(code: DomainCode, gid: string) {
+    const draft = overrideDraft[gid];
+    if (!draft?.reason) return;
+    setGoals((g) => ({
+      ...g,
+      [code]: g[code].map((x) => (x.id === gid
+        ? { ...x, override: { reason: draft.reason, note: draft.note || undefined, at: new Date().toISOString() } }
+        : x)),
+    }));
+    setOverrideFormFor(null);
+  }
+
   function handleSave() {
     try {
       localStorage.setItem(
@@ -209,7 +254,7 @@ function IEPPage() {
         goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
         measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
         lifePractice: g.lifePractice ?? "", domainCode: d.code,
-        coverage, family, learnerVoice,
+        coverage, family, learnerVoice, override: g.override ?? null,
       });
       if (hasHardStopViolation(g.text, quality)) {
         blockingGoals.push({ domainName: d.name, text: g.text });
@@ -291,6 +336,15 @@ function IEPPage() {
                 </button>
                 {open[d.code] && (
                   <div style={{ padding: 14, background: "white" }}>
+                    <GoalReferencePanel
+                      domainCode={d.code}
+                      domainName={d.name}
+                      tool={student?.tool ?? ""}
+                      assessment={assessmentDomains?.[d.code] ?? null}
+                      coverage={coverage}
+                      family={family}
+                      learnerVoice={learnerVoice}
+                    />
                     {goals[d.code].length === 0 && (
                       <p style={{ color: "#94A3B8", fontSize: 14, margin: "0 0 12px" }}>
                         لا توجد أهداف بعد.
@@ -475,7 +529,70 @@ function IEPPage() {
                                 coverage={coverage}
                                 family={family}
                                 learnerVoice={learnerVoice}
+                                override={g.override ?? null}
                               />
+
+                              {g.text.trim() && (
+                                g.override ? (
+                                  <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 10, fontSize: 12, color: "#92400E" }}>
+                                    <strong>تجاوز مهني موثّق:</strong> {g.override.reason}
+                                    {g.override.note ? ` — ${g.override.note}` : ""}
+                                  </div>
+                                ) : overrideFormFor === g.id ? (
+                                  <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 8, padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <p style={{ fontSize: 12, fontWeight: 700, color: "#1F2937", margin: 0 }}>تجاوز مهني موثّق</p>
+                                    <select
+                                      value={overrideDraft[g.id]?.reason ?? ""}
+                                      onChange={(e) => updateOverrideDraft(g.id, "reason", e.target.value)}
+                                      style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit" }}
+                                    >
+                                      <option value="">اختر سببًا</option>
+                                      {OVERRIDE_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                    <textarea
+                                      value={overrideDraft[g.id]?.note ?? ""}
+                                      onChange={(e) => updateOverrideDraft(g.id, "note", e.target.value)}
+                                      placeholder="توضيح مختصر (اختياري)"
+                                      rows={2}
+                                      style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+                                    />
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => confirmOverride(d.code, g.id)}
+                                        disabled={!overrideDraft[g.id]?.reason}
+                                        style={{
+                                          background: overrideDraft[g.id]?.reason ? TEAL : "#D1D5DB", color: "white", border: "none",
+                                          borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700,
+                                          cursor: overrideDraft[g.id]?.reason ? "pointer" : "not-allowed", fontFamily: "inherit",
+                                        }}
+                                      >
+                                        تأكيد التجاوز وتوثيقه
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setOverrideFormFor(null)}
+                                        style={{ background: "white", color: "#64748B", border: "1px solid #E5E7EB", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                                      >
+                                        إلغاء
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : hasHardStopViolation(g.text, computeGoalQuality({
+                                    goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
+                                    measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
+                                    lifePractice: g.lifePractice ?? "", domainCode: d.code,
+                                    coverage, family, learnerVoice, override: null,
+                                  })) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openOverrideForm(g.id)}
+                                    style={{ background: "none", border: "none", color: "#92400E", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: 0, textAlign: "right" }}
+                                  >
+                                    توثيق تجاوز مهني بدل استكمال العنصر الحرج
+                                  </button>
+                                )
+                              )}
                             </div>
                           )}
                         </div>
