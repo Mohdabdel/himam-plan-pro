@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
@@ -365,6 +365,18 @@ function ReportPage() {
       </header>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 80px" }}>
+
+        <nav
+          className="no-print"
+          aria-label="مسار الصفحة"
+          style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, color: "#94A3B8", marginBottom: 10 }}
+        >
+          <Link to="/" style={{ color: "#64748B", textDecoration: "underline", fontWeight: 700 }}>لوحة المتعلمين</Link>
+          <span>←</span>
+          <span>{student?.name ?? "الطالب"}</span>
+          <span>←</span>
+          <span style={{ color: TEAL, fontWeight: 700 }}>التقرير</span>
+        </nav>
 
         <div className="no-print">
           <JourneyStepper studentId={id} currentStep="report" status={student?.status} />

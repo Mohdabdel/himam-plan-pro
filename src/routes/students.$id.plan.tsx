@@ -422,6 +422,17 @@ function PlanPage() {
       </header>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "28px 20px 60px" }}>
+        <nav
+          aria-label="مسار الصفحة"
+          style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, color: "#94A3B8", marginBottom: 10 }}
+        >
+          <Link to="/" style={{ color: "#64748B", textDecoration: "underline", fontWeight: 700 }}>لوحة المتعلمين</Link>
+          <span>←</span>
+          <span>{student?.name ?? "الطالب"}</span>
+          <span>←</span>
+          <span style={{ color: TEAL, fontWeight: 700 }}>الخطة</span>
+        </nav>
+
         <JourneyStepper studentId={id} currentStep="plan" status={student?.status} />
 
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>اختيار الأنشطة والخطة النهائية</h1>
