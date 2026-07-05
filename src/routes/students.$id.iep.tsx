@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/select";
 import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
+import { getItemsByDomain, type TTAPDomain } from "../data/ttap-items";
+import { GoalQualityChecklist } from "@/components/goal-quality-checklist";
+import { computeGoalQuality, hasHardStopViolation } from "@/lib/goal-quality";
 
 export const Route = createFileRoute("/students/$id/iep")({
   component: IEPPage,
@@ -33,7 +36,26 @@ type StoredStudent = {
 
 type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB" | "COG" | "COM" | "SOC" | "ADL" | "VOC" | "MOT";
 type GoalCategory = "أكاديمي" | "وظيفي" | "اجتماعي" | "عملي";
-type Goal = { id: string; text: string; category: GoalCategory | "" };
+type Goal = {
+  id: string;
+  text: string;
+  category: GoalCategory | "";
+  // Quality-checklist fields (additive — optional so existing saved goals
+  // without them still load fine).
+  context?: string;
+  criterion?: string;
+  measurementMethod?: string;
+  evidenceRef?: string;
+  lifePractice?: string;
+};
+
+// Same context vocabulary already used in plan.tsx, for consistency.
+const GOAL_CONTEXTS = ["البيت", "المركز / المدرسة", "المجتمع (المسجد، دار الحي، الحديقة)", "مجلس العائلة"];
+const MEASUREMENT_METHODS = ["ملاحظة مباشرة", "سجل تكراري", "عيّنة عمل", "تقرير الأسرة"];
+
+type FamilyData = { priorities?: string[]; vision5y?: string };
+type LearnerVoiceData = { q_love?: string; q_good?: string };
+type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[] };
 
 const TTAP_DOMAINS: { code: DomainCode; name: string }[] = [
   { code: "VS", name: "المهارات المهنية" },
@@ -86,6 +108,13 @@ function IEPPage() {
   const [open, setOpen] = useState<Record<DomainCode, boolean>>(emptyOpenMap(TTAP_DOMAINS));
   const [services, setServices] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
+  const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
+
+  // Upstream journey data the quality checklist reads from — additive,
+  // read-only here (each is already collected on its own dedicated page).
+  const [family, setFamily] = useState<FamilyData | null>(null);
+  const [learnerVoice, setLearnerVoice] = useState<LearnerVoiceData | null>(null);
+  const [coverage, setCoverage] = useState<CoverageData | null>(null);
 
   useEffect(() => {
     try {
@@ -105,13 +134,21 @@ function IEPPage() {
         if (data.startDate) setStartDate(data.startDate);
       }
     } catch {}
+
+    try { setFamily(JSON.parse(localStorage.getItem(`himam_family_${id}`) || "null")); } catch { /* noop */ }
+    try { setLearnerVoice(JSON.parse(localStorage.getItem(`himam_learner_voice_${id}`) || "null")); } catch { /* noop */ }
+    try { setCoverage(JSON.parse(localStorage.getItem(`himam_coverage_${id}`) || "null")); } catch { /* noop */ }
+
     setLoaded(true);
   }, [id]);
 
   function addGoal(code: DomainCode) {
     setGoals((g) => ({
       ...g,
-      [code]: [...g[code], { id: crypto.randomUUID(), text: "", category: "" }],
+      [code]: [...g[code], {
+        id: crypto.randomUUID(), text: "", category: "",
+        context: "", criterion: "", measurementMethod: "", evidenceRef: "", lifePractice: "",
+      }],
     }));
   }
   function updateGoalText(code: DomainCode, gid: string, text: string) {
@@ -126,11 +163,24 @@ function IEPPage() {
       [code]: g[code].map((x) => (x.id === gid ? { ...x, category: cat } : x)),
     }));
   }
+  function updateGoalField(code: DomainCode, gid: string, field: keyof Goal, value: string) {
+    setGoals((g) => ({
+      ...g,
+      [code]: g[code].map((x) => (x.id === gid ? { ...x, [field]: value } : x)),
+    }));
+  }
   function deleteGoal(code: DomainCode, gid: string) {
     setGoals((g) => ({ ...g, [code]: g[code].filter((x) => x.id !== gid) }));
   }
   function toggleService(s: string) {
     setServices((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
+  }
+  function toggleGoalExpanded(gid: string) {
+    setExpandedGoals((prev) => {
+      const next = new Set(prev);
+      next.has(gid) ? next.delete(gid) : next.add(gid);
+      return next;
+    });
   }
 
   function handleSave() {
@@ -149,6 +199,24 @@ function IEPPage() {
     toast.success("تم حفظ الخطة بنجاح ✓");
     navigate({ to: "/students/$id/plan", params: { id } });
   }
+
+  // Only goals the specialist actually started (non-empty text) can block —
+  // an empty, not-yet-written goal is never a blocker.
+  const blockingGoals: { domainName: string; text: string }[] = [];
+  for (const d of domains) {
+    for (const g of goals[d.code] ?? []) {
+      const quality = computeGoalQuality({
+        goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
+        measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
+        lifePractice: g.lifePractice ?? "", domainCode: d.code,
+        coverage, family, learnerVoice,
+      });
+      if (hasHardStopViolation(g.text, quality)) {
+        blockingGoals.push({ domainName: d.name, text: g.text });
+      }
+    }
+  }
+  const canSave = blockingGoals.length === 0;
 
   return (
     <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#F8F7F4", fontFamily: "system-ui, sans-serif" }}>
@@ -229,56 +297,190 @@ function IEPPage() {
                       </p>
                     )}
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {goals[d.code].map((g) => (
+                      {goals[d.code].map((g) => {
+                        const isTtapDomain = TTAP_DOMAINS.some((td) => td.code === d.code);
+                        const evidenceItems = isTtapDomain ? getItemsByDomain(d.code as TTAPDomain) : [];
+                        const expanded = expandedGoals.has(g.id);
+                        return (
                         <div
                           key={g.id}
                           style={{
                             border: "1px solid #E5E7EB", borderRadius: 8, padding: 12,
-                            display: "flex", gap: 10, alignItems: "center", background: "#FAFAF8",
+                            background: "#FAFAF8",
                           }}
                         >
-                          <input
-                            type="text"
-                            value={g.text}
-                            onChange={(e) => updateGoalText(d.code, g.id, e.target.value)}
-                            placeholder="اكتب الهدف..."
-                            style={{
-                              flex: 1, padding: "10px 12px", border: "1px solid #E5E7EB",
-                              borderRadius: 6, fontSize: 14, fontFamily: "inherit",
-                            }}
-                          />
-                          <Select
-                            value={g.category || "placeholder"}
-                            onValueChange={(val) => updateGoalCategory(d.code, g.id, val === "placeholder" ? "" : (val as GoalCategory))}
-                          >
-                            <SelectTrigger style={{ width: 130, fontSize: 13 }}>
-                              <SelectValue placeholder="التصنيف" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="placeholder" disabled>
-                                التصنيف
-                              </SelectItem>
-                              {CATEGORIES.map((c) => (
-                                <SelectItem key={c} value={c}>
-                                  {c}
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            <input
+                              type="text"
+                              value={g.text}
+                              onChange={(e) => updateGoalText(d.code, g.id, e.target.value)}
+                              placeholder="اكتب الهدف..."
+                              style={{
+                                flex: 1, padding: "10px 12px", border: "1px solid #E5E7EB",
+                                borderRadius: 6, fontSize: 14, fontFamily: "inherit",
+                              }}
+                            />
+                            <Select
+                              value={g.category || "placeholder"}
+                              onValueChange={(val) => updateGoalCategory(d.code, g.id, val === "placeholder" ? "" : (val as GoalCategory))}
+                            >
+                              <SelectTrigger style={{ width: 130, fontSize: 13 }}>
+                                <SelectValue placeholder="التصنيف" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="placeholder" disabled>
+                                  التصنيف
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                                {CATEGORIES.map((c) => (
+                                  <SelectItem key={c} value={c}>
+                                    {c}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <button
+                              type="button"
+                              onClick={() => deleteGoal(d.code, g.id)}
+                              aria-label="حذف الهدف"
+                              style={{
+                                background: "#FEE2E2", color: "#B91C1C", border: "none",
+                                borderRadius: 6, width: 36, height: 36, cursor: "pointer",
+                                fontSize: 16, fontWeight: 700, flexShrink: 0,
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+
                           <button
                             type="button"
-                            onClick={() => deleteGoal(d.code, g.id)}
-                            aria-label="حذف الهدف"
+                            onClick={() => toggleGoalExpanded(g.id)}
                             style={{
-                              background: "#FEE2E2", color: "#B91C1C", border: "none",
-                              borderRadius: 6, width: 36, height: 36, cursor: "pointer",
-                              fontSize: 16, fontWeight: 700, flexShrink: 0,
+                              marginTop: 10, background: "none", border: "none", cursor: "pointer",
+                              fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "#64748B",
+                              padding: 0, display: "flex", alignItems: "center", gap: 6,
                             }}
                           >
-                            ✕
+                            <span>تفاصيل القياس والجودة</span>
+                            <span>{expanded ? "▲" : "▼"}</span>
                           </button>
+
+                          {expanded && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed #E5E7EB", display: "flex", flexDirection: "column", gap: 10 }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                <div>
+                                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>السياق</label>
+                                  <select
+                                    value={g.context ?? ""}
+                                    onChange={(e) => updateGoalField(d.code, g.id, "context", e.target.value)}
+                                    style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit" }}
+                                  >
+                                    <option value="">— اختر السياق —</option>
+                                    {GOAL_CONTEXTS.map((c) => <option key={c} value={c}>{c}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>طريقة القياس</label>
+                                  <select
+                                    value={g.measurementMethod ?? ""}
+                                    onChange={(e) => updateGoalField(d.code, g.id, "measurementMethod", e.target.value)}
+                                    style={{
+                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
+                                      border: `1px solid ${!g.measurementMethod && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                    }}
+                                  >
+                                    <option value="">— اختر طريقة —</option>
+                                    {MEASUREMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+                                  </select>
+                                </div>
+                              </div>
+
+                              <div>
+                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>المعيار</label>
+                                <input
+                                  type="text"
+                                  value={g.criterion ?? ""}
+                                  onChange={(e) => updateGoalField(d.code, g.id, "criterion", e.target.value)}
+                                  placeholder="مثال: 80% من المحاولات عبر 3 جلسات متتالية"
+                                  style={{
+                                    width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
+                                    border: `1px solid ${!g.criterion && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                  }}
+                                />
+                                {!g.criterion && g.text.trim() && (
+                                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#B91C1C", fontWeight: 600 }}>
+                                    لا يمكن اعتماد الهدف دون معيار إتقان واضح.
+                                  </p>
+                                )}
+                              </div>
+
+                              <div>
+                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>الدليل المرتبط</label>
+                                {isTtapDomain ? (
+                                  <select
+                                    value={g.evidenceRef ?? ""}
+                                    onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
+                                    style={{
+                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
+                                      border: `1px solid ${!g.evidenceRef && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                    }}
+                                  >
+                                    <option value="">— لم يتم الربط بعد —</option>
+                                    {evidenceItems.map((item) => (
+                                      <option key={item.id} value={`بند ${item.id} — ${item.name}`}>
+                                        بند {item.id} — {item.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={g.evidenceRef ?? ""}
+                                    onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
+                                    placeholder="صف مصدر الدليل الداعم لهذا الهدف"
+                                    style={{
+                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
+                                      border: `1px solid ${!g.evidenceRef && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                    }}
+                                  />
+                                )}
+                                {!g.evidenceRef && g.text.trim() && (
+                                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#B91C1C", fontWeight: 600 }}>
+                                    لا يمكن اعتماد الهدف دون ربطه بدليل أو مصدر داعم.
+                                  </p>
+                                )}
+                              </div>
+
+                              <div>
+                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>
+                                  ممارسة حياتية مرتبطة <span style={{ fontWeight: 400, color: "#94A3B8" }}>(اختياري — إرشادي)</span>
+                                </label>
+                                <textarea
+                                  value={g.lifePractice ?? ""}
+                                  onChange={(e) => updateGoalField(d.code, g.id, "lifePractice", e.target.value)}
+                                  placeholder="صف موقفًا واقعيًا أو ممارسة حياتية يومية تتصل بالهدف أو بالمفهوم الانتقالي"
+                                  rows={2}
+                                  style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
+                                />
+                              </div>
+
+                              <GoalQualityChecklist
+                                goalText={g.text}
+                                context={g.context ?? ""}
+                                criterion={g.criterion ?? ""}
+                                measurementMethod={g.measurementMethod ?? ""}
+                                evidenceRef={g.evidenceRef ?? ""}
+                                lifePractice={g.lifePractice ?? ""}
+                                domainCode={d.code}
+                                coverage={coverage}
+                                family={family}
+                                learnerVoice={learnerVoice}
+                              />
+                            </div>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <button
                       type="button"
@@ -354,15 +556,33 @@ function IEPPage() {
           </span>
         </div>
 
+        {/* Hard-stop warning */}
+        {!canSave && (
+          <div
+            style={{
+              marginTop: 20, background: "#FEF2F2", border: "1px solid #FCA5A5",
+              borderRadius: 8, padding: 12, color: "#7A1F1F", fontSize: 13, lineHeight: 1.7,
+            }}
+          >
+            <strong>لا يمكن حفظ الخطة والمتابعة حتى استكمال {blockingGoals.length} هدفًا:</strong>
+            <ul style={{ margin: "6px 0 0", paddingRight: 18 }}>
+              {blockingGoals.map((b, i) => (
+                <li key={i}>{b.domainName} — {b.text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Bottom button */}
         <div style={{ marginTop: 24 }}>
           <button
             type="button"
             onClick={handleSave}
+            disabled={!canSave}
             style={{
-              width: "100%", background: TEAL, color: "white", border: "none",
+              width: "100%", background: canSave ? TEAL : "#D1D5DB", color: "white", border: "none",
               padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,
-              cursor: "pointer", fontFamily: "inherit",
+              cursor: canSave ? "pointer" : "not-allowed", fontFamily: "inherit",
             }}
           >
             حفظ الخطة واختيار الأنشطة ←
