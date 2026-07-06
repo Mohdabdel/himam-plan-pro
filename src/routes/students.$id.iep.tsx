@@ -67,6 +67,16 @@ type LearnerVoiceData = { q_love?: string; q_good?: string };
 type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[]; completionPercent?: number };
 type AssessmentDomainEntry = { score: string; note?: string };
 
+// Priority order for "first missing hard-stop field" — matches the order
+// the fields appear when jumping a specialist to the problem.
+type MissingField = "criterion" | "measurementMethod" | "evidenceRef" | null;
+function firstMissingField(g: Goal): MissingField {
+  if (!g.criterion?.trim()) return "criterion";
+  if (!g.measurementMethod?.trim()) return "measurementMethod";
+  if (!g.evidenceRef?.trim()) return "evidenceRef";
+  return null;
+}
+
 const TTAP_DOMAINS: { code: DomainCode; name: string }[] = [
   { code: "VS", name: "المهارات المهنية" },
   { code: "VB", name: "السلوكيات المهنية" },
@@ -131,6 +141,22 @@ function IEPPage() {
   // Draft state for the "professional override" mini-form, keyed by goal id.
   const [overrideFormFor, setOverrideFormFor] = useState<string | null>(null);
   const [overrideDraft, setOverrideDraft] = useState<Record<string, { reason: string; note: string }>>({});
+
+  // Set by handleSave when a hard-stop blocks saving — once the domain/goal
+  // panels it triggers have rendered, this effect scrolls to and focuses
+  // the first unresolved field so the specialist doesn't have to hunt for it.
+  const [scrollTarget, setScrollTarget] = useState<{ goalId: string; field: MissingField } | null>(null);
+
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const cardEl = document.getElementById(`goal-card-${scrollTarget.goalId}`);
+    cardEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (scrollTarget.field) {
+      const fieldEl = document.getElementById(`goal-field-${scrollTarget.field}-${scrollTarget.goalId}`);
+      fieldEl?.focus();
+    }
+    setScrollTarget(null);
+  }, [scrollTarget]);
 
   useEffect(() => {
     try {
@@ -228,7 +254,37 @@ function IEPPage() {
     setOverrideFormFor(null);
   }
 
+  // Only goals the specialist actually started (non-empty text) can block —
+  // an empty, not-yet-written goal is never a blocker.
+  const blockingGoals: { domainCode: DomainCode; domainName: string; goalId: string; text: string; missingField: MissingField }[] = [];
+  for (const d of domains) {
+    for (const g of goals[d.code] ?? []) {
+      const quality = computeGoalQuality({
+        goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
+        measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
+        lifePractice: g.lifePractice ?? "", domainCode: d.code,
+        coverage, family, learnerVoice, override: g.override ?? null,
+      });
+      if (hasHardStopViolation(g.text, quality)) {
+        blockingGoals.push({ domainCode: d.code, domainName: d.name, goalId: g.id, text: g.text, missingField: firstMissingField(g) });
+      }
+    }
+  }
+  const canSave = blockingGoals.length === 0;
+
   function handleSave() {
+    if (!canSave) {
+      const first = blockingGoals[0];
+      setOpen((o) => ({ ...o, [first.domainCode]: true }));
+      setExpandedGoals((prev) => {
+        const next = new Set(prev);
+        next.add(first.goalId);
+        return next;
+      });
+      setScrollTarget({ goalId: first.goalId, field: first.missingField });
+      return;
+    }
+
     try {
       localStorage.setItem(
         `himam_iep_${id}`,
@@ -244,24 +300,6 @@ function IEPPage() {
     toast.success("تم حفظ الخطة بنجاح ✓");
     navigate({ to: "/students/$id/plan", params: { id } });
   }
-
-  // Only goals the specialist actually started (non-empty text) can block —
-  // an empty, not-yet-written goal is never a blocker.
-  const blockingGoals: { domainName: string; text: string }[] = [];
-  for (const d of domains) {
-    for (const g of goals[d.code] ?? []) {
-      const quality = computeGoalQuality({
-        goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
-        measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
-        lifePractice: g.lifePractice ?? "", domainCode: d.code,
-        coverage, family, learnerVoice, override: g.override ?? null,
-      });
-      if (hasHardStopViolation(g.text, quality)) {
-        blockingGoals.push({ domainName: d.name, text: g.text });
-      }
-    }
-  }
-  const canSave = blockingGoals.length === 0;
 
   return (
     <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#F8F7F4", fontFamily: "system-ui, sans-serif" }}>
@@ -369,6 +407,7 @@ function IEPPage() {
                         return (
                         <div
                           key={g.id}
+                          id={`goal-card-${g.id}`}
                           style={{
                             border: "1px solid #E5E7EB", borderRadius: 8, padding: 12,
                             background: "#FAFAF8",
@@ -447,6 +486,7 @@ function IEPPage() {
                                 <div>
                                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>طريقة القياس</label>
                                   <select
+                                    id={`goal-field-measurementMethod-${g.id}`}
                                     value={g.measurementMethod ?? ""}
                                     onChange={(e) => updateGoalField(d.code, g.id, "measurementMethod", e.target.value)}
                                     style={{
@@ -463,6 +503,7 @@ function IEPPage() {
                               <div>
                                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>المعيار</label>
                                 <input
+                                  id={`goal-field-criterion-${g.id}`}
                                   type="text"
                                   value={g.criterion ?? ""}
                                   onChange={(e) => updateGoalField(d.code, g.id, "criterion", e.target.value)}
@@ -483,6 +524,7 @@ function IEPPage() {
                                 <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>الدليل المرتبط</label>
                                 {isTtapDomain ? (
                                   <select
+                                    id={`goal-field-evidenceRef-${g.id}`}
                                     value={g.evidenceRef ?? ""}
                                     onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
                                     style={{
@@ -499,6 +541,7 @@ function IEPPage() {
                                   </select>
                                 ) : (
                                   <input
+                                    id={`goal-field-evidenceRef-${g.id}`}
                                     type="text"
                                     value={g.evidenceRef ?? ""}
                                     onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
@@ -706,7 +749,7 @@ function IEPPage() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={!canSave}
+            title={canSave ? undefined : "يوجد أهداف تمنع الحفظ — الضغط سينقلك إلى أول هدف يحتاج استكمالًا"}
             style={{
               width: "100%", background: canSave ? TEAL : "#D1D5DB", color: "white", border: "none",
               padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,
