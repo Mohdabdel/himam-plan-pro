@@ -102,14 +102,16 @@ function HomePage() {
           >
             ＋ إضافة متعلم جديد
           </Link>
-          <button
-            type="button"
-            onClick={handleSeedSample}
-            title="يضيف طالبًا كاملاً ببيانات واقعية لتجربة المسار الداخلية فقط"
-            className="rounded-lg border border-white/30 px-4 py-2.5 text-xs font-medium text-white/80 transition hover:bg-white/10"
-          >
-            + بيانات تجريبية للاختبار الداخلي
-          </button>
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={handleSeedSample}
+              title="يضيف طالبًا كاملاً ببيانات واقعية لتجربة المسار الداخلية فقط"
+              className="rounded-lg border border-white/30 px-4 py-2.5 text-xs font-medium text-white/80 transition hover:bg-white/10"
+            >
+              + بيانات تجريبية للاختبار الداخلي
+            </button>
+          )}
         </div>
         <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
