@@ -115,6 +115,14 @@ function RecommendationPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-8 md:px-8">
+        <nav aria-label="مسار الصفحة" className="mb-2.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
+          <Link to="/" className="font-bold text-stone-600 underline">لوحة المتعلمين</Link>
+          <span>←</span>
+          <span>{student?.name ?? "الطالب"}</span>
+          <span>←</span>
+          <span className="font-bold text-[#0F3D3E]">التغطية</span>
+        </nav>
+
         <JourneyStepper studentId={id} currentStep="coverage" status={student?.status} />
 
         <div className="mb-6">
