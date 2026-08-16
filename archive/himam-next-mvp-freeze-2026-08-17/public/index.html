@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>همم - النموذج التشغيلي التجريبي</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Himam Next MVP</p>
+        <h1>مسار تشغيل تجريبي</h1>
+      </div>
+      <span class="status-pill">Stage A/B/C verified domain core</span>
+    </header>
+
+    <main class="layout">
+      <aside class="rail" aria-label="مراحل المسار">
+        <div class="journey-card">
+          <p class="eyebrow">حالة مكونات الخطة</p>
+          <div id="componentChecklist" class="checklist"></div>
+        </div>
+        <button class="rail-item is-active" data-target="learner">البيانات الأساسية</button>
+        <button class="rail-item" data-target="sources">مصادر المعلومات</button>
+        <button class="rail-item" data-target="sufficiency">كفاية المعلومات</button>
+        <button class="rail-item" data-target="goal">مسودة الهدف</button>
+        <button class="rail-item" data-target="report">التقرير والتتبع</button>
+      </aside>
+
+      <section class="content">
+        <section class="input-panel">
+          <div class="section-title">
+            <p class="eyebrow">تجربة حية</p>
+            <h2>مدخلات المسار</h2>
+          </div>
+          <form id="workflowForm" class="form-grid">
+            <label>
+              اسم المتعلم
+              <input name="learnerName" value="Trial Learner" />
+            </label>
+            <label>
+              العمر
+              <input name="ageYears" type="number" min="0" value="16" />
+            </label>
+            <label>
+              التشخيص
+              <input name="diagnosis" value="Not used for automatic goal generation" />
+            </label>
+            <label>
+              المركز أو المؤسسة
+              <input name="institution" value="Himam Trial Center" />
+            </label>
+            <label>
+              نوع القيد
+              <select name="entryType">
+                <option value="new">متعلم جديد</option>
+                <option value="returning">متعلم سابق</option>
+              </select>
+            </label>
+            <label>
+              حالة أداة التقييم الرسمية
+              <select name="officialAssessmentStatus">
+                <option value="completed">مكتملة</option>
+                <option value="draft">مسودة</option>
+                <option value="skipped">متخطاة</option>
+              </select>
+            </label>
+            <label>
+              الأداة الرسمية المطبقة
+              <select name="officialAssessmentTool">
+                <option value="TEACCH Transition Assessment Profile">TTAP</option>
+                <option value="Vineland Adaptive Behavior Scales">Vineland</option>
+                <option value="ABAS Adaptive Behavior Assessment System">ABAS</option>
+                <option value="Developmental Assessment Tool">أداة نمائية</option>
+                <option value="Other">أخرى</option>
+              </select>
+            </label>
+            <label>
+              ملف نتائج التقييم
+              <input name="assessmentFile" type="file" />
+            </label>
+            <label>
+              حالة صوت المتعلم
+              <select name="learnerVoiceStatus">
+                <option value="completed">مكتمل</option>
+                <option value="draft">مسودة</option>
+                <option value="skipped">متخطى</option>
+              </select>
+            </label>
+            <label>
+              حالة صوت الأسرة
+              <select name="familyVoiceStatus">
+                <option value="completed">مكتمل</option>
+                <option value="draft">مسودة</option>
+                <option value="skipped">متخطى</option>
+              </select>
+            </label>
+            <label>
+              حالة الميول المهنية
+              <select name="careerInclinationStatus">
+                <option value="skipped">غير مدخلة</option>
+                <option value="completed">مكتملة</option>
+                <option value="draft">مسودة</option>
+              </select>
+            </label>
+            <label class="wide">
+              اهتمامات المتعلم
+              <input name="learnerInterests" value="hands-on learning, helping friends" />
+            </label>
+            <label class="wide">
+              أولويات الأسرة
+              <input name="familyPriorities" value="daily independence, safety in community routines" />
+            </label>
+            <label class="wide">
+              أنواع الدعم المناسبة
+              <input name="familySupports" value="visual schedule, task analysis, short instructions" />
+            </label>
+            <label class="wide">
+              السلوك المستهدف في مسودة الهدف
+              <input name="behavior" value="complete a three-step community purchase routine" />
+            </label>
+            <label>
+              معيار الأداء
+              <input name="performanceCriterion" value="in 4 of 5 observed opportunities across three consecutive sessions" />
+            </label>
+            <label>
+              أسلوب القياس
+              <input name="measurementMethod" value="direct observation checklist and work-sample record" />
+            </label>
+            <div class="form-actions">
+              <button type="submit">إعادة توليد المسار</button>
+              <span id="formStatus" class="form-status">جاهز</span>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel is-visible" id="learner">
+          <div class="section-title">
+            <p class="eyebrow">1</p>
+            <h2>البيانات الأساسية</h2>
+          </div>
+          <div id="learnerCard" class="grid two"></div>
+          <div class="step-actions">
+            <button class="secondary-step" data-step-action="next">التالي</button>
+          </div>
+        </section>
+
+        <section class="panel" id="sources">
+          <div class="section-title">
+            <p class="eyebrow">2</p>
+            <h2>مصادر جمع المعلومات</h2>
+          </div>
+          <div id="sourcesList" class="grid two"></div>
+          <div class="step-actions">
+            <button class="ghost-step" data-step-action="prev">رجوع</button>
+            <button class="secondary-step" data-step-action="next">التالي</button>
+          </div>
+        </section>
+
+        <section class="panel" id="sufficiency">
+          <div class="section-title">
+            <p class="eyebrow">3</p>
+            <h2>مراجعة كفاية المعلومات ومستوى الأداء الحالي</h2>
+          </div>
+          <div id="sufficiencySummary" class="summary-strip"></div>
+          <div class="split">
+            <div>
+              <h3>التوصيات والفجوات</h3>
+              <div id="gapsList" class="stack"></div>
+            </div>
+            <div>
+              <h3>المؤشرات وفرص الأهداف</h3>
+              <div id="opportunitiesList" class="stack"></div>
+            </div>
+          </div>
+          <div class="step-actions">
+            <button class="ghost-step" data-step-action="prev">رجوع</button>
+            <button class="secondary-step" data-step-action="next">التالي</button>
+          </div>
+        </section>
+
+        <section class="panel" id="goal">
+          <div class="section-title">
+            <p class="eyebrow">4</p>
+            <h2>توليد مسودة الهدف</h2>
+          </div>
+          <form id="goalBuilderForm" class="goal-builder">
+            <label>
+              مجال أداة التقييم
+              <select id="assessmentDomainSelect" name="assessmentDomain"></select>
+            </label>
+            <label>
+              مصدر الهدف
+              <select id="goalSourceSelect" name="goalSource"></select>
+            </label>
+            <label>
+              طريقة بناء الهدف
+              <select id="goalSupportMode" name="goalSupportMode">
+                <option value="guided">الاستعانة بأسئلة توجيهية</option>
+                <option value="direct">إضافة الهدف مباشرة</option>
+              </select>
+            </label>
+            <label class="wide">
+              بنود التقييم المرتبطة بالمجال
+              <select id="assessmentItemsSelect" name="assessmentItems" multiple size="5"></select>
+            </label>
+            <label>
+              ما الهدف العام المراد تحقيقه؟
+              <input id="generalGoalInput" name="generalGoal" value="زيادة الاستقلال في روتين شراء مجتمعي" />
+            </label>
+            <label>
+              أين يظهر الأداء المستقل حالياً؟
+              <input id="currentIndependenceInput" name="currentIndependence" value="يحتاج إلى دعم بصري وخطوات قصيرة" />
+            </label>
+            <label class="wide">
+              ما خطوة الإتقان التالية لهذا العام؟
+              <input id="nextMasteryStepInput" name="nextMasteryStep" value="إكمال روتين شراء من ثلاث خطوات" />
+            </label>
+            <div id="guidingQuestions" class="guiding-questions"></div>
+            <div class="form-actions">
+              <button type="submit">توليد مسودة الهدف</button>
+              <span class="form-status">المسودة الناتجة تظل للمراجعة البشرية فقط</span>
+            </div>
+          </form>
+          <article class="goal-box">
+            <p class="label">النص المركب</p>
+            <p id="goalText" class="goal-text"></p>
+          </article>
+          <div id="goalElements" class="grid two"></div>
+          <div>
+            <h3>مراجعة جودة الهدف</h3>
+            <div id="qualityList" class="stack"></div>
+          </div>
+          <div class="step-actions">
+            <button class="ghost-step" data-step-action="prev">رجوع</button>
+            <button class="secondary-step" data-step-action="next">التالي</button>
+          </div>
+        </section>
+
+        <section class="panel" id="report">
+          <div class="section-title">
+            <p class="eyebrow">5</p>
+            <h2>التقرير والتتبع</h2>
+          </div>
+          <div id="reportSummary" class="summary-strip"></div>
+          <div class="split">
+            <div>
+              <h3>مطالبات التقرير</h3>
+              <div id="claimsList" class="stack"></div>
+            </div>
+            <div>
+              <h3>مسار التتبع</h3>
+              <div id="traceList" class="stack"></div>
+            </div>
+          </div>
+          <div class="step-actions">
+            <button class="ghost-step" data-step-action="prev">رجوع</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

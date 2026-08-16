@@ -1,0 +1,117 @@
+{
+  "valid": {
+    "learnerProfile": {
+      "learnerId": "learner-age-14-plus",
+      "displayName": "متعلم تجريبي",
+      "ageAtReviewInput": 14,
+      "ageBand": "AGE_14_PLUS",
+      "ageSourceRef": {
+        "sourceType": "LEARNER_PROFILE",
+        "sourcePackage": "UPSTREAM_PROFILE",
+        "sourceRecordType": "LearnerProfile",
+        "sourceId": "learner-age-14-plus"
+      },
+      "institutionId": "institution-demo",
+      "primaryProgram": "transition-readiness",
+      "familyVisionAvailability": "MISSING",
+      "learnerVoiceAvailability": "AVAILABLE",
+      "privacyConsentStatus": "PERMITTED",
+      "createdAt": "2026-08-09T00:00:00.000Z",
+      "updatedAt": "2026-08-09T00:00:00.000Z"
+    },
+    "evidenceRecord": {
+      "evidenceId": "evidence-1",
+      "learnerId": "learner-age-14-plus",
+      "sourceResponseId": "response-1",
+      "evidenceType": "PERFORMANCE_ASSESSMENT",
+      "conceptId": "SAFETY",
+      "componentIds": ["SAF-C001-M001"],
+      "performanceCode": "FUNCTIONALLY_COMPLETED",
+      "supportCodes": ["DIRECT_SUPPORT"],
+      "observedAt": "2026-08-09T00:00:00.000Z",
+      "portfolioTargetIds": ["PF_CURRENT_PERFORMANCE"],
+      "evidenceStatus": "accepted",
+      "mappingMode": "CATALOG_FIXED",
+      "eligibleForLevelEngine": true,
+      "independentSourceKey": {
+        "sourceType": "INSTITUTIONAL_ASSESSMENT",
+        "administrationId": "administration-1",
+        "toolId": "tool-safety-1",
+        "observerRole": "SPECIALIST",
+        "observedAt": "2026-08-09T00:00:00.000Z",
+        "contextCode": "SCHOOL"
+      },
+      "sourceRef": {
+        "sourceType": "INSTITUTIONAL_ASSESSMENT",
+        "sourcePackage": "3A",
+        "sourceRecordType": "StructuredResponse",
+        "sourceId": "response-1",
+        "provenanceRef": "administration-1"
+      }
+    },
+    "knowledgeSupportItem": {
+      "knowledgeItemId": "ksi-1",
+      "learnerId": "learner-age-14-plus",
+      "sourceResponseId": "response-voice-1",
+      "informationType": "LEARNER_VOICE",
+      "conceptIds": ["COMM"],
+      "portfolioTargetIds": ["PF_VOICE_PREFERENCE"],
+      "operationalFunction": "IDENTIFY_PRIORITY",
+      "responseCode": "PREFERS_VISUAL_CHOICES",
+      "capturedAt": "2026-08-09T00:00:00.000Z",
+      "mappingMode": "EXPLICIT_SELECTION",
+      "eligibleForLevelEngine": false,
+      "eligibleForPriorityEngine": true,
+      "eligibleForReport": true,
+      "sourceRef": {
+        "sourceType": "LEARNER_VOICE",
+        "sourcePackage": "3A",
+        "sourceRecordType": "KnowledgeSupportItem",
+        "sourceId": "ksi-1"
+      }
+    },
+    "inferenceSuggestion": {
+      "suggestionId": "inference-1",
+      "sourceResponseId": "response-inferred-1",
+      "suggestedTargetType": "CONCEPT",
+      "suggestedValue": "COMM",
+      "reasonCode": "TEXT_CLASSIFIED_TO_COMM",
+      "confidence": 0.72,
+      "status": "suggested",
+      "createdBy": "system",
+      "createdAt": "2026-08-09T00:00:00.000Z"
+    }
+  },
+  "invalid": {
+    "eleventhConceptId": "MONEY_MANAGEMENT",
+    "legacyConceptId": "HIMAMPRO_COMM",
+    "knowledgeSupportItemLevelEligible": {
+      "knowledgeItemId": "ksi-invalid",
+      "learnerId": "learner-age-14-plus",
+      "sourceResponseId": "response-family-1",
+      "informationType": "FAMILY_VISION",
+      "conceptIds": ["SELF_CARE"],
+      "portfolioTargetIds": ["PF_PRIORITY"],
+      "operationalFunction": "IDENTIFY_PRIORITY",
+      "responseCode": "FAMILY_REPORTS_INDEPENDENCE",
+      "capturedAt": "2026-08-09T00:00:00.000Z",
+      "mappingMode": "EXPLICIT_SELECTION",
+      "eligibleForLevelEngine": true,
+      "eligibleForPriorityEngine": true,
+      "eligibleForReport": true,
+      "sourceRef": {
+        "sourceType": "FAMILY_VISION",
+        "sourcePackage": "3A",
+        "sourceRecordType": "KnowledgeSupportItem",
+        "sourceId": "ksi-invalid"
+      }
+    },
+    "automatedHumanApprovalWrite": {
+      "actorContext": "AUTOMATED_PACKAGE",
+      "attemptedValue": "approval-ref-should-fail"
+    },
+    "suggestedInferenceAsEvidence": {
+      "selectedEvidenceIds": ["inference-1"]
+    }
+  }
+}

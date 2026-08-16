@@ -55,7 +55,7 @@ function loadExtraRows(): Row[] {
       id: s.id,
       name: s.name,
       center: s.center,
-      tool: s.tool,
+      tool: s.tool || "لم تحدد بعد",
       status: "إدخال التقييم" as const,
       flowStatus: s.status,
     }));

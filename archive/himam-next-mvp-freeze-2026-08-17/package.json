@@ -1,0 +1,19 @@
+{
+  "name": "himam-next-mvp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit",
+    "verify:stage-a": "node scripts/verify-stage-a.mjs",
+    "verify:stage-b": "node scripts/verify-stage-b.mjs",
+    "verify:stage-c": "node scripts/verify-stage-c.mjs",
+    "build:prototype": "node scripts/build-prototype.mjs",
+    "serve:prototype": "node scripts/serve-prototype.mjs",
+    "verify:prototype": "node scripts/verify-prototype.mjs",
+    "verify:user-journey-ui": "node scripts/verify-user-journey-ui.mjs",
+    "verify": "npm run typecheck && npm run verify:stage-a && npm run verify:stage-b && npm run verify:stage-c && npm run verify:prototype && npm run verify:user-journey-ui"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "learners": [
+    {
+      "learnerId": "learner-under-14",
+      "displayName": "متعلم أقل من 14",
+      "ageAtReviewInput": 11,
+      "ageBand": "UNDER_14",
+      "ageSourceRef": {
+        "sourceType": "LEARNER_PROFILE",
+        "sourcePackage": "UPSTREAM_PROFILE",
+        "sourceRecordType": "LearnerProfile",
+        "sourceId": "learner-under-14"
+      },
+      "institutionId": "institution-demo",
+      "primaryContext": "school",
+      "familyVisionAvailability": "MISSING",
+      "learnerVoiceAvailability": "AVAILABLE",
+      "privacyConsentStatus": "PERMITTED",
+      "createdAt": "2026-08-09T00:00:00.000Z",
+      "updatedAt": "2026-08-09T00:00:00.000Z"
+    },
+    {
+      "learnerId": "learner-age-14-plus",
+      "displayName": "متعلم 14 فأكثر",
+      "ageAtReviewInput": 16,
+      "ageBand": "AGE_14_PLUS",
+      "ageSourceRef": {
+        "sourceType": "LEARNER_PROFILE",
+        "sourcePackage": "UPSTREAM_PROFILE",
+        "sourceRecordType": "LearnerProfile",
+        "sourceId": "learner-age-14-plus"
+      },
+      "institutionId": "institution-demo",
+      "primaryProgram": "transition-readiness",
+      "familyVisionAvailability": "AVAILABLE",
+      "learnerVoiceAvailability": "MISSING",
+      "privacyConsentStatus": "PERMITTED",
+      "createdAt": "2026-08-09T00:00:00.000Z",
+      "updatedAt": "2026-08-09T00:00:00.000Z"
+    }
+  ],
+  "evidence": [
+    {
+      "evidenceId": "stage2-evidence-1",
+      "learnerId": "learner-age-14-plus",
+      "sourceResponseId": "stage2-response-assessment-1",
+      "evidenceType": "PERFORMANCE_ASSESSMENT",
+      "conceptId": "SAFETY",
+      "competencyId": "SAF-C001",
+      "componentIds": ["SAF-C001-M001"],
+      "performanceCode": "FUNCTIONALLY_COMPLETED",
+      "supportCodes": ["DIRECT_SUPPORT"],
+      "observedAt": "2026-08-09T00:00:00.000Z",
+      "portfolioTargetIds": ["PF_CURRENT_PERFORMANCE"],
+      "evidenceStatus": "accepted",
+      "mappingMode": "CATALOG_FIXED",
+      "eligibleForLevelEngine": true,
+      "independentSourceKey": {
+        "sourceType": "INSTITUTIONAL_ASSESSMENT",
+        "administrationId": "stage2-admin-1",
+        "toolFamily": "institutional-assessment",
+        "observerRole": "SPECIALIST",
+        "observedAt": "2026-08-09T00:00:00.000Z",
+        "contextCode": "SCHOOL"
+      },
+      "sourceRef": {
+        "sourceType": "INSTITUTIONAL_ASSESSMENT",
+        "sourcePackage": "3A",
+        "sourceRecordType": "StructuredResponse",
+        "sourceId": "stage2-response-assessment-1",
+        "provenanceRef": "stage2-admin-1"
+      }
+    }
+  ],
+  "knowledgeSupport": [
+    {
+      "knowledgeItemId": "stage2-ksi-family-1",
+      "learnerId": "learner-age-14-plus",
+      "sourceResponseId": "stage2-response-family-1",
+      "informationType": "FAMILY_VISION",
+      "conceptIds": ["SELF_CARE"],
+      "portfolioTargetIds": ["PF_PRIORITY"],
+      "operationalFunction": "IDENTIFY_PRIORITY",
+      "responseCode": "FAMILY_PRIORITY_DAILY_INDEPENDENCE",
+      "capturedAt": "2026-08-09T00:00:00.000Z",
+      "mappingMode": "EXPLICIT_SELECTION",
+      "eligibleForLevelEngine": false,
+      "eligibleForPriorityEngine": true,
+      "eligibleForReport": true,
+      "sourceRef": {
+        "sourceType": "FAMILY_VISION",
+        "sourcePackage": "3A",
+        "sourceRecordType": "KnowledgeSupportItem",
+        "sourceId": "stage2-ksi-family-1",
+        "provenanceRef": "stage2-response-family-1"
+      }
+    }
+  ],
+  "inferenceSuggestions": [
+    {
+      "suggestionId": "stage2-inference-1",
+      "sourceResponseId": "stage2-response-open-text-1",
+      "suggestedTargetType": "CONCEPT",
+      "suggestedValue": "COMM",
+      "reasonCode": "OPEN_TEXT_MENTIONS_REQUESTING_HELP",
+      "confidence": 0.68,
+      "status": "suggested",
+      "createdBy": "system",
+      "createdAt": "2026-08-09T00:00:00.000Z"
+    }
+  ],
+  "invalid": {
+    "learnerAgeBand": {
+      "learnerId": "learner-invalid-age-band",
+      "displayName": "متعلم بعمر غير متسق",
+      "ageAtReviewInput": 10,
+      "ageBand": "AGE_14_PLUS",
+      "ageSourceRef": {
+        "sourceType": "LEARNER_PROFILE",
+        "sourcePackage": "UPSTREAM_PROFILE",
+        "sourceRecordType": "LearnerProfile",
+        "sourceId": "learner-invalid-age-band"
+      },
+      "institutionId": "institution-demo",
+      "primaryContext": "school",
+      "familyVisionAvailability": "MISSING",
+      "learnerVoiceAvailability": "AVAILABLE",
+      "privacyConsentStatus": "PERMITTED",
+      "createdAt": "2026-08-09T00:00:00.000Z",
+      "updatedAt": "2026-08-09T00:00:00.000Z"
+    },
+    "knowledgeSupportLevelEligible": {
+      "knowledgeItemId": "stage2-ksi-invalid-level",
+      "learnerId": "learner-age-14-plus",
+      "sourceResponseId": "stage2-response-family-invalid",
+      "informationType": "FAMILY_VISION",
+      "conceptIds": ["SELF_CARE"],
+      "portfolioTargetIds": ["PF_PRIORITY"],
+      "operationalFunction": "IDENTIFY_PRIORITY",
+      "responseCode": "FAMILY_REPORTS_INDEPENDENCE",
+      "capturedAt": "2026-08-09T00:00:00.000Z",
+      "mappingMode": "EXPLICIT_SELECTION",
+      "eligibleForLevelEngine": true,
+      "eligibleForPriorityEngine": true,
+      "eligibleForReport": true,
+      "sourceRef": {
+        "sourceType": "FAMILY_VISION",
+        "sourcePackage": "3A",
+        "sourceRecordType": "KnowledgeSupportItem",
+        "sourceId": "stage2-ksi-invalid-level"
+      }
+    }
+  }
+}

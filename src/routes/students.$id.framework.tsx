@@ -105,7 +105,9 @@ function FrameworkPage() {
           status: "complete",
         } as StoredStudent);
       }
-    } catch {}
+    } catch (error) {
+      console.warn("Unable to load framework student data", error);
+    }
   }, [id]);
 
   const updateGoal = (gid: string, patch: Partial<(typeof goals)[number]>) => {

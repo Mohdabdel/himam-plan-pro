@@ -2,6 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
+import { MVP_CONCEPT_IDS, getConceptNameAr } from "@/data/concepts";
+import { calibrateMvpProfile } from "@/lib/mvp-calibration";
+import { loadLearnerProfile, saveLearnerProfile } from "@/lib/profile-repository";
+import type { ConceptProfile } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/report")({
   component: ReportPage,
@@ -137,6 +141,17 @@ type LearnerData = { method: string; q_love: string; q_good: string; q_future: s
 type CoverageData = { completionPercent: number; passedDomains: string[]; emergingDomains: string[]; failedDomains: string[]; filledDomains: string[] };
 type PlanGoal = { goalId: string; domainCode: string; goalText: string; selectedActivities: string[]; context: string; specialistNote: string; priority: string };
 type PlanData  = { learnerId: string; generatedAt?: string; goals: PlanGoal[]; status?: "activities_selected" | "no_activities" };
+type TrainingSession = {
+  id: string;
+  goalId: string;
+  activity: string;
+  date: string;
+  context: string;
+  supportLevel: string;
+  performance: string;
+  evidenceType: string;
+  notes?: string;
+};
 
 // ── Domain name maps ──────────────────────────────────────────────────────────
 const DOMAIN_NAMES: Record<string, string> = {
@@ -237,6 +252,25 @@ function statusLabel(s: string | undefined): string {
   return map[s] ?? s;
 }
 
+function statusLabelAr(status: ConceptProfile["calibrationStatus"]): string {
+  if (status === "final") return "نهائي";
+  if (status === "provisional") return "مبدئي";
+  if (status === "incomplete") return "غير مكتمل";
+  return "لم يبدأ";
+}
+
+function coverageLabel(value: ConceptProfile["coverage"]) {
+  if (value === "good") return "جيدة";
+  if (value === "moderate") return "متوسطة";
+  return "محدودة";
+}
+
+function confidenceLabel(value: ConceptProfile["confidence"]) {
+  if (value === "high") return "عالية";
+  if (value === "medium") return "متوسطة";
+  return "منخفضة";
+}
+
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "flex", gap: 8, fontSize: 13, alignItems: "baseline" }}>
@@ -269,6 +303,8 @@ function ReportPage() {
   const [learner,  setLearner]  = useState<LearnerData | null>(null);
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
   const [plan,     setPlan]     = useState<PlanData | null>(null);
+  const [training, setTraining] = useState<TrainingSession[]>([]);
+  const [conceptProfiles, setConceptProfiles] = useState<ConceptProfile[]>([]);
 
   useEffect(() => {
     const list = safeParse<StoredStudent[]>("himam_students") ?? [];
@@ -281,6 +317,12 @@ function ReportPage() {
     setLearner(safeParse<LearnerData>(`himam_learner_voice_${id}`));
     setCoverage(safeParse<CoverageData>(`himam_coverage_${id}`));
     setPlan(safeParse<PlanData>(`himam_plan_${id}`));
+    setTraining(safeParse<TrainingSession[]>(`himam_training_${id}`) ?? []);
+    const profile = loadLearnerProfile(id);
+    if (profile) {
+      const calibrated = saveLearnerProfile(calibrateMvpProfile(profile));
+      setConceptProfiles(MVP_CONCEPT_IDS.map((conceptId) => calibrated.concepts[conceptId]));
+    }
   }, [id]);
 
   // ── Domain score calculations ─────────────────────────────────────────────
@@ -781,10 +823,47 @@ function ReportPage() {
           </div>
         )}
 
-        {/* ── Section 7: Selected Activities Plan ─────────────────────── */}
+        {/* ── Section 7: MVP concept calibration ──────────────────────── */}
         <div className="report-section">
           <Card>
-            <SectionTitle num="٧" title="الأنشطة المختارة والخطة التنفيذية" />
+            <SectionTitle num="٧" title="معايرة مفاهيم MVP" />
+            {conceptProfiles.length === 0 ? (
+              <div style={{ padding: "14px 16px", background: "#FFFBEB", borderRadius: 10, borderRight: `4px solid ${YELLOW}` }}>
+                <p style={{ margin: 0, fontSize: 13, color: "#78350F", lineHeight: 1.7 }}>
+                  لم تُحفظ أدلة منظمة في البروفايل الموحد بعد؛ لذلك لا تظهر معايرة مفاهيمية في هذه المسودة.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {conceptProfiles.map((concept) => (
+                  <div key={concept.conceptId} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: 12, background: "#F8FAFC" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 14, color: TEAL, fontWeight: 800 }}>{getConceptNameAr(concept.conceptId)}</p>
+                        <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748B" }}>
+                          {concept.evidence.length} دليل · التغطية: {coverageLabel(concept.coverage)} · الثقة: {confidenceLabel(concept.confidence)}
+                        </p>
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: "#1F2937", background: "white", border: "1px solid #E5E7EB", borderRadius: 999, padding: "4px 12px" }}>
+                        {concept.currentLevel ? `مستوى ${concept.currentLevel}` : "غير مكتمل"} · {statusLabelAr(concept.calibrationStatus)}
+                      </span>
+                    </div>
+                    {concept.completionRecommendation && (
+                      <p style={{ margin: "8px 0 0", fontSize: 12, color: "#78350F", lineHeight: 1.7 }}>
+                        {concept.completionRecommendation}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* ── Section 8: Selected Activities Plan ─────────────────────── */}
+        <div className="report-section">
+          <Card>
+            <SectionTitle num="٨" title="الأنشطة المختارة والخطة التنفيذية" />
             {(() => {
               const activeGoals = (plan?.goals ?? []).filter((g) => g.selectedActivities.length > 0);
               // Prefer the persisted completion signal from plan.tsx; fall back to a
@@ -866,6 +945,34 @@ function ReportPage() {
                 </>
               );
             })()}
+          </Card>
+        </div>
+
+        {/* ── Section 9: Training evidence ─────────────────────────────── */}
+        <div className="report-section">
+          <Card>
+            <SectionTitle num="٩" title="جلسات التدريب والشواهد" />
+            {training.length === 0 ? (
+              <div style={{ padding: "14px 16px", background: "#FFFBEB", borderRadius: 10, borderRight: `4px solid ${YELLOW}` }}>
+                <p style={{ margin: 0, fontSize: 13, color: "#78350F", lineHeight: 1.7 }}>
+                  لم تُسجّل جلسات تدريب بعد. لا يبطل ذلك مسودة الخطة، لكنه يعني أن أثر الأنشطة لم يوثّق بعد بشاهد تنفيذي.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {training.map((session) => (
+                  <div key={session.id} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: 12, background: "#F8FAFC" }}>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1F2937" }}>{session.activity}</p>
+                    <p style={{ margin: "5px 0 0", fontSize: 12, color: "#64748B" }}>
+                      {formatDate(session.date)} · {session.context} · الدعم: {session.supportLevel} · الأداء: {session.performance} · الشاهد: {session.evidenceType}
+                    </p>
+                    {session.notes?.trim() && (
+                      <p style={{ margin: "7px 0 0", fontSize: 13, color: "#374151", lineHeight: 1.7 }}>{session.notes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </Card>
         </div>
 

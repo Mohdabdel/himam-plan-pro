@@ -54,7 +54,7 @@ export type GoalQualityInput = {
 function normalizeWords(text: string): Set<string> {
   return new Set(
     text
-      .split(/[\s،.,؛:؟!\-\/]+/)
+      .split(/[\s،.,؛:؟!/-]+/)
       .map((w) => w.trim())
       .filter((w) => w.length >= 3),
   );

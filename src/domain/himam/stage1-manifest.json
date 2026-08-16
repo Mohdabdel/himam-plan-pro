@@ -1,0 +1,48 @@
+{
+  "stage": "STAGE-01-KNOWLEDGE-VALIDATION",
+  "schemaVersion": "himam-readiness-schema-v1.1",
+  "conceptRegistryVersion": "himam-concepts-v1.1",
+  "conceptIds": [
+    "SAFETY",
+    "SELF_DET",
+    "COMM",
+    "SELF_CARE",
+    "MOBILITY",
+    "SOCIAL",
+    "COMMUNITY",
+    "HEALTH",
+    "ACADEMIC",
+    "LEARNING_TECH"
+  ],
+  "sourceTypes": [
+    "LEARNER_PROFILE",
+    "INSTITUTIONAL_ASSESSMENT",
+    "FUNCTIONAL_OBSERVATION",
+    "LEARNER_VOICE",
+    "FAMILY_VISION",
+    "INTEREST_SURVEY",
+    "INCLINATION_SURVEY",
+    "TRANSITION_SURVEY_CHECKLIST",
+    "PERSON_CENTERED_PLANNING",
+    "PRIOR_REPORT",
+    "EXECUTION_WITNESS",
+    "SYSTEM_INFERENCE",
+    "CALIBRATION_RESULT",
+    "GOAL",
+    "LESSON",
+    "PLAN_QUALITY",
+    "AGE_STAGE_ADVISORY",
+    "REPORT"
+  ],
+  "verificationChecks": ["build", "typecheck", "dataIntegrity", "userJourney", "traceability"],
+  "humanApprovalReferenceWriteAuthority": "EXTERNAL_AUTHORIZED_APPROVAL_HOOK_ONLY",
+  "ageStagePolicy": {
+    "AGE_14_PLUS": {
+      "advisoryOnly": true,
+      "blocksPlan": false,
+      "blocksGoal": false,
+      "blocksExecution": false,
+      "affectsNumericQualityScore": false
+    }
+  }
+}

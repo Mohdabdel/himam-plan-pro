@@ -7,6 +7,13 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "typecheck": "tsc --noEmit",
+    "verify:stage1": "node scripts/verify-stage1.mjs",
+    "verify:stage2": "node scripts/verify-stage2.mjs",
+    "verify:stage3": "node scripts/verify-stage3.mjs",
+    "verify:plan-quality": "node scripts/verify-plan-quality-references.mjs",
+    "verify:transition-assessment": "node scripts/verify-transition-assessment-references.mjs",
+    "verify:information-sources": "node scripts/verify-information-sources.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."

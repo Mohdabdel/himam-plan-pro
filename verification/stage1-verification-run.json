@@ -1,0 +1,102 @@
+{
+  "verificationRunId": "VR-STAGE-01-2026-08-09-001",
+  "packageId": "STAGE-01-KNOWLEDGE-VALIDATION",
+  "deliveryMaturity": "VERIFIED_IMPLEMENTATION",
+  "startedAt": "2026-08-09T00:00:00.000Z",
+  "completedAt": "2026-08-09T00:00:00.000Z",
+  "checks": {
+    "build": {
+      "status": "PASS",
+      "command": "npm.cmd run build",
+      "exitCode": 0,
+      "evidence": ["Vite client and SSR builds completed successfully"]
+    },
+    "typecheck": {
+      "status": "PASS",
+      "command": "npm.cmd run typecheck",
+      "exitCode": 0,
+      "evidence": ["tsc --noEmit completed successfully"]
+    },
+    "dataIntegrity": {
+      "status": "PASS",
+      "command": "npm.cmd run verify:stage1",
+      "exitCode": 0,
+      "evidence": [
+        "Stage 1 concept dictionary has exactly 10 concepts",
+        "No HIMAMPRO_ storage prefix in manifest",
+        "VerificationRun five-check structure retained",
+        "AGE_14_PLUS advisory policy is non-blocking",
+        "humanApprovalReference write authority is external-hook only",
+        "Valid LearnerProfile, EvidenceRecord, KnowledgeSupportItem, and InferenceSuggestion fixtures accepted",
+        "Invalid 11th concept, HIMAMPRO_ prefix, KSI level eligibility, automated humanApprovalReference write, and suggested inference as evidence rejected"
+      ]
+    },
+    "userJourney": {
+      "status": "PASS",
+      "command": "npm.cmd run verify:stage1",
+      "exitCode": 0,
+      "evidence": [
+        "Internal Stage 1 journey loaded valid fixtures and rejected invalid fixtures with reasons",
+        "User journey checks: 9"
+      ],
+      "notes": "Stage 1 userJourney is an internal validation harness, not a browser journey."
+    },
+    "traceability": {
+      "status": "PASS",
+      "command": "npm.cmd run verify:stage1",
+      "exitCode": 0,
+      "evidence": [
+        "LearnerProfile ageSourceRef resolves sourceType/sourcePackage/sourceRecordType/sourceId",
+        "EvidenceRecord SourceRef resolves sourceType/sourcePackage/sourceRecordType/sourceId",
+        "KnowledgeSupportItem SourceRef resolves sourceType/sourcePackage/sourceRecordType/sourceId",
+        "schemaVersion and conceptRegistryVersion present",
+        "VerificationRun five-check structure present",
+        "Traceability checks: 5"
+      ]
+    }
+  },
+  "modifiedFiles": [
+    "package.json",
+    "scripts/verify-stage1.mjs",
+    "src/domain/himam/concepts.ts",
+    "src/domain/himam/source-types.ts",
+    "src/domain/himam/types.ts",
+    "src/domain/himam/schemas.ts",
+    "src/domain/himam/validators.ts",
+    "src/domain/himam/fixtures.ts",
+    "src/domain/himam/index.ts",
+    "src/domain/himam/stage1-fixtures.json",
+    "src/domain/himam/stage1-manifest.json",
+    "src/lib/profile-repository.ts",
+    "src/lib/goal-quality.ts",
+    "src/routes/students.$id.assessment.tsx",
+    "src/routes/students.$id.family.tsx",
+    "src/routes/students.$id.framework.tsx",
+    "src/routes/students.$id.iep.tsx",
+    "src/routes/students.$id.student-voice.tsx",
+    ".prettierrc",
+    "eslint.config.js",
+    "verification/stage1-verification-run.json"
+  ],
+  "completedItems": [
+    "Stage 1 Himam concept source of truth",
+    "Controlled SourceType and SourceRef contracts",
+    "LearnerProfile, EvidenceRecord, KnowledgeSupportItem, InferenceSuggestion, IndependentSourceKey, and VerificationRun types",
+    "Zod schemas for Stage 1 contracts",
+    "Stage 1 validation helpers",
+    "Stage 1 positive and negative fixtures",
+    "Stage 1 data-integrity, internal userJourney, and traceability verification script",
+    "TypeScript blockers in profile repository and family route fixed",
+    "Prettier formatting checks separated from ESLint",
+    "Repository lint exits with zero errors"
+  ],
+  "incompleteItems": [
+    "Canonical competency/component registry wiring",
+    "Canonical linkedHimamSkillIds registry wiring"
+  ],
+  "knownGaps": [
+    "Repository-wide lint passes with existing Fast Refresh warnings in shared UI component files.",
+    "Stage 1 userJourney is an internal validation harness; browser-level journeys begin in later stages."
+  ],
+  "overallStatus": "PASS"
+}

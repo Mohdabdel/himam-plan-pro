@@ -2,6 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
+import { isMvpConceptId } from "@/data/concepts";
+import { recommendCurriculumActivities } from "@/lib/curriculum-recommendations";
+import { calibrateMvpProfile } from "@/lib/mvp-calibration";
+import { loadLearnerProfile, saveLearnerProfile } from "@/lib/profile-repository";
 
 export const Route = createFileRoute("/students/$id/plan")({
   component: PlanPage,
@@ -31,51 +35,6 @@ const CONCEPT_NAMES: Record<string, string> = {
   HEALTH:       "الصحة والسلامة",
   COMM:         "التواصل",
   SAFETY:       "السلامة الشخصية",
-};
-
-const CONCEPT_ACTIVITIES: Record<string, string[]> = {
-  COMMUNITY: [
-    "يحضر مجلس العائلة الأسبوعي ويؤدي دوراً محدداً",
-    "يذهب إلى المسجد مع ولي الأمر ضمن روتين ثابت",
-    "يساعد في ترتيب الطاولة في التجمعات الأسرية",
-    "يؤدي مهمة بسيطة في دار الحي أو المركز المجتمعي",
-  ],
-  SELF_DET: [
-    "يختار نشاطه اليومي من قائمة خيارين أو ثلاثة",
-    "يعبّر عن تفضيلاته قبل الأنشطة بوضوح",
-    "يُنهي مهمة اختارها بمفرده دون تذكير",
-    "يرفض طلباً غير مريح بأسلوب مقبول اجتماعياً",
-  ],
-  SOCIAL: [
-    "يبادر بالتحية ويردّ عليها مع الأشخاص المألوفين",
-    "يشارك في نشاط جماعي صغير (3–5 أفراد)",
-    "يتناوب على الدور مع زميله في لعبة أو نشاط",
-    "يطلب الانضمام لنشاط جماعي بطريقة مناسبة",
-  ],
-  SELF_CARE: [
-    "يُكمل 4 خطوات من روتين الصباح بدون تذكير",
-    "يرتب أغراضه الشخصية بعد الاستخدام",
-    "يحضّر وجبته الخفيفة باستقلالية",
-    "يحافظ على نظافته الشخصية خلال اليوم",
-  ],
-  HEALTH: [
-    "يتعرف على علامات التعب ويطلب الراحة",
-    "يحتفظ بزجاجة الماء ويشرب منها بانتظام",
-    "يُخبر المشرف عند الشعور بعدم الارتياح",
-    "يلتزم بمواعيد تناول الدواء مع تذكير بسيط",
-  ],
-  COMM: [
-    "يطلب المساعدة لفظياً أو بالإشارة عند الحاجة",
-    "يُوضح ما يريد عند الاختيار من خيارين",
-    "يستمع حتى ينتهي الآخر ثم يُجيب",
-    "يُعبّر عن رفضه بأسلوب مقبول اجتماعياً",
-  ],
-  SAFETY: [
-    "يبقى بالقرب من المشرف في الأماكن العامة",
-    "يستجيب لكلمة 'توقف' أو 'انتبه' فوراً",
-    "يُخبر شخصاً موثوقاً عند الشعور بعدم الأمان",
-    "يعرف اسمه ورقم هاتف أحد والديه",
-  ],
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -122,6 +81,7 @@ type GoalEntry = {
   concepts:            string[];
   priority:            "high" | "medium" | "low";
   suggestedActivities: string[];
+  activityRationales:  Record<string, string>;
   selectedActivities:  string[];
   context:             string;
   specialistNote:      string;
@@ -131,6 +91,8 @@ type GoalEntry = {
   iepEvidenceRef?:        string;
   iepLifePractice?:       string;
   iepOverride?:           RawGoalOverride;
+  conceptLevel?:          number | null;
+  conceptCalibrationStatus?: string;
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -194,6 +156,7 @@ function buildEntry(
   flat: FlatGoal,
   coverage: CoverageData,
   defaultContext: string,
+  conceptLevels: Record<string, { level: number | null; status: string }>,
 ): GoalEntry {
   const { goalId, domainCode, goalText, raw } = flat;
   const concepts = DOMAIN_CONCEPT_MAP[domainCode] ?? [];
@@ -202,13 +165,31 @@ function buildEntry(
     (coverage.failedDomains   ?? []).includes(domainCode) ? "high"   :
     (coverage.emergingDomains ?? []).includes(domainCode) ? "medium" : "low";
 
-  // Up to 2 activities per concept, max 4 total
-  const suggestedActivities: string[] = [];
-  for (const c of concepts) {
-    for (const act of (CONCEPT_ACTIVITIES[c] ?? []).slice(0, 2)) {
-      if (suggestedActivities.length < 4) suggestedActivities.push(act);
-    }
-  }
+  const mvpConcept = concepts.find(isMvpConceptId);
+  const conceptLevel = mvpConcept ? conceptLevels[mvpConcept]?.level ?? null : null;
+  const conceptCalibrationStatus = mvpConcept ? conceptLevels[mvpConcept]?.status : undefined;
+  const recommendations = mvpConcept
+    ? recommendCurriculumActivities({
+        conceptId: mvpConcept,
+        goalText,
+        preferredContext: raw.context || defaultContext,
+        maxSuggestions: 4,
+      })
+    : [];
+  const activityRationales: Record<string, string> = {};
+  const suggestedActivities = recommendations.map((recommendation) => {
+    const label = `${recommendation.competencyDescription} — ${recommendation.familyNameAr}`;
+    activityRationales[label] = [
+      recommendation.rationaleAr,
+      recommendation.componentDescriptions.length
+        ? `المكونات المدربة: ${recommendation.componentDescriptions.slice(0, 3).join("، ")}`
+        : "",
+      recommendation.coverageStatus
+        ? `حالة التمثيل في المنهج: ${recommendation.coverageStatus}`
+        : "",
+    ].filter(Boolean).join(" | ");
+    return label;
+  });
 
   return {
     goalId,
@@ -217,6 +198,7 @@ function buildEntry(
     concepts,
     priority,
     suggestedActivities,
+    activityRationales,
     selectedActivities: [],
     context:            defaultContext,
     specialistNote:     "",
@@ -225,6 +207,8 @@ function buildEntry(
     iepEvidenceRef:        raw.evidenceRef || undefined,
     iepLifePractice:       raw.lifePractice || undefined,
     iepOverride:           raw.override,
+    conceptLevel,
+    conceptCalibrationStatus,
   };
 }
 
@@ -253,6 +237,14 @@ function PlanPage() {
     const coverage  = safeParse<CoverageData>(`himam_coverage_${id}`) ?? {};
     const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
     const learnerV  = safeParse<LearnerVoiceData>(`himam_learner_voice_${id}`) ?? {};
+    const profile = s ? loadLearnerProfile(s.id) : null;
+    const calibratedProfile = profile ? saveLearnerProfile(calibrateMvpProfile(profile)) : null;
+    const conceptLevels = Object.fromEntries(
+      Object.entries(calibratedProfile?.concepts ?? {}).map(([conceptId, concept]) => [
+        conceptId,
+        { level: concept.currentLevel ?? null, status: concept.calibrationStatus },
+      ]),
+    );
 
     // 3. Determine default training context from learner voice environments
     const envs = learnerV.environments ?? [];
@@ -285,7 +277,7 @@ function PlanPage() {
     }
 
     // 5. Build goal entries
-    const entries = flatGoals.map((g) => buildEntry(g, coverage, defaultContext));
+    const entries = flatGoals.map((g) => buildEntry(g, coverage, defaultContext, conceptLevels));
 
     // 6. Restore saved plan selections
     const saved = safeParse<{ goals: GoalEntry[] }>(`himam_plan_${id}`);
@@ -536,14 +528,19 @@ function PlanPage() {
                 <div>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "#94A3B8", margin: "0 0 8px" }}>المفاهيم المرتبطة</p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {entry.concepts.map((c) => (
-                      <span key={c} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 20, background: "#E6F2F1", color: TEAL, fontWeight: 600 }}>
-                        {CONCEPT_NAMES[c] ?? c}
-                      </span>
-                    ))}
-                  </div>
+                  {entry.concepts.map((c) => (
+                    <span key={c} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 20, background: "#E6F2F1", color: TEAL, fontWeight: 600 }}>
+                      {CONCEPT_NAMES[c] ?? c}
+                    </span>
+                  ))}
+                  {entry.conceptLevel && (
+                    <span style={{ fontSize: 12, padding: "4px 12px", borderRadius: 20, background: "#F8FAFC", color: "#475569", fontWeight: 700 }}>
+                      مستوى مبدئي {entry.conceptLevel} · {entry.conceptCalibrationStatus === "final" ? "نهائي" : "مبدئي"}
+                    </span>
+                  )}
                 </div>
-              )}
+              </div>
+            )}
 
               {/* Activity checkboxes */}
               {entry.suggestedActivities.length > 0 && (
@@ -569,7 +566,14 @@ function PlanPage() {
                             onChange={() => toggleActivity(entry.goalId, act)}
                             style={{ marginTop: 2, width: 16, height: 16, accentColor: TEAL, flexShrink: 0 }}
                           />
-                          <span style={{ fontSize: 14, color: "#374151" }}>{act}</span>
+                          <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 14, color: "#374151" }}>{act}</span>
+                            {entry.activityRationales?.[act] && (
+                              <span style={{ fontSize: 11, lineHeight: 1.6, color: "#64748B" }}>
+                                {entry.activityRationales[act]}
+                              </span>
+                            )}
+                          </span>
                         </label>
                       );
                     })}
@@ -619,22 +623,29 @@ function PlanPage() {
                 ✓ تم حفظ الخطة بنجاح
               </div>
             )}
-            <button
-              type="button"
-              onClick={handleSave}
-              style={{ width: "100%", background: TEAL, color: "white", border: "none", padding: "14px", borderRadius: 10, fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}
-            >
-              حفظ الخطة النهائية ←
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/students/$id/report", params: { id } })}
-              style={{ width: "100%", marginTop: 10, background: "white", color: TEAL, border: `1px solid ${TEAL}`, padding: "12px", borderRadius: 10, fontWeight: 600, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
-            >
-              عرض التقرير الشامل
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={handleSave}
+            style={{ width: "100%", background: TEAL, color: "white", border: "none", padding: "14px", borderRadius: 10, fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            حفظ الخطة وتجهيز التنفيذ ←
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/students/$id/report", params: { id } })}
+            style={{ width: "100%", marginTop: 10, background: "white", color: TEAL, border: `1px solid ${TEAL}`, padding: "12px", borderRadius: 10, fontWeight: 600, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            عرض التقرير الشامل
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/students/$id/implementation", params: { id } })}
+            style={{ width: "100%", marginTop: 10, background: "white", color: TEAL, border: `1px solid ${TEAL}`, padding: "12px", borderRadius: 10, fontWeight: 600, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            تسجيل التدريب والشواهد
+          </button>
+        </div>
+      )}
       </main>
     </div>
   );

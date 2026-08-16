@@ -1,0 +1,722 @@
+{
+  "learner": {
+    "id": "trial-learner-16",
+    "name": "Trial Learner",
+    "ageYears": 16,
+    "diagnosis": "Not used for automatic goal generation",
+    "institution": "Himam Trial Center",
+    "entryType": "new"
+  },
+  "sources": [
+    {
+      "id": "src-official-assessment-ttap",
+      "learnerId": "trial-learner-16",
+      "kind": "official_assessment",
+      "status": "completed",
+      "title": "Official assessment - TTAP uploaded results",
+      "selectedToolId": "TTAP",
+      "selectedToolName": "TEACCH Transition Assessment Profile",
+      "uploadedFileName": "ttap-results.pdf",
+      "declaredConcepts": [
+        "SELF_CARE",
+        "MOBILITY",
+        "COMMUNITY"
+      ],
+      "summary": "Structured assessment source; detailed extraction is deferred."
+    },
+    {
+      "id": "src-family-voice",
+      "learnerId": "trial-learner-16",
+      "kind": "family_voice",
+      "status": "completed",
+      "title": "Family compass - priorities and supports",
+      "declaredConcepts": [
+        "SELF_CARE",
+        "SAFETY",
+        "SELF_DET"
+      ],
+      "declaredPriorities": [
+        "daily independence",
+        "safety in community routines"
+      ],
+      "declaredSupports": [
+        "visual schedule",
+        "task analysis",
+        "short instructions"
+      ],
+      "summary": "Family priorities support goal selection but do not establish performance level."
+    },
+    {
+      "id": "src-learner-voice",
+      "learnerId": "trial-learner-16",
+      "kind": "learner_voice",
+      "status": "completed",
+      "title": "Learner voice - self discovery form",
+      "declaredConcepts": [
+        "SELF_DET",
+        "COMM",
+        "SOCIAL"
+      ],
+      "declaredInterests": [
+        "hands-on learning",
+        "helping friends"
+      ],
+      "summary": "Learner preferences support motivation and wording."
+    },
+    {
+      "id": "src-prior-report",
+      "learnerId": "trial-learner-16",
+      "kind": "prior_report",
+      "status": "completed",
+      "title": "Previous plan report",
+      "declaredConcepts": [
+        "ACADEMIC",
+        "LEARNING_TECH"
+      ],
+      "summary": "Prior records require human review before current use."
+    }
+  ],
+  "sufficiencyReview": {
+    "learnerId": "trial-learner-16",
+    "ageBand": "AGE_14_PLUS",
+    "minimumReady": true,
+    "classifiedInformation": [
+      {
+        "id": "performance_evidence_src_official_assessment_ttap",
+        "learnerId": "trial-learner-16",
+        "label": "Official assessment - TTAP uploaded results",
+        "traceRefs": [
+          {
+            "sourceId": "src-official-assessment-ttap",
+            "sourceKind": "official_assessment"
+          }
+        ],
+        "role": "performance_evidence",
+        "conceptIds": [
+          "SELF_CARE",
+          "MOBILITY",
+          "COMMUNITY"
+        ],
+        "confidence": "structured"
+      },
+      {
+        "id": "supporting_information_src_family_voice",
+        "learnerId": "trial-learner-16",
+        "label": "Family compass - priorities and supports",
+        "traceRefs": [
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice"
+          }
+        ],
+        "role": "supporting_information",
+        "conceptIds": [
+          "SELF_CARE",
+          "SAFETY",
+          "SELF_DET"
+        ],
+        "supportType": "priority"
+      },
+      {
+        "id": "supporting_information_src_learner_voice",
+        "learnerId": "trial-learner-16",
+        "label": "Learner voice - self discovery form",
+        "traceRefs": [
+          {
+            "sourceId": "src-learner-voice",
+            "sourceKind": "learner_voice"
+          }
+        ],
+        "role": "supporting_information",
+        "conceptIds": [
+          "SELF_DET",
+          "COMM",
+          "SOCIAL"
+        ],
+        "supportType": "preference"
+      },
+      {
+        "id": "suggested_inference_src_prior_report",
+        "learnerId": "trial-learner-16",
+        "label": "Previous plan report",
+        "traceRefs": [
+          {
+            "sourceId": "src-prior-report",
+            "sourceKind": "prior_report"
+          }
+        ],
+        "role": "suggested_inference",
+        "conceptIds": [
+          "ACADEMIC",
+          "LEARNING_TECH"
+        ],
+        "reason": "Prior or external records require human review before becoming current performance evidence.",
+        "status": "suggested"
+      }
+    ],
+    "insights": [
+      {
+        "id": "insight_performance_evidence_src_official_assessment_ttap",
+        "learnerId": "trial-learner-16",
+        "title": "Official assessment - TTAP uploaded results",
+        "body": "Structured performance information can support present-level review when confirmed by the specialist.",
+        "conceptIds": [
+          "SELF_CARE",
+          "MOBILITY",
+          "COMMUNITY"
+        ],
+        "role": "performance_evidence",
+        "traceRefs": [
+          {
+            "sourceId": "src-official-assessment-ttap",
+            "sourceKind": "official_assessment"
+          }
+        ]
+      },
+      {
+        "id": "insight_supporting_information_src_family_voice",
+        "learnerId": "trial-learner-16",
+        "title": "Family compass - priorities and supports",
+        "body": "This source supports priorities, context, motivation, or goal wording, but does not establish learner level by itself.",
+        "conceptIds": [
+          "SELF_CARE",
+          "SAFETY",
+          "SELF_DET"
+        ],
+        "role": "supporting_information",
+        "traceRefs": [
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice"
+          }
+        ]
+      },
+      {
+        "id": "insight_supporting_information_src_learner_voice",
+        "learnerId": "trial-learner-16",
+        "title": "Learner voice - self discovery form",
+        "body": "This source supports priorities, context, motivation, or goal wording, but does not establish learner level by itself.",
+        "conceptIds": [
+          "SELF_DET",
+          "COMM",
+          "SOCIAL"
+        ],
+        "role": "supporting_information",
+        "traceRefs": [
+          {
+            "sourceId": "src-learner-voice",
+            "sourceKind": "learner_voice"
+          }
+        ]
+      },
+      {
+        "id": "insight_suggested_inference_src_prior_report",
+        "learnerId": "trial-learner-16",
+        "title": "Previous plan report",
+        "body": "This is an advisory inference that requires human confirmation before downstream use.",
+        "conceptIds": [
+          "ACADEMIC",
+          "LEARNING_TECH"
+        ],
+        "role": "suggested_inference",
+        "traceRefs": [
+          {
+            "sourceId": "src-prior-report",
+            "sourceKind": "prior_report"
+          }
+        ]
+      }
+    ],
+    "goalOpportunities": [
+      {
+        "id": "goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+        "learnerId": "trial-learner-16",
+        "title": "Goal opportunity from: Official assessment - TTAP uploaded results",
+        "rationale": "This opportunity is anchored in a performance source and may be used to draft a measurable goal.",
+        "conceptIds": [
+          "SELF_CARE",
+          "MOBILITY",
+          "COMMUNITY"
+        ],
+        "sourceRole": "performance_evidence",
+        "readiness": "ready_for_goal_draft",
+        "traceRefs": [
+          {
+            "sourceId": "src-official-assessment-ttap",
+            "sourceKind": "official_assessment"
+          }
+        ]
+      },
+      {
+        "id": "goal_opp_insight_supporting_information_src_family_voice",
+        "learnerId": "trial-learner-16",
+        "title": "Goal opportunity from: Family compass - priorities and supports",
+        "rationale": "This opportunity can shape priority or wording, but needs another performance anchor before quality approval.",
+        "conceptIds": [
+          "SELF_CARE",
+          "SAFETY",
+          "SELF_DET"
+        ],
+        "sourceRole": "supporting_information",
+        "readiness": "needs_human_review",
+        "traceRefs": [
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice"
+          }
+        ]
+      },
+      {
+        "id": "goal_opp_insight_supporting_information_src_learner_voice",
+        "learnerId": "trial-learner-16",
+        "title": "Goal opportunity from: Learner voice - self discovery form",
+        "rationale": "This opportunity can shape priority or wording, but needs another performance anchor before quality approval.",
+        "conceptIds": [
+          "SELF_DET",
+          "COMM",
+          "SOCIAL"
+        ],
+        "sourceRole": "supporting_information",
+        "readiness": "needs_human_review",
+        "traceRefs": [
+          {
+            "sourceId": "src-learner-voice",
+            "sourceKind": "learner_voice"
+          }
+        ]
+      },
+      {
+        "id": "goal_opp_insight_suggested_inference_src_prior_report",
+        "learnerId": "trial-learner-16",
+        "title": "Goal opportunity from: Previous plan report",
+        "rationale": "This opportunity can shape priority or wording, but needs another performance anchor before quality approval.",
+        "conceptIds": [
+          "ACADEMIC",
+          "LEARNING_TECH"
+        ],
+        "sourceRole": "suggested_inference",
+        "readiness": "needs_more_information",
+        "traceRefs": [
+          {
+            "sourceId": "src-prior-report",
+            "sourceKind": "prior_report"
+          }
+        ]
+      }
+    ],
+    "supportOpportunities": [
+      {
+        "id": "support_opp_src_family_voice_visual_schedule",
+        "learnerId": "trial-learner-16",
+        "title": "visual schedule",
+        "suggestedConditionPhrase": "Given visual schedule, the learner will...",
+        "conceptIds": [
+          "SELF_CARE",
+          "SAFETY",
+          "SELF_DET"
+        ],
+        "traceRefs": [
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice",
+            "field": "declaredSupports"
+          }
+        ]
+      },
+      {
+        "id": "support_opp_src_family_voice_task_analysis",
+        "learnerId": "trial-learner-16",
+        "title": "task analysis",
+        "suggestedConditionPhrase": "Given task analysis, the learner will...",
+        "conceptIds": [
+          "SELF_CARE",
+          "SAFETY",
+          "SELF_DET"
+        ],
+        "traceRefs": [
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice",
+            "field": "declaredSupports"
+          }
+        ]
+      },
+      {
+        "id": "support_opp_src_family_voice_short_instructions",
+        "learnerId": "trial-learner-16",
+        "title": "short instructions",
+        "suggestedConditionPhrase": "Given short instructions, the learner will...",
+        "conceptIds": [
+          "SELF_CARE",
+          "SAFETY",
+          "SELF_DET"
+        ],
+        "traceRefs": [
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice",
+            "field": "declaredSupports"
+          }
+        ]
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap_trial_learner_16_career_inclination_14_plus",
+        "learnerId": "trial-learner-16",
+        "severity": "quality",
+        "title": "Career inclination information is recommended for age 14+",
+        "recommendation": "Add career inclination or transition interest information. This is advisory and does not block workflow.",
+        "blocksWorkflow": false
+      }
+    ]
+  },
+  "goalDraft": {
+    "id": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+    "learnerId": "trial-learner-16",
+    "sourceOpportunityId": "goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+    "conceptIds": [
+      "SELF_CARE",
+      "MOBILITY",
+      "COMMUNITY"
+    ],
+    "status": "draft_ready_for_human_review",
+    "text": "By the end of the annual plan period, Given visual schedule, Trial Learner will complete a three-step community purchase routine during a simulated or real community routine with in 4 of 5 observed opportunities across three consecutive sessions, as measured by direct observation checklist and work-sample record.",
+    "elements": [
+      {
+        "key": "learner_timeframe",
+        "label": "Learner and timeframe",
+        "value": "By the end of the annual plan period"
+      },
+      {
+        "key": "condition",
+        "label": "Condition",
+        "value": "Given visual schedule, Trial Learner will"
+      },
+      {
+        "key": "observable_behavior",
+        "label": "Observable behavior",
+        "value": "complete a three-step community purchase routine"
+      },
+      {
+        "key": "clarifying_details",
+        "label": "Clarifying details",
+        "value": "during a simulated or real community routine"
+      },
+      {
+        "key": "performance_criterion",
+        "label": "Performance criterion",
+        "value": "in 4 of 5 observed opportunities across three consecutive sessions"
+      },
+      {
+        "key": "measurement_method",
+        "label": "Measurement method",
+        "value": "direct observation checklist and work-sample record"
+      }
+    ],
+    "traceRefs": [
+      {
+        "sourceId": "src-official-assessment-ttap",
+        "sourceKind": "official_assessment"
+      },
+      {
+        "sourceId": "src-family-voice",
+        "sourceKind": "family_voice",
+        "field": "declaredSupports"
+      }
+    ]
+  },
+  "goalQualityReview": {
+    "goalDraftId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+    "readyForHumanReview": true,
+    "issues": [
+      {
+        "id": "goal_quality_goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap_vague_language",
+        "severity": "quality",
+        "title": "Vague goal language detected",
+        "recommendation": "Replace \"learn\" with an observable action such as identify, complete, select, request, write, or perform."
+      }
+    ]
+  },
+  "reportPackage": {
+    "id": "report_trial_learner_16",
+    "learnerId": "trial-learner-16",
+    "status": "draft_ready_for_human_review",
+    "claims": [
+      {
+        "id": "claim_trial_learner_16_profile",
+        "learnerId": "trial-learner-16",
+        "type": "learner_profile",
+        "title": "Learner profile was created",
+        "body": "Trial Learner has a learner profile with age, diagnosis, institution, and entry status stored as basic data.",
+        "sourceRefs": []
+      },
+      {
+        "id": "claim_trial_learner_16_information_sufficiency",
+        "learnerId": "trial-learner-16",
+        "type": "information_sufficiency",
+        "title": "Minimum information is present",
+        "body": "The learner has the minimum information required to proceed to plan drafting, while quality recommendations may remain.",
+        "sourceRefs": [
+          {
+            "sourceId": "src-official-assessment-ttap",
+            "sourceKind": "official_assessment"
+          },
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice"
+          },
+          {
+            "sourceId": "src-learner-voice",
+            "sourceKind": "learner_voice"
+          },
+          {
+            "sourceId": "src-prior-report",
+            "sourceKind": "prior_report"
+          }
+        ]
+      },
+      {
+        "id": "claim_trial_learner_16_goal_draft",
+        "learnerId": "trial-learner-16",
+        "type": "goal_draft",
+        "title": "Goal draft is linked to source information",
+        "body": "By the end of the annual plan period, Given visual schedule, Trial Learner will complete a three-step community purchase routine during a simulated or real community routine with in 4 of 5 observed opportunities across three consecutive sessions, as measured by direct observation checklist and work-sample record.",
+        "sourceRefs": [
+          {
+            "sourceId": "src-official-assessment-ttap",
+            "sourceKind": "official_assessment"
+          },
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice",
+            "field": "declaredSupports"
+          }
+        ]
+      },
+      {
+        "id": "claim_trial_learner_16_goal_quality",
+        "learnerId": "trial-learner-16",
+        "type": "goal_quality",
+        "title": "Goal draft passed hard-stop checks",
+        "body": "The draft goal has no hard-stop quality issue and may be prepared for human review.",
+        "sourceRefs": [
+          {
+            "sourceId": "src-official-assessment-ttap",
+            "sourceKind": "official_assessment"
+          },
+          {
+            "sourceId": "src-family-voice",
+            "sourceKind": "family_voice",
+            "field": "declaredSupports"
+          }
+        ]
+      },
+      {
+        "id": "claim_trial_learner_16_human_review_boundary",
+        "learnerId": "trial-learner-16",
+        "type": "human_review_boundary",
+        "title": "Human approval remains external",
+        "body": "Himam can prepare a draft and quality review, but final plan approval is performed by the authorized human team.",
+        "sourceRefs": []
+      }
+    ],
+    "traces": [
+      {
+        "claimId": "claim_trial_learner_16_profile",
+        "steps": [
+          {
+            "label": "Learner",
+            "recordId": "trial-learner-16",
+            "recordType": "Learner"
+          },
+          {
+            "label": "Sufficiency review",
+            "recordId": "trial-learner-16",
+            "recordType": "ClassifiedInformation"
+          },
+          {
+            "label": "Goal draft",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalDraft"
+          },
+          {
+            "label": "Goal quality review",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalQualityReview"
+          },
+          {
+            "label": "Report claim",
+            "recordId": "claim_trial_learner_16_profile",
+            "recordType": "ReportClaim"
+          }
+        ],
+        "complete": true
+      },
+      {
+        "claimId": "claim_trial_learner_16_information_sufficiency",
+        "steps": [
+          {
+            "label": "Learner",
+            "recordId": "trial-learner-16",
+            "recordType": "Learner"
+          },
+          {
+            "label": "Source: official_assessment",
+            "recordId": "src-official-assessment-ttap",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Source: family_voice",
+            "recordId": "src-family-voice",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Source: learner_voice",
+            "recordId": "src-learner-voice",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Source: prior_report",
+            "recordId": "src-prior-report",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Sufficiency review",
+            "recordId": "trial-learner-16",
+            "recordType": "ClassifiedInformation"
+          },
+          {
+            "label": "Goal draft",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalDraft"
+          },
+          {
+            "label": "Goal quality review",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalQualityReview"
+          },
+          {
+            "label": "Report claim",
+            "recordId": "claim_trial_learner_16_information_sufficiency",
+            "recordType": "ReportClaim"
+          }
+        ],
+        "complete": true
+      },
+      {
+        "claimId": "claim_trial_learner_16_goal_draft",
+        "steps": [
+          {
+            "label": "Learner",
+            "recordId": "trial-learner-16",
+            "recordType": "Learner"
+          },
+          {
+            "label": "Source: official_assessment",
+            "recordId": "src-official-assessment-ttap",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Source: family_voice",
+            "recordId": "src-family-voice",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Sufficiency review",
+            "recordId": "trial-learner-16",
+            "recordType": "ClassifiedInformation"
+          },
+          {
+            "label": "Goal draft",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalDraft"
+          },
+          {
+            "label": "Goal quality review",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalQualityReview"
+          },
+          {
+            "label": "Report claim",
+            "recordId": "claim_trial_learner_16_goal_draft",
+            "recordType": "ReportClaim"
+          }
+        ],
+        "complete": true
+      },
+      {
+        "claimId": "claim_trial_learner_16_goal_quality",
+        "steps": [
+          {
+            "label": "Learner",
+            "recordId": "trial-learner-16",
+            "recordType": "Learner"
+          },
+          {
+            "label": "Source: official_assessment",
+            "recordId": "src-official-assessment-ttap",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Source: family_voice",
+            "recordId": "src-family-voice",
+            "recordType": "InformationSource"
+          },
+          {
+            "label": "Sufficiency review",
+            "recordId": "trial-learner-16",
+            "recordType": "ClassifiedInformation"
+          },
+          {
+            "label": "Goal draft",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalDraft"
+          },
+          {
+            "label": "Goal quality review",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalQualityReview"
+          },
+          {
+            "label": "Report claim",
+            "recordId": "claim_trial_learner_16_goal_quality",
+            "recordType": "ReportClaim"
+          }
+        ],
+        "complete": true
+      },
+      {
+        "claimId": "claim_trial_learner_16_human_review_boundary",
+        "steps": [
+          {
+            "label": "Learner",
+            "recordId": "trial-learner-16",
+            "recordType": "Learner"
+          },
+          {
+            "label": "Sufficiency review",
+            "recordId": "trial-learner-16",
+            "recordType": "ClassifiedInformation"
+          },
+          {
+            "label": "Goal draft",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalDraft"
+          },
+          {
+            "label": "Goal quality review",
+            "recordId": "goal_draft_trial_learner_16_goal_opp_insight_performance_evidence_src_official_assessment_ttap",
+            "recordType": "GoalQualityReview"
+          },
+          {
+            "label": "Report claim",
+            "recordId": "claim_trial_learner_16_human_review_boundary",
+            "recordType": "ReportClaim"
+          }
+        ],
+        "complete": true
+      }
+    ]
+  }
+}

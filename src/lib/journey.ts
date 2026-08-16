@@ -1,6 +1,6 @@
 // ── Journey / progress model ─────────────────────────────────────────────────
 // Single source of truth for where a student sits in the specialist journey:
-// assessment → coverage → family → student-voice → iep → plan → report.
+// assessment → learner voice → family voice → additional sources → current level review → iep → plan → implementation → report.
 // Every route that advances a student's progress should go through
 // `advanceStage()` so status never regresses; every screen that needs to
 // know "where am I / what's next" should read through the helpers below
@@ -12,11 +12,13 @@ export type StudentStage =
   | "assessment_completed"
   | "coverage_ready"
   | "family_completed"
+  | "family_skipped"
   | "learner_voice_completed"
   | "learner_voice_skipped"
   | "iep_completed"
   | "plan_completed"
   | "report_ready"
+  | "implementation_recorded"
   | "report_generated";
 
 export const STAGE_RANK: Record<StudentStage, number> = {
@@ -25,6 +27,7 @@ export const STAGE_RANK: Record<StudentStage, number> = {
   assessment_completed: 2,
   coverage_ready: 3,
   family_completed: 4,
+  family_skipped: 4,
   learner_voice_completed: 5,
   learner_voice_skipped: 5,
   iep_completed: 6,
@@ -33,7 +36,8 @@ export const STAGE_RANK: Record<StudentStage, number> = {
   // was saved WITH at least one real-context activity selected, so the
   // report will be meaningful rather than triggering its "no activities" warning.
   report_ready: 8,
-  report_generated: 9,
+  implementation_recorded: 9,
+  report_generated: 10,
 };
 
 // Status strings written by earlier versions of this app, mapped forward so
@@ -74,6 +78,7 @@ export type StepId =
   | "learner_voice"
   | "iep"
   | "plan"
+  | "implementation"
   | "report";
 
 export type StepDef = {
@@ -85,12 +90,13 @@ export type StepDef = {
 };
 
 export const JOURNEY_STEPS: StepDef[] = [
-  { id: "assessment", label: "التقييم", routeTo: "/students/$id/assessment", completionRank: STAGE_RANK.assessment_completed },
-  { id: "coverage", label: "التغطية", routeTo: "/students/$id/coverage", completionRank: STAGE_RANK.coverage_ready },
+  { id: "assessment", label: "مصادر جمع المعلومات", routeTo: "/students/$id/assessment", completionRank: STAGE_RANK.assessment_completed },
+  { id: "coverage", label: "مراجعة كفاية المعلومات", routeTo: "/students/$id/coverage", completionRank: STAGE_RANK.coverage_ready },
   { id: "family", label: "صوت الأسرة", routeTo: "/students/$id/family", completionRank: STAGE_RANK.family_completed },
   { id: "learner_voice", label: "صوت المتعلم", routeTo: "/students/$id/student-voice", completionRank: STAGE_RANK.learner_voice_completed },
   { id: "iep", label: "الخطة التربوية", routeTo: "/students/$id/iep", completionRank: STAGE_RANK.iep_completed },
   { id: "plan", label: "الخطة التنفيذية", routeTo: "/students/$id/plan", completionRank: STAGE_RANK.plan_completed },
+  { id: "implementation", label: "التنفيذ", routeTo: "/students/$id/implementation", completionRank: STAGE_RANK.implementation_recorded },
   { id: "report", label: "التقرير", routeTo: "/students/$id/report", completionRank: STAGE_RANK.report_generated },
 ];
 

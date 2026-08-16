@@ -1,26 +1,16 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { advanceStage } from "../lib/journey";
-import { JourneyStepper } from "@/components/journey-stepper";
-import { getItemsByDomain, type TTAPDomain } from "../data/ttap-items";
-import { GoalQualityChecklist } from "@/components/goal-quality-checklist";
-import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/lib/goal-quality";
-import { GoalReferencePanel } from "@/components/goal-reference-panel";
+import { loadAssessmentRecords } from "@/lib/assessment-records";
 
 export const Route = createFileRoute("/students/$id/iep")({
-  component: IEPPage,
+  component: PlanPreparationHubPage,
   head: () => ({
     meta: [
-      { title: "الخطة التربوية الفردية — همم" },
-      { name: "description", content: "إدخال الخطة التربوية الفردية للمستفيد." },
+      { title: "إعداد الخطة التربوية الفردية - همم" },
+      {
+        name: "description",
+        content: "فهرس مكونات إعداد الخطة التربوية الفردية قبل توليد الأهداف.",
+      },
     ],
   }),
 });
@@ -28,749 +18,293 @@ export const Route = createFileRoute("/students/$id/iep")({
 type StoredStudent = {
   id: string;
   name: string;
-  birthDate: string;
-  center: string;
-  tool: string;
-  createdAt: string;
+  birthDate?: string;
+  ageYears?: number | null;
+  diagnosis?: string;
+  center?: string;
+  learnerEntryType?: "new" | "returning";
+  status?: string;
+};
+
+type ActiveSection = "basic" | "currentLevel" | "specialistVision";
+
+type ComponentCard = {
+  key: ActiveSection | "goals";
+  title: string;
+  body: string;
   status: string;
 };
-
-type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB" | "COG" | "COM" | "SOC" | "ADL" | "VOC" | "MOT";
-type GoalCategory = "أكاديمي" | "وظيفي" | "اجتماعي" | "عملي";
-type Goal = {
-  id: string;
-  text: string;
-  category: GoalCategory | "";
-  // Quality-checklist fields (additive — optional so existing saved goals
-  // without them still load fine).
-  context?: string;
-  criterion?: string;
-  measurementMethod?: string;
-  evidenceRef?: string;
-  lifePractice?: string;
-  override?: GoalOverride;
-};
-
-// Same context vocabulary already used in plan.tsx, for consistency.
-const GOAL_CONTEXTS = ["البيت", "المركز / المدرسة", "المجتمع (المسجد، دار الحي، الحديقة)", "مجلس العائلة"];
-const MEASUREMENT_METHODS = ["ملاحظة مباشرة", "سجل تكراري", "عيّنة عمل", "تقرير الأسرة"];
-const OVERRIDE_REASONS = [
-  "تقييم ميداني حديث يدعم القرار",
-  "ملاحظة أسرة موثوقة تبرر الاستثناء",
-  "قيد زمني في الجلسة الحالية",
-  "توجيه إشرافي أو فريق متعدد التخصصات",
-  "سبب آخر",
-];
-
-type FamilyData = { priorities?: string[]; vision5y?: string };
-type LearnerVoiceData = { q_love?: string; q_good?: string };
-type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[]; completionPercent?: number };
-type AssessmentDomainEntry = { score: string; note?: string };
-
-// Priority order for "first missing hard-stop field" — matches the order
-// the fields appear when jumping a specialist to the problem.
-type MissingField = "criterion" | "measurementMethod" | "evidenceRef" | null;
-function firstMissingField(g: Goal): MissingField {
-  if (!g.criterion?.trim()) return "criterion";
-  if (!g.measurementMethod?.trim()) return "measurementMethod";
-  if (!g.evidenceRef?.trim()) return "evidenceRef";
-  return null;
-}
-
-const TTAP_DOMAINS: { code: DomainCode; name: string }[] = [
-  { code: "VS", name: "المهارات المهنية" },
-  { code: "VB", name: "السلوكيات المهنية" },
-  { code: "IF", name: "الأداء الوظيفي المستقل" },
-  { code: "LS", name: "مهارات الترفيه" },
-  { code: "FC", name: "التواصل الوظيفي" },
-  { code: "IB", name: "السلوك البينشخصي" },
-];
-
-const GENERIC_DOMAINS: { code: DomainCode; name: string }[] = [
-  { code: "COG", name: "المهارات المعرفية" },
-  { code: "COM", name: "التواصل واللغة" },
-  { code: "SOC", name: "المهارات الاجتماعية" },
-  { code: "ADL", name: "مهارات الحياة اليومية" },
-  { code: "VOC", name: "التأهيل المهني" },
-  { code: "MOT", name: "المهارات الحركية" },
-];
-
-const CATEGORIES: GoalCategory[] = ["أكاديمي", "وظيفي", "اجتماعي", "عملي"];
-
-const SUPPORT_SERVICES = [
-  "دعم التواصل",
-  "التدريب المهني",
-  "الدعم الأكاديمي",
-  "التدريب على المهارات الحياتية",
-  "خدمات إعادة التأهيل المهني",
-];
 
 const TEAL = "#0F3D3E";
 const ORANGE = "#D9764A";
 
-function emptyGoalMap(domains: { code: DomainCode }[]): Record<DomainCode, Goal[]> {
-  return Object.fromEntries(domains.map((d): [DomainCode, Goal[]] => [d.code, []])) as Record<DomainCode, Goal[]>;
-}
-function emptyOpenMap(domains: { code: DomainCode }[]): Record<DomainCode, boolean> {
-  return Object.fromEntries(domains.map((d) => [d.code, false])) as Record<DomainCode, boolean>;
+function safeParse<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
 }
 
-function IEPPage() {
+function loadStudent(id: string): StoredStudent | null {
+  const list = safeParse<StoredStudent[]>("himam_students") ?? [];
+  return list.find((item) => item.id === id) ?? null;
+}
+
+function PlanPreparationHubPage() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
-  const [loaded, setLoaded] = useState(false);
+  const location = useLocation();
+  const hubPath = `/students/${id}/iep`;
+  const isHubPage = location.pathname === hubPath || location.pathname === `${hubPath}/`;
+
   const [student, setStudent] = useState<StoredStudent | null>(null);
-  const [vision, setVision] = useState("");
-
-  const domains = student?.tool?.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS;
-
-  const [goals, setGoals] = useState<Record<DomainCode, Goal[]>>(emptyGoalMap(TTAP_DOMAINS));
-  const [open, setOpen] = useState<Record<DomainCode, boolean>>(emptyOpenMap(TTAP_DOMAINS));
-  const [services, setServices] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState("");
-  const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
-
-  // Upstream journey data the quality checklist and reference panel read
-  // from — additive, read-only here (each is already collected on its own
-  // dedicated page).
-  const [family, setFamily] = useState<FamilyData | null>(null);
-  const [learnerVoice, setLearnerVoice] = useState<LearnerVoiceData | null>(null);
-  const [coverage, setCoverage] = useState<CoverageData | null>(null);
-  const [assessmentDomains, setAssessmentDomains] = useState<Record<string, AssessmentDomainEntry> | null>(null);
-
-  // Draft state for the "professional override" mini-form, keyed by goal id.
-  const [overrideFormFor, setOverrideFormFor] = useState<string | null>(null);
-  const [overrideDraft, setOverrideDraft] = useState<Record<string, { reason: string; note: string }>>({});
-
-  // Set by handleSave when a hard-stop blocks saving — once the domain/goal
-  // panels it triggers have rendered, this effect scrolls to and focuses
-  // the first unresolved field so the specialist doesn't have to hunt for it.
-  const [scrollTarget, setScrollTarget] = useState<{ goalId: string; field: MissingField } | null>(null);
+  const [activeSection, setActiveSection] = useState<ActiveSection>("basic");
+  const [specialistVision, setSpecialistVision] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
 
   useEffect(() => {
-    if (!scrollTarget) return;
-    const cardEl = document.getElementById(`goal-card-${scrollTarget.goalId}`);
-    cardEl?.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (scrollTarget.field) {
-      const fieldEl = document.getElementById(`goal-field-${scrollTarget.field}-${scrollTarget.goalId}`);
-      fieldEl?.focus();
-    }
-    setScrollTarget(null);
-  }, [scrollTarget]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("himam_students");
-      if (raw) {
-        const list: StoredStudent[] = JSON.parse(raw);
-        setStudent(list.find((s) => s.id === id) ?? null);
-      }
-      const iepRaw = localStorage.getItem(`himam_iep_${id}`);
-      if (iepRaw) {
-        const data = JSON.parse(iepRaw);
-        const found = raw ? (JSON.parse(raw) as StoredStudent[]).find((s) => s.id === id) : null;
-        const activeDomains = found?.tool?.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS;
-        if (data.vision) setVision(data.vision);
-        if (data.goals) setGoals({ ...emptyGoalMap(activeDomains), ...data.goals });
-        if (data.services) setServices(data.services);
-        if (data.startDate) setStartDate(data.startDate);
-      }
-    } catch {}
-
-    try { setFamily(JSON.parse(localStorage.getItem(`himam_family_${id}`) || "null")); } catch { /* noop */ }
-    try { setLearnerVoice(JSON.parse(localStorage.getItem(`himam_learner_voice_${id}`) || "null")); } catch { /* noop */ }
-    try { setCoverage(JSON.parse(localStorage.getItem(`himam_coverage_${id}`) || "null")); } catch { /* noop */ }
-    try {
-      const assessRaw = JSON.parse(localStorage.getItem(`himam_assessment_${id}`) || "null");
-      if (assessRaw?.domains && Array.isArray(assessRaw.domains)) {
-        const byCode: Record<string, AssessmentDomainEntry> = {};
-        for (const d of assessRaw.domains as Array<{ code: string; score: string; note?: string }>) {
-          byCode[d.code] = { score: d.score, note: d.note };
-        }
-        setAssessmentDomains(byCode);
-      }
-    } catch { /* noop */ }
-
-    setLoaded(true);
+    setStudent(loadStudent(id));
+    const savedVision = safeParse<{ specialistVision?: string }>(`himam_plan_preparation_${id}`);
+    if (savedVision?.specialistVision) setSpecialistVision(savedVision.specialistVision);
   }, [id]);
 
-  function addGoal(code: DomainCode) {
-    setGoals((g) => ({
-      ...g,
-      [code]: [...g[code], {
-        id: crypto.randomUUID(), text: "", category: "",
-        context: "", criterion: "", measurementMethod: "", evidenceRef: "", lifePractice: "",
-      }],
-    }));
-  }
-  function updateGoalText(code: DomainCode, gid: string, text: string) {
-    setGoals((g) => ({
-      ...g,
-      [code]: g[code].map((x) => (x.id === gid ? { ...x, text } : x)),
-    }));
-  }
-  function updateGoalCategory(code: DomainCode, gid: string, cat: GoalCategory | "") {
-    setGoals((g) => ({
-      ...g,
-      [code]: g[code].map((x) => (x.id === gid ? { ...x, category: cat } : x)),
-    }));
-  }
-  function updateGoalField(code: DomainCode, gid: string, field: keyof Goal, value: string) {
-    setGoals((g) => ({
-      ...g,
-      [code]: g[code].map((x) => (x.id === gid ? { ...x, [field]: value } : x)),
-    }));
-  }
-  function deleteGoal(code: DomainCode, gid: string) {
-    setGoals((g) => ({ ...g, [code]: g[code].filter((x) => x.id !== gid) }));
-  }
-  function toggleService(s: string) {
-    setServices((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
-  }
-  function toggleGoalExpanded(gid: string) {
-    setExpandedGoals((prev) => {
-      const next = new Set(prev);
-      next.has(gid) ? next.delete(gid) : next.add(gid);
-      return next;
-    });
+  if (!isHubPage) {
+    return <Outlet />;
   }
 
-  function openOverrideForm(gid: string) {
-    setOverrideFormFor(gid);
-    setOverrideDraft((prev) => ({ ...prev, [gid]: prev[gid] ?? { reason: "", note: "" } }));
-  }
-  function updateOverrideDraft(gid: string, field: "reason" | "note", value: string) {
-    setOverrideDraft((prev) => ({ ...prev, [gid]: { ...(prev[gid] ?? { reason: "", note: "" }), [field]: value } }));
-  }
-  function confirmOverride(code: DomainCode, gid: string) {
-    const draft = overrideDraft[gid];
-    if (!draft?.reason) return;
-    setGoals((g) => ({
-      ...g,
-      [code]: g[code].map((x) => (x.id === gid
-        ? { ...x, override: { reason: draft.reason, note: draft.note || undefined, at: new Date().toISOString() } }
-        : x)),
-    }));
-    setOverrideFormFor(null);
-  }
+  const assessmentRecords = loadAssessmentRecords(id);
+  const learnerVoice = safeParse(`himam_learner_voice_${id}`);
+  const familyVoice = safeParse(`himam_family_${id}`);
+  const additionalSources = safeParse(`himam_additional_sources_${id}`);
 
-  // Only goals the specialist actually started (non-empty text) can block —
-  // an empty, not-yet-written goal is never a blocker.
-  const blockingGoals: { domainCode: DomainCode; domainName: string; goalId: string; text: string; missingField: MissingField }[] = [];
-  for (const d of domains) {
-    for (const g of goals[d.code] ?? []) {
-      const quality = computeGoalQuality({
-        goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
-        measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
-        lifePractice: g.lifePractice ?? "", domainCode: d.code,
-        coverage, family, learnerVoice, override: g.override ?? null,
-      });
-      if (hasHardStopViolation(g.text, quality)) {
-        blockingGoals.push({ domainCode: d.code, domainName: d.name, goalId: g.id, text: g.text, missingField: firstMissingField(g) });
-      }
-    }
-  }
-  const canSave = blockingGoals.length === 0;
+  const cards: ComponentCard[] = [
+    {
+      key: "basic",
+      title: "البيانات الأساسية",
+      body: "مراجعة اسم المتعلم، العمر، التشخيص، نوع المتعلم، والمركز أو المؤسسة قبل إعداد الخطة.",
+      status: student?.name && typeof student.ageYears === "number" ? "مكتمل أساسياً" : "يحتاج مراجعة",
+    },
+    {
+      key: "currentLevel",
+      title: "مستوى الأداء الحالي",
+      body: "عرض ملخص مصادر جمع المعلومات التي ستغذي صياغة مستوى الأداء الحالي دون اعتماد آلي.",
+      status: assessmentRecords.length > 0 ? "مصدر تقييم موجود" : "ينقصه تقييم رسمي",
+    },
+    {
+      key: "specialistVision",
+      title: "رؤية المختص للخطة التربوية الفردية",
+      body: "مساحة مهنية يصوغ فيها المختص اتجاه الخطة قبل توليد الأهداف.",
+      status: specialistVision.trim() ? "مدونة" : "غير مدونة",
+    },
+    {
+      key: "goals",
+      title: "توليد الأهداف",
+      body: "يفتح صفحة مستقلة تجمع هيكلة توليد الأهداف مع شاشة الدعم المعرفي بجانبها.",
+      status: "صفحة مستقلة",
+    },
+  ];
 
-  function handleSave() {
-    if (!canSave) {
-      const first = blockingGoals[0];
-      setOpen((o) => ({ ...o, [first.domainCode]: true }));
-      setExpandedGoals((prev) => {
-        const next = new Set(prev);
-        next.add(first.goalId);
-        return next;
-      });
-      setScrollTarget({ goalId: first.goalId, field: first.missingField });
-      return;
-    }
-
-    try {
-      localStorage.setItem(
-        `himam_iep_${id}`,
-        JSON.stringify({ vision, goals, services, startDate, savedAt: new Date().toISOString() }),
-      );
-      const raw = localStorage.getItem("himam_students");
-      if (raw) {
-        const list: StoredStudent[] = JSON.parse(raw);
-        const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "iep_completed") } : s));
-        localStorage.setItem("himam_students", JSON.stringify(updated));
-      }
-    } catch {}
-    toast.success("تم حفظ الخطة بنجاح ✓");
-    navigate({ to: "/students/$id/plan", params: { id } });
+  function saveSpecialistVision() {
+    localStorage.setItem(
+      `himam_plan_preparation_${id}`,
+      JSON.stringify({ specialistVision, savedAt: new Date().toISOString() }),
+    );
+    setSavedMessage("تم حفظ رؤية المختص كمسودة قابلة للمراجعة البشرية.");
   }
 
   return (
-    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#F8F7F4", fontFamily: "system-ui, sans-serif" }}>
-      <header
-        style={{
-          background: TEAL, color: "white", padding: "14px 24px",
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}
-      >
-        <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
+    <div className="min-h-screen bg-[#FAF7F2]" dir="rtl" lang="ar">
+      <header className="flex items-center justify-between px-8 py-4" style={{ backgroundColor: TEAL }}>
         <Link
-          to="/students/$id/student-voice"
+          to="/students/$id/coverage"
           params={{ id }}
-          style={{
-            color: "white", textDecoration: "none", fontSize: 15,
-            padding: "8px 14px", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8,
-          }}
+          className="rounded-lg border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
         >
-          → رجوع
+          رجوع
         </Link>
+        <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
 
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: "28px 20px 60px" }}>
-        <nav
-          aria-label="مسار الصفحة"
-          style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, color: "#94A3B8", marginBottom: 10 }}
-        >
-          <Link to="/" style={{ color: "#64748B", textDecoration: "underline", fontWeight: 700 }}>لوحة المتعلمين</Link>
+      <main className="mx-auto max-w-6xl px-6 py-8 md:px-8">
+        <nav aria-label="مسار الصفحة" className="mb-2.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
+          <Link to="/" className="font-bold text-stone-600 underline">لوحة المتعلمين</Link>
           <span>←</span>
-          <span>{student?.name ?? "الطالب"}</span>
+          <span>{student?.name ?? "المتعلم"}</span>
           <span>←</span>
-          <span style={{ color: TEAL, fontWeight: 700 }}>الأهداف</span>
+          <Link to="/students/$id/coverage" params={{ id }} className="font-bold text-stone-600 underline">
+            مراجعة كفاية المعلومات
+          </Link>
+          <span>←</span>
+          <span className="font-bold text-[#0F3D3E]">إعداد الخطة</span>
         </nav>
 
-        <JourneyStepper studentId={id} currentStep="iep" status={student?.status} />
-
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>
-          الخطة التربوية الفردية
-        </h1>
-        <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>
-          {student ? student.name : "—"}
-        </p>
-
-        {/* Section 1 - Vision */}
-        <section style={cardStyle}>
-          <label style={labelStyle}>رؤية الخطة</label>
-          <textarea
-            value={vision}
-            onChange={(e) => setVision(e.target.value)}
-            placeholder="اكتب الرؤية العامة للخطة..."
-            rows={4}
-            style={{
-              width: "100%", padding: "12px 14px", border: "1px solid #E5E7EB",
-              borderRadius: 8, fontSize: 15, fontFamily: "inherit", resize: "vertical",
-              boxSizing: "border-box",
-            }}
-          />
-        </section>
-
-        {/* Section 2 - Goals by Domain */}
-        <section style={cardStyle}>
-          <h2 style={sectionTitle}>الأهداف حسب مجالات التقييم</h2>
-          <p style={{ color: "#64748B", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-            أدخل الأهداف تحت كل مجال بحرية كاملة
+        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold" style={{ color: ORANGE }}>فهرس مكونات الخطة</p>
+          <h2 className="mt-1 text-2xl font-bold text-[#0F3D3E]">إعداد الخطة التربوية الفردية</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">
+            تبدأ هذه المرحلة بمراجعة مكونات الخطة التي سيستند إليها المختص. صوت الأسرة وصوت المتعلم يظلان مصادر داعمة من المرحلة السابقة، ولا يظهران هنا كتبويبات مستقلة داخل إعداد الخطة.
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            {!loaded ? null : domains.map((d) => (
-              <div key={d.code} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
-                <button
-                  type="button"
-                  onClick={() => setOpen((o) => ({ ...o, [d.code]: !o[d.code] }))}
-                  style={{
-                    width: "100%", display: "flex", justifyContent: "space-between",
-                    alignItems: "center", padding: "12px 16px", background: "#E6F2F1",
-                    border: "none", cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontWeight: 700, color: TEAL, fontSize: 16 }}>{d.name}</span>
-                    <span style={{ fontSize: 12, color: "#94A3B8" }}>{d.code}</span>
-                  </div>
-                  <span style={{ fontSize: 14, color: "#64748B" }}>{open[d.code] ? "▲" : "▼"}</span>
-                </button>
-                {open[d.code] && (
-                  <div style={{ padding: 14, background: "white" }}>
-                    <GoalReferencePanel
-                      domainCode={d.code}
-                      domainName={d.name}
-                      tool={student?.tool ?? ""}
-                      assessment={assessmentDomains?.[d.code] ?? null}
-                      coverage={coverage}
-                      family={family}
-                      learnerVoice={learnerVoice}
-                    />
-                    {goals[d.code].length === 0 && (
-                      <p style={{ color: "#94A3B8", fontSize: 14, margin: "0 0 12px" }}>
-                        لا توجد أهداف بعد.
-                      </p>
-                    )}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {goals[d.code].map((g) => {
-                        const isTtapDomain = TTAP_DOMAINS.some((td) => td.code === d.code);
-                        const evidenceItems = isTtapDomain ? getItemsByDomain(d.code as TTAPDomain) : [];
-                        const expanded = expandedGoals.has(g.id);
-                        return (
-                        <div
-                          key={g.id}
-                          id={`goal-card-${g.id}`}
-                          style={{
-                            border: "1px solid #E5E7EB", borderRadius: 8, padding: 12,
-                            background: "#FAFAF8",
-                          }}
-                        >
-                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                            <input
-                              type="text"
-                              value={g.text}
-                              onChange={(e) => updateGoalText(d.code, g.id, e.target.value)}
-                              placeholder="اكتب الهدف..."
-                              style={{
-                                flex: 1, padding: "10px 12px", border: "1px solid #E5E7EB",
-                                borderRadius: 6, fontSize: 14, fontFamily: "inherit",
-                              }}
-                            />
-                            <Select
-                              value={g.category || "placeholder"}
-                              onValueChange={(val) => updateGoalCategory(d.code, g.id, val === "placeholder" ? "" : (val as GoalCategory))}
-                            >
-                              <SelectTrigger style={{ width: 130, fontSize: 13 }}>
-                                <SelectValue placeholder="التصنيف" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="placeholder" disabled>
-                                  التصنيف
-                                </SelectItem>
-                                {CATEGORIES.map((c) => (
-                                  <SelectItem key={c} value={c}>
-                                    {c}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <button
-                              type="button"
-                              onClick={() => deleteGoal(d.code, g.id)}
-                              aria-label="حذف الهدف"
-                              style={{
-                                background: "#FEE2E2", color: "#B91C1C", border: "none",
-                                borderRadius: 6, width: 36, height: 36, cursor: "pointer",
-                                fontSize: 16, fontWeight: 700, flexShrink: 0,
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => toggleGoalExpanded(g.id)}
-                            style={{
-                              marginTop: 10, background: "none", border: "none", cursor: "pointer",
-                              fontFamily: "inherit", fontSize: 12, fontWeight: 700, color: "#64748B",
-                              padding: 0, display: "flex", alignItems: "center", gap: 6,
-                            }}
-                          >
-                            <span>تفاصيل القياس والجودة</span>
-                            <span>{expanded ? "▲" : "▼"}</span>
-                          </button>
-
-                          {expanded && (
-                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed #E5E7EB", display: "flex", flexDirection: "column", gap: 10 }}>
-                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                                <div>
-                                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>السياق</label>
-                                  <select
-                                    value={g.context ?? ""}
-                                    onChange={(e) => updateGoalField(d.code, g.id, "context", e.target.value)}
-                                    style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit" }}
-                                  >
-                                    <option value="">— اختر السياق —</option>
-                                    {GOAL_CONTEXTS.map((c) => <option key={c} value={c}>{c}</option>)}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>طريقة القياس</label>
-                                  <select
-                                    id={`goal-field-measurementMethod-${g.id}`}
-                                    value={g.measurementMethod ?? ""}
-                                    onChange={(e) => updateGoalField(d.code, g.id, "measurementMethod", e.target.value)}
-                                    style={{
-                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
-                                      border: `1px solid ${!g.measurementMethod && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
-                                    }}
-                                  >
-                                    <option value="">— اختر طريقة —</option>
-                                    {MEASUREMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-                                  </select>
-                                </div>
-                              </div>
-
-                              <div>
-                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>المعيار</label>
-                                <input
-                                  id={`goal-field-criterion-${g.id}`}
-                                  type="text"
-                                  value={g.criterion ?? ""}
-                                  onChange={(e) => updateGoalField(d.code, g.id, "criterion", e.target.value)}
-                                  placeholder="مثال: 80% من المحاولات عبر 3 جلسات متتالية"
-                                  style={{
-                                    width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
-                                    border: `1px solid ${!g.criterion && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
-                                  }}
-                                />
-                                {!g.criterion && g.text.trim() && (
-                                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#B91C1C", fontWeight: 600 }}>
-                                    لا يمكن اعتماد الهدف دون معيار إتقان واضح.
-                                  </p>
-                                )}
-                              </div>
-
-                              <div>
-                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>الدليل المرتبط</label>
-                                {isTtapDomain ? (
-                                  <select
-                                    id={`goal-field-evidenceRef-${g.id}`}
-                                    value={g.evidenceRef ?? ""}
-                                    onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
-                                    style={{
-                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
-                                      border: `1px solid ${!g.evidenceRef && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
-                                    }}
-                                  >
-                                    <option value="">— لم يتم الربط بعد —</option>
-                                    {evidenceItems.map((item) => (
-                                      <option key={item.id} value={`بند ${item.id} — ${item.name}`}>
-                                        بند {item.id} — {item.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  <input
-                                    id={`goal-field-evidenceRef-${g.id}`}
-                                    type="text"
-                                    value={g.evidenceRef ?? ""}
-                                    onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
-                                    placeholder="صف مصدر الدليل الداعم لهذا الهدف"
-                                    style={{
-                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
-                                      border: `1px solid ${!g.evidenceRef && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
-                                    }}
-                                  />
-                                )}
-                                {!g.evidenceRef && g.text.trim() && (
-                                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#B91C1C", fontWeight: 600 }}>
-                                    لا يمكن اعتماد الهدف دون ربطه بدليل أو مصدر داعم.
-                                  </p>
-                                )}
-                              </div>
-
-                              <div>
-                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>
-                                  ممارسة حياتية مرتبطة <span style={{ fontWeight: 400, color: "#94A3B8" }}>(اختياري — إرشادي)</span>
-                                </label>
-                                <textarea
-                                  value={g.lifePractice ?? ""}
-                                  onChange={(e) => updateGoalField(d.code, g.id, "lifePractice", e.target.value)}
-                                  placeholder="صف موقفًا واقعيًا أو ممارسة حياتية يومية تتصل بالهدف أو بالمفهوم الانتقالي"
-                                  rows={2}
-                                  style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
-                                />
-                              </div>
-
-                              <GoalQualityChecklist
-                                goalText={g.text}
-                                context={g.context ?? ""}
-                                criterion={g.criterion ?? ""}
-                                measurementMethod={g.measurementMethod ?? ""}
-                                evidenceRef={g.evidenceRef ?? ""}
-                                lifePractice={g.lifePractice ?? ""}
-                                domainCode={d.code}
-                                coverage={coverage}
-                                family={family}
-                                learnerVoice={learnerVoice}
-                                override={g.override ?? null}
-                              />
-
-                              {g.text.trim() && (
-                                g.override ? (
-                                  <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 10, fontSize: 12, color: "#92400E" }}>
-                                    <strong>تجاوز مهني موثّق:</strong> {g.override.reason}
-                                    {g.override.note ? ` — ${g.override.note}` : ""}
-                                  </div>
-                                ) : overrideFormFor === g.id ? (
-                                  <div style={{ background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 8, padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                                    <p style={{ fontSize: 12, fontWeight: 700, color: "#1F2937", margin: 0 }}>تجاوز مهني موثّق</p>
-                                    <select
-                                      value={overrideDraft[g.id]?.reason ?? ""}
-                                      onChange={(e) => updateOverrideDraft(g.id, "reason", e.target.value)}
-                                      style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit" }}
-                                    >
-                                      <option value="">اختر سببًا</option>
-                                      {OVERRIDE_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                                    </select>
-                                    <textarea
-                                      value={overrideDraft[g.id]?.note ?? ""}
-                                      onChange={(e) => updateOverrideDraft(g.id, "note", e.target.value)}
-                                      placeholder="توضيح مختصر (اختياري)"
-                                      rows={2}
-                                      style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit", resize: "vertical" }}
-                                    />
-                                    <div style={{ display: "flex", gap: 8 }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => confirmOverride(d.code, g.id)}
-                                        disabled={!overrideDraft[g.id]?.reason}
-                                        style={{
-                                          background: overrideDraft[g.id]?.reason ? TEAL : "#D1D5DB", color: "white", border: "none",
-                                          borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 700,
-                                          cursor: overrideDraft[g.id]?.reason ? "pointer" : "not-allowed", fontFamily: "inherit",
-                                        }}
-                                      >
-                                        تأكيد التجاوز وتوثيقه
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setOverrideFormFor(null)}
-                                        style={{ background: "white", color: "#64748B", border: "1px solid #E5E7EB", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                                      >
-                                        إلغاء
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : hasHardStopViolation(g.text, computeGoalQuality({
-                                    goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
-                                    measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
-                                    lifePractice: g.lifePractice ?? "", domainCode: d.code,
-                                    coverage, family, learnerVoice, override: null,
-                                  })) && (
-                                  <button
-                                    type="button"
-                                    onClick={() => openOverrideForm(g.id)}
-                                    style={{ background: "none", border: "none", color: "#92400E", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: 0, textAlign: "right" }}
-                                  >
-                                    توثيق تجاوز مهني بدل استكمال العنصر الحرج
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        );
-                      })}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => addGoal(d.code)}
-                      style={{
-                        marginTop: 12, background: "white", color: ORANGE,
-                        border: `1px dashed ${ORANGE}`, borderRadius: 8, padding: "8px 14px",
-                        cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 14,
-                      }}
-                    >
-                      ＋ إضافة هدف
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </section>
 
-        {/* Section 3 - Support Services */}
-        <section style={cardStyle}>
-          <h2 style={sectionTitle}>خدمات الدعم المقررة</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-            {SUPPORT_SERVICES.map((s) => {
-              const checked = services.includes(s);
+        <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
+          {cards.map((card) => {
+            const isActive = activeSection === card.key;
+            if (card.key === "goals") {
               return (
-                <label
-                  key={s}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                    padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 8,
-                    background: checked ? "#F1F5F4" : "white",
-                  }}
+                <Link
+                  key={card.key}
+                  to="/students/$id/iep/goals"
+                  params={{ id }}
+                  className="rounded-2xl border bg-white p-5 text-right shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleService(s)}
-                    style={{ width: 18, height: 18, accentColor: TEAL }}
-                  />
-                  <span style={{ fontSize: 15, color: "#1F2937" }}>{s}</span>
-                </label>
+                  <ComponentCardContent card={card} active={false} />
+                </Link>
               );
-            })}
-          </div>
+            }
+
+            return (
+              <button
+                key={card.key}
+                type="button"
+                onClick={() => setActiveSection(card.key as ActiveSection)}
+                className="rounded-2xl border bg-white p-5 text-right shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
+                style={{ borderColor: isActive ? TEAL : "#E7E5E4" }}
+              >
+                <ComponentCardContent card={card} active={isActive} />
+              </button>
+            );
+          })}
         </section>
 
-        {/* Section 4 - Start Date */}
-        <section style={cardStyle}>
-          <label style={labelStyle}>تاريخ بدء الخطة</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{
-              maxWidth: 220, padding: "10px 12px", border: "1px solid #E5E7EB",
-              borderRadius: 8, fontSize: 15, fontFamily: "inherit",
-            }}
-          />
+        <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          {activeSection === "basic" && <BasicDataSection student={student} />}
+          {activeSection === "currentLevel" && (
+            <CurrentLevelSection
+              assessmentCount={assessmentRecords.length}
+              learnerVoice={Boolean(learnerVoice)}
+              familyVoice={Boolean(familyVoice)}
+              additionalSources={Boolean(additionalSources)}
+            />
+          )}
+          {activeSection === "specialistVision" && (
+            <SpecialistVisionSection
+              value={specialistVision}
+              onChange={setSpecialistVision}
+              onSave={saveSpecialistVision}
+              savedMessage={savedMessage}
+            />
+          )}
         </section>
-
-        {/* Info box */}
-        <div
-          style={{
-            marginTop: 20, background: "#FBE9E1", border: `1px solid ${ORANGE}`,
-            borderRadius: 8, padding: 12, color: "#7C3F1D", fontSize: 14,
-            lineHeight: 1.7, display: "flex", gap: 10, alignItems: "flex-start",
-          }}
-        >
-          <span style={{ fontSize: 18, lineHeight: 1.4 }}>ℹ️</span>
-          <span>
-            بعد حفظ الخطة، ستنتقل لاختيار الأنشطة التشاركية لكل هدف، ثم إنشاء التقرير النهائي الذي يجمع التقييم وصوت الأسرة والمتعلم والخطة التربوية.
-          </span>
-        </div>
-
-        {/* Hard-stop warning */}
-        {!canSave && (
-          <div
-            style={{
-              marginTop: 20, background: "#FEF2F2", border: "1px solid #FCA5A5",
-              borderRadius: 8, padding: 12, color: "#7A1F1F", fontSize: 13, lineHeight: 1.7,
-            }}
-          >
-            <strong>لا يمكن حفظ الخطة والمتابعة حتى استكمال {blockingGoals.length} هدفًا:</strong>
-            <ul style={{ margin: "6px 0 0", paddingRight: 18 }}>
-              {blockingGoals.map((b, i) => (
-                <li key={i}>{b.domainName} — {b.text}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Bottom button */}
-        <div style={{ marginTop: 24 }}>
-          <button
-            type="button"
-            onClick={handleSave}
-            title={canSave ? undefined : "يوجد أهداف تمنع الحفظ — الضغط سينقلك إلى أول هدف يحتاج استكمالًا"}
-            style={{
-              width: "100%", background: canSave ? TEAL : "#D1D5DB", color: "white", border: "none",
-              padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,
-              cursor: canSave ? "pointer" : "not-allowed", fontFamily: "inherit",
-            }}
-          >
-            حفظ الخطة واختيار الأنشطة ←
-          </button>
-        </div>
       </main>
     </div>
   );
 }
 
-const cardStyle: React.CSSProperties = {
-  marginTop: 20, background: "white", border: "1px solid #E5E7EB",
-  borderRadius: 12, padding: 18,
-};
-const labelStyle: React.CSSProperties = {
-  display: "block", fontWeight: 700, color: TEAL, marginBottom: 10, fontSize: 15,
-};
-const sectionTitle: React.CSSProperties = {
-  fontSize: 18, fontWeight: 700, color: TEAL, margin: 0,
-};
+function ComponentCardContent({ card, active }: { card: ComponentCard; active: boolean }) {
+  return (
+    <>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <h3 className="text-base font-bold text-[#0F3D3E]">{card.title}</h3>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
+          style={{
+            backgroundColor: active ? "#E6F2F1" : "#F5F5F4",
+            color: active ? TEAL : "#57534E",
+          }}
+        >
+          {card.status}
+        </span>
+      </div>
+      <p className="text-sm leading-7 text-stone-600">{card.body}</p>
+    </>
+  );
+}
+
+function BasicDataSection({ student }: { student: StoredStudent | null }) {
+  const rows = [
+    ["اسم المتعلم", student?.name ?? "غير مدخل"],
+    ["العمر", typeof student?.ageYears === "number" ? `${student.ageYears} سنة` : "غير مدخل"],
+    ["التشخيص", student?.diagnosis || "غير مدخل"],
+    ["نوع المتعلم", student?.learnerEntryType === "returning" ? "متعلم سابق" : student?.learnerEntryType === "new" ? "متعلم جديد" : "غير محدد"],
+    ["المركز أو المؤسسة", student?.center || "غير مدخل"],
+  ];
+
+  return (
+    <div>
+      <h3 className="text-lg font-bold text-[#0F3D3E]">البيانات الأساسية</h3>
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+            <div className="text-xs font-bold text-stone-500">{label}</div>
+            <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CurrentLevelSection(props: {
+  assessmentCount: number;
+  learnerVoice: boolean;
+  familyVoice: boolean;
+  additionalSources: boolean;
+}) {
+  const rows = [
+    ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
+    ["صوت المتعلم", props.learnerVoice ? "متاح كمصدر داعم" : "غير موثق"],
+    ["صوت الأسرة", props.familyVoice ? "متاح كمصدر داعم" : "غير موثق"],
+    ["مصادر إضافية", props.additionalSources ? "متاحة كمصدر داعم" : "غير موثقة"],
+  ];
+
+  return (
+    <div>
+      <h3 className="text-lg font-bold text-[#0F3D3E]">مستوى الأداء الحالي</h3>
+      <p className="mt-2 text-sm leading-7 text-stone-600">
+        هذا الملخص لا يحل محل صياغة المختص لمستوى الأداء الحالي، لكنه يوضح مصادر المعلومات المتاحة التي ستظهر لاحقاً في شاشة الدعم المعرفي.
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+            <div className="text-xs font-bold text-stone-500">{label}</div>
+            <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SpecialistVisionSection(props: {
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  savedMessage: string;
+}) {
+  return (
+    <div>
+      <h3 className="text-lg font-bold text-[#0F3D3E]">رؤية المختص للخطة التربوية الفردية</h3>
+      <p className="mt-2 text-sm leading-7 text-stone-600">
+        تستخدم هذه الرؤية كمسودة مهنية توجه بناء الأهداف، ولا تعد اعتماداً نهائياً للخطة.
+      </p>
+      <textarea
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
+        rows={6}
+        className="mt-4 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+        placeholder="اكتب رؤية المختص للخطة، الأولويات المهنية، والسياقات التي يجب مراعاتها عند توليد الأهداف..."
+      />
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={props.onSave}
+          className="rounded-lg bg-[#0F3D3E] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#0b2f30]"
+        >
+          حفظ المسودة
+        </button>
+        {props.savedMessage && <span className="text-sm font-semibold text-emerald-700">{props.savedMessage}</span>}
+      </div>
+    </div>
+  );
+}

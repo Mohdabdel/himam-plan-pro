@@ -1,317 +1,297 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { advanceStage } from "../lib/journey";
-import { JourneyStepper } from "@/components/journey-stepper";
+import { useEffect, useMemo, useState } from "react";
+import { INFORMATION_TOOLS } from "@/data/information-tools";
+import {
+  loadPlanComponentStatus,
+  PlanComponentsStatus,
+} from "@/components/plan-components-status";
+import { advanceStage } from "@/lib/journey";
 
 export const Route = createFileRoute("/students/$id/family")({
-  component: FamilyPage,
+  component: FamilyVoicePage,
   head: () => ({
     meta: [
-      { title: "صوت الأسرة — همم" },
-      { name: "description", content: "جمع صوت الأسرة لخطة الانتقال." },
+      { title: "صوت الأسرة - همم" },
+      { name: "description", content: "استيفاء رؤية الأسرة وأولوياتها ومخاوفها." },
     ],
   }),
 });
 
-const TEAL = "#0F3D3E";
-const ORANGE = "#D9764A";
-
-type QualityLevel = "weak" | "usable" | "strong";
-type FamilyMethod = "مقابلة" | "استبانة" | "هاتفية" | "";
-
-const FAMILY_PRIORITIES = ["السلامة", "العمل", "الاستقلالية", "المجتمع", "العلاقات", "الصحة", "التواصل"];
-const FAMILY_CONCERNS_OPTS = [
-  "التنقل المستقل",
-  "المهارات الاجتماعية",
-  "السلامة في البيئة",
-  "الاستقرار الوظيفي",
-  "الصحة النفسية",
-  "التواصل مع الآخرين",
-];
-
-type FamilyData = {
-  method: FamilyMethod;
-  sessionDate: string;
-  attendees: string;
-  priorities: string[];
-  concernsChecked: string[];
-  concernsText: string;
-  vision5y: string;
-  quality: QualityLevel | "";
+type StoredStudent = {
+  id: string;
+  name: string;
+  center?: string;
+  status?: string;
 };
 
-type StoredStudent = { id: string; name: string; [k: string]: string };
+type AppliedMode = "yes" | "no" | "";
 
-function qualityColor(q: QualityLevel | "") {
-  if (q === "strong") return "#16a34a";
-  if (q === "usable") return "#d97706";
-  if (q === "weak")   return "#dc2626";
-  return "#94a3b8";
-}
-function qualityLabel(q: QualityLevel | "") {
-  if (q === "strong") return "✅ قوي";
-  if (q === "usable") return "⚠️ مقبول";
-  if (q === "weak")   return "❌ ضعيف";
-  return "—";
+function loadStudent(id: string): StoredStudent | null {
+  try {
+    const list = JSON.parse(localStorage.getItem("himam_students") || "[]") as StoredStudent[];
+    return list.find((item) => item.id === id) ?? null;
+  } catch {
+    return null;
+  }
 }
 
-function SectionCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18, marginTop: 16 }}>
-      {children}
-    </div>
-  );
-}
-function Label({ children }: { children: React.ReactNode }) {
-  return <p style={{ fontWeight: 700, color: TEAL, marginBottom: 10, fontSize: 15 }}>{children}</p>;
-}
-function MethodPill({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "8px 16px", borderRadius: 20, border: `2px solid ${selected ? TEAL : "#E5E7EB"}`,
-        background: selected ? TEAL : "white", color: selected ? "white" : "#374151",
-        fontFamily: "inherit", fontSize: 14, fontWeight: 600, cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-function CheckItem({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
-  return (
-    <label style={{
-      display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-      padding: "8px 12px", border: "1px solid #E5E7EB", borderRadius: 8,
-      background: checked ? "#F0FAF7" : "white",
-    }}>
-      <input type="checkbox" checked={checked} onChange={onChange} style={{ width: 17, height: 17, accentColor: TEAL }} />
-      <span style={{ fontSize: 14, color: "#1F2937" }}>{label}</span>
-    </label>
-  );
-}
-function QualityPicker({ value, onChange }: { value: QualityLevel | ""; onChange: (v: QualityLevel) => void }) {
-  const opts: { v: QualityLevel; label: string }[] = [
-    { v: "weak",   label: "❌ ضعيف"  },
-    { v: "usable", label: "⚠️ مقبول" },
-    { v: "strong", label: "✅ قوي"   },
-  ];
-  return (
-    <div style={{ marginTop: 8 }}>
-      <Label>مؤشر جودة المعلومات</Label>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        {opts.map((o) => (
-          <button
-            key={o.v}
-            type="button"
-            onClick={() => onChange(o.v)}
-            style={{
-              padding: "8px 18px", borderRadius: 20, fontFamily: "inherit", fontWeight: 600,
-              fontSize: 14, cursor: "pointer",
-              border: `2px solid ${value === o.v ? qualityColor(o.v) : "#E5E7EB"}`,
-              background: value === o.v ? qualityColor(o.v) : "white",
-              color: value === o.v ? "white" : "#374151",
-            }}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-      {value && (
-        <p style={{ marginTop: 8, fontSize: 13, color: qualityColor(value), fontWeight: 700 }}>
-          المستوى المحدد: {qualityLabel(value)}
-        </p>
-      )}
-    </div>
-  );
+function advanceFamilyStatus(id: string, stage: "family_completed" | "family_skipped") {
+  try {
+    const list = JSON.parse(localStorage.getItem("himam_students") || "[]") as StoredStudent[];
+    localStorage.setItem("himam_students", JSON.stringify(
+      list.map((item) => (
+        item.id === id
+          ? { ...item, status: advanceStage(item.status ?? "draft", stage) }
+          : item
+      )),
+    ));
+  } catch {
+    /* noop */
+  }
 }
 
-function FamilyPage() {
+function FamilyVoicePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState<StoredStudent | null>(null);
-  const [family, setFamily] = useState<FamilyData>({
-    method: "", sessionDate: "", attendees: "",
-    priorities: [], concernsChecked: [], concernsText: "", vision5y: "", quality: "",
-  });
+  const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
+  const [appliedMode, setAppliedMode] = useState<AppliedMode>("");
+  const [appliedToolName, setAppliedToolName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [toolCategory, setToolCategory] = useState("رؤية الخطة الفردية");
+  const [selectedLibraryToolId, setSelectedLibraryToolId] = useState("");
+  const [error, setError] = useState("");
+
+  const familyTools = useMemo(() => (
+    INFORMATION_TOOLS.filter((tool) => tool.category === "family_vision")
+  ), []);
 
   useEffect(() => {
+    setStudent(loadStudent(id));
+    setComponentStatus(loadPlanComponentStatus(id));
     try {
-      const raw = localStorage.getItem("himam_students");
-      if (raw) {
-        const list: StoredStudent[] = JSON.parse(raw);
-        setStudent(list.find((s) => s.id === id) ?? null);
+      const saved = JSON.parse(localStorage.getItem(`himam_family_${id}`) || "null");
+      if (saved) {
+        setAppliedMode(saved.appliedMode ?? "");
+        setAppliedToolName(saved.appliedToolName ?? "");
+        setToolCategory(saved.toolCategory ?? "رؤية الخطة الفردية");
+        setSelectedLibraryToolId(saved.selectedLibraryToolId ?? "");
       }
-      const fRaw = localStorage.getItem(`himam_family_${id}`);
-      if (fRaw) setFamily(JSON.parse(fRaw));
-    } catch {}
+    } catch {
+      /* noop */
+    }
   }, [id]);
 
-  function togglePriority(p: string) {
-    setFamily((f) => ({
-      ...f,
-      priorities: f.priorities.includes(p) ? f.priorities.filter((x) => x !== p) : [...f.priorities, p],
+  function saveCurrent() {
+    if (!appliedMode) {
+      setError("يرجى تحديد هل طُبقت أداة أو نموذج لاستيفاء صوت الأسرة.");
+      return false;
+    }
+    if (appliedMode === "yes" && !appliedToolName.trim()) {
+      setError("يرجى تحديد الأداة أو النموذج المطبق.");
+      return false;
+    }
+    if (appliedMode === "yes" && !uploadedFile) {
+      setError("يرجى رفع نتائج الأداة أو النموذج المطبق.");
+      return false;
+    }
+    if (appliedMode === "no" && !selectedLibraryToolId) {
+      setError("يرجى اختيار أداة من مكتبة صوت الأسرة.");
+      return false;
+    }
+
+    const selectedTool = familyTools.find((tool) => tool.id === selectedLibraryToolId);
+    localStorage.setItem(`himam_family_${id}`, JSON.stringify({
+      appliedMode,
+      appliedToolName: appliedToolName.trim(),
+      uploadedFileName: uploadedFile?.name,
+      uploadedFileType: uploadedFile?.type,
+      toolCategory,
+      selectedLibraryToolId,
+      selectedLibraryToolName: selectedTool?.nameAr,
+      savedAt: new Date().toISOString(),
+      outputPolicy: "knowledge_support_only",
     }));
-  }
-  function toggleConcern(c: string) {
-    setFamily((f) => ({
-      ...f,
-      concernsChecked: f.concernsChecked.includes(c) ? f.concernsChecked.filter((x) => x !== c) : [...f.concernsChecked, c],
-    }));
+    advanceFamilyStatus(id, "family_completed");
+    setComponentStatus(loadPlanComponentStatus(id));
+    setError("");
+    return true;
   }
 
-  function handleSave() {
-    try {
-      localStorage.setItem(
-        `himam_family_${id}`,
-        JSON.stringify({ ...family, savedAt: new Date().toISOString() }),
-      );
-      const raw = localStorage.getItem("himam_students");
-      if (raw) {
-        const list: StoredStudent[] = JSON.parse(raw);
-        const updated = list.map((s) => s.id === id ? { ...s, status: advanceStage(s.status, "family_completed") } : s);
-        localStorage.setItem("himam_students", JSON.stringify(updated));
-      }
-    } catch {}
-    toast.success("تم حفظ صوت الأسرة ✓");
-    navigate({ to: "/students/$id/student-voice", params: { id } });
+  function handleNext() {
+    if (!saveCurrent()) return;
+    navigate({ to: "/students/$id/assessment/additional", params: { id } });
   }
 
-  const familyValid = family.method !== "" && family.priorities.length > 0;
+  function handleSkip() {
+    advanceFamilyStatus(id, "family_skipped");
+    navigate({ to: "/students/$id/assessment/additional", params: { id } });
+  }
 
   return (
-    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#F8F7F4", fontFamily: "'IBM Plex Sans Arabic', system-ui, sans-serif" }}>
-      <header style={{ background: TEAL, color: "white", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 22, fontWeight: 700 }}>همم</div>
+    <div className="min-h-screen bg-[#FAF7F2]" dir="rtl" lang="ar">
+      <header className="flex items-center justify-between px-8 py-4" style={{ backgroundColor: "#0F3D3E" }}>
         <Link
-          to="/students/$id/coverage"
+          to="/students/$id/student-voice"
           params={{ id }}
-          style={{ color: "white", textDecoration: "none", fontSize: 15, padding: "8px 14px", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 8 }}
+          className="rounded-lg border border-white/30 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
         >
-          → رجوع
+          رجوع
         </Link>
+        <h1 className="text-2xl font-bold text-white">همم</h1>
       </header>
 
-      <main style={{ maxWidth: 800, margin: "0 auto", padding: "28px 20px 80px" }}>
-        <nav
-          aria-label="مسار الصفحة"
-          style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, color: "#94A3B8", marginBottom: 10 }}
-        >
-          <Link to="/" style={{ color: "#64748B", textDecoration: "underline", fontWeight: 700 }}>لوحة المتعلمين</Link>
+      <main className="mx-auto max-w-5xl px-6 py-8 md:px-8">
+        <nav aria-label="مسار الصفحة" className="mb-2.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-400">
+          <Link to="/" className="font-bold text-stone-600 underline">لوحة المتعلمين</Link>
           <span>←</span>
-          <span>{student?.name ?? "الطالب"}</span>
+          <span>{student?.name ?? "المتعلم"}</span>
           <span>←</span>
-          <span style={{ color: TEAL, fontWeight: 700 }}>الأسرة</span>
+          <Link to="/students/$id/assessment" params={{ id }} className="font-bold text-stone-600 underline">مصادر جمع المعلومات</Link>
+          <span>←</span>
+          <span className="font-bold text-[#0F3D3E]">صوت الأسرة</span>
         </nav>
 
-        <JourneyStepper studentId={id} currentStep="family" status={student?.status} />
+        <PlanComponentsStatus learnerId={id} current="familyVoice" status={componentStatus} />
 
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>صوت الأسرة</h1>
-        <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>{student?.name ?? "—"}</p>
+        <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold text-[#D9764A]">صوت الأسرة</p>
+          <h2 className="mt-1 text-2xl font-bold text-[#0F3D3E]">
+            هل طبقت أي نماذج أو استبيانات لاستيفاء صوت الأسرة مثل رؤية الأسرة للخطة التربوية الفردية أو أولويات ومخاوف الأسرة؟
+          </h2>
 
-        {/* Method */}
-        <SectionCard>
-          <Label>طريقة الحصول على المعلومات <span style={{ color: ORANGE }}>*</span></Label>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {(["مقابلة", "استبانة", "هاتفية"] as FamilyMethod[]).map((m) => (
-              <MethodPill key={m} label={m} selected={family.method === m} onClick={() => setFamily((f) => ({ ...f, method: m }))} />
-            ))}
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setAppliedMode("yes")}
+              className="rounded-xl border p-4 text-right transition hover:border-[#0F3D3E]"
+              style={{
+                backgroundColor: appliedMode === "yes" ? "#E6F2F1" : "white",
+                borderColor: appliedMode === "yes" ? "#0F3D3E" : "#E7E5E4",
+              }}
+            >
+              <p className="text-sm font-bold text-[#0F3D3E]">نعم</p>
+              <p className="mt-1 text-xs leading-6 text-stone-500">تم تطبيق أداة أو نموذج خارج المنصة، وسيتم رفع نتائجه.</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setAppliedMode("no")}
+              className="rounded-xl border p-4 text-right transition hover:border-[#0F3D3E]"
+              style={{
+                backgroundColor: appliedMode === "no" ? "#E6F2F1" : "white",
+                borderColor: appliedMode === "no" ? "#0F3D3E" : "#E7E5E4",
+              }}
+            >
+              <p className="text-sm font-bold text-[#0F3D3E]">لا</p>
+              <p className="mt-1 text-xs leading-6 text-stone-500">يمكن تطبيق أحد النماذج والأدوات التي تستعرض صوت الأسرة لإثراء الخطة الفردية التربوية.</p>
+            </button>
           </div>
-        </SectionCard>
 
-        {/* Session info */}
-        <SectionCard>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div>
-              <Label>تاريخ الجلسة</Label>
-              <input
-                type="date"
-                value={family.sessionDate}
-                onChange={(e) => setFamily((f) => ({ ...f, sessionDate: e.target.value }))}
-                style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }}
-              />
+          {appliedMode === "yes" && (
+            <div className="mt-5 grid grid-cols-1 gap-4 rounded-xl bg-stone-50 p-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">حدد الأداة أو النموذج المطبق</label>
+                <input
+                  type="text"
+                  value={appliedToolName}
+                  onChange={(event) => setAppliedToolName(event.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  placeholder="مثال: رؤية الأسرة للخطة الفردية، أولويات ومخاوف الأسرة"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-stone-500">نافذة تحميل النتائج</label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                  onChange={(event) => setUploadedFile(event.target.files?.[0] ?? null)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
+                />
+                {uploadedFile && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{uploadedFile.name}</p>}
+              </div>
             </div>
-            <div>
-              <Label>من حضر الجلسة</Label>
-              <input
-                type="text"
-                value={family.attendees}
-                onChange={(e) => setFamily((f) => ({ ...f, attendees: e.target.value }))}
-                placeholder="مثال: الأب، الأم، الأخت..."
-                style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }}
-              />
-            </div>
-          </div>
-        </SectionCard>
-
-        {/* Priorities */}
-        <SectionCard>
-          <Label>أولويات الأسرة <span style={{ color: ORANGE }}>*</span></Label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {FAMILY_PRIORITIES.map((p) => (
-              <CheckItem key={p} label={p} checked={family.priorities.includes(p)} onChange={() => togglePriority(p)} />
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Concerns */}
-        <SectionCard>
-          <Label>مخاوف الأسرة</Label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-            {FAMILY_CONCERNS_OPTS.map((c) => (
-              <CheckItem key={c} label={c} checked={family.concernsChecked.includes(c)} onChange={() => toggleConcern(c)} />
-            ))}
-          </div>
-          <textarea
-            value={family.concernsText}
-            onChange={(e) => setFamily((f) => ({ ...f, concernsText: e.target.value }))}
-            placeholder="مخاوف إضافية بكلماتكم..."
-            rows={3}
-            style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
-          />
-        </SectionCard>
-
-        {/* Vision 5y */}
-        <SectionCard>
-          <Label>رؤية الأسرة بعد 5 سنوات</Label>
-          <textarea
-            value={family.vision5y}
-            onChange={(e) => setFamily((f) => ({ ...f, vision5y: e.target.value }))}
-            placeholder="ما الذي تتمنى الأسرة أن يكون عليه ابنها/ابنتها بعد 5 سنوات؟"
-            rows={4}
-            style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
-          />
-        </SectionCard>
-
-        {/* Quality */}
-        <SectionCard>
-          <QualityPicker value={family.quality} onChange={(v) => setFamily((f) => ({ ...f, quality: v }))} />
-        </SectionCard>
-
-        {/* Save */}
-        <div style={{ marginTop: 24 }}>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!familyValid}
-            style={{
-              width: "100%", background: TEAL, color: "white", border: "none",
-              padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,
-              cursor: familyValid ? "pointer" : "not-allowed",
-              opacity: familyValid ? 1 : 0.5, fontFamily: "inherit",
-            }}
-          >
-            حفظ والمتابعة لصوت المتعلم ←
-          </button>
-          {!familyValid && (
-            <p style={{ textAlign: "center", color: "#94A3B8", fontSize: 13, marginTop: 8 }}>
-              أكمل طريقة الحصول على المعلومات وأولويات الأسرة أولاً
-            </p>
           )}
-        </div>
+
+          {appliedMode === "no" && (
+            <div className="mt-5 rounded-xl bg-stone-50 p-4">
+              <p className="text-sm leading-7 text-stone-600">
+                يمكنكم تطبيق أحد النماذج والأدوات التي تستعرض صوت الأسرة لإثراء الخطة الفردية التربوية.
+              </p>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-stone-500">نوع أداة صوت الأسرة</label>
+                  <select
+                    value={toolCategory}
+                    onChange={(event) => setToolCategory(event.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  >
+                    <option>رؤية الخطة الفردية</option>
+                    <option>أولويات ومخاوف الأسرة</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-stone-500">الأدوات والنماذج المتاحة لتغطية صوت الأسرة</label>
+                  <select
+                    value={selectedLibraryToolId}
+                    onChange={(event) => setSelectedLibraryToolId(event.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  >
+                    <option value="">اختر الأداة</option>
+                    {familyTools.map((tool) => (
+                      <option key={tool.id} value={tool.id}>{tool.nameAr}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {selectedLibraryToolId && (
+                <div className="mt-4 rounded-lg border border-stone-200 bg-white p-3">
+                  <p className="text-xs leading-6 text-stone-600">
+                    {familyTools.find((tool) => tool.id === selectedLibraryToolId)?.descriptionAr}
+                  </p>
+                  {familyTools.find((tool) => tool.id === selectedLibraryToolId)?.externalUrl && (
+                    <a
+                      href={familyTools.find((tool) => tool.id === selectedLibraryToolId)?.externalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex text-xs font-bold text-[#0F3D3E] underline"
+                    >
+                      الذهاب لتطبيق الأداة المختارة
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>
+          )}
+
+          <div className="mt-6 flex flex-col gap-3 md:flex-row">
+            <Link
+              to="/students/$id/student-voice"
+              params={{ id }}
+              className="flex-1 rounded-xl border border-stone-300 bg-white px-5 py-3 text-center text-base font-bold text-stone-700 transition hover:bg-stone-50"
+            >
+              رجوع
+            </Link>
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="flex-1 rounded-xl border border-[#D9764A] bg-white px-5 py-3 text-base font-bold text-[#D9764A] transition hover:bg-[#FBE9E1]"
+            >
+              تخطي
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="flex-1 rounded-xl px-5 py-3 text-base font-bold text-white transition hover:opacity-90"
+              style={{ backgroundColor: "#0F3D3E" }}
+            >
+              التالي
+            </button>
+          </div>
+        </section>
       </main>
     </div>
   );
