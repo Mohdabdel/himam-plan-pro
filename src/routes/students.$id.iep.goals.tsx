@@ -14,6 +14,10 @@ import { GoalQualityChecklist } from "@/components/goal-quality-checklist";
 import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/lib/goal-quality";
 import { GoalReferencePanel } from "@/components/goal-reference-panel";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
+import {
+  buildGoalApprovalBundles,
+  saveGoalApprovalBundles,
+} from "@/lib/goal-plan-approval";
 import { buildKnowledgeSupportItems, loadInformationRecords } from "@/lib/information-records";
 import {
   loadSourceFilePipelines,
@@ -546,8 +550,10 @@ function IEPPage() {
   // Only goals the specialist actually started (non-empty text) can block —
   // an empty, not-yet-written goal is never a blocker.
   const blockingGoals: { domainCode: DomainCode; domainName: string; goalId: string; text: string; missingField: MissingField }[] = [];
+  const startedGoals: Array<Goal & { domainCode: DomainCode }> = [];
   for (const d of domains) {
     for (const g of goals[d.code] ?? []) {
+      if (g.text.trim()) startedGoals.push({ ...g, domainCode: d.code });
       const quality = computeGoalQuality({
         goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
         measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
@@ -559,9 +565,13 @@ function IEPPage() {
       }
     }
   }
-  const canSave = blockingGoals.length === 0;
+  const canSave = blockingGoals.length === 0 && startedGoals.length > 0;
 
   function handleSave() {
+    if (startedGoals.length === 0) {
+      toast.error("أضف هدفاً واحداً على الأقل قبل الانتقال إلى الخطة.");
+      return;
+    }
     if (!canSave) {
       const first = blockingGoals[0];
       setOpen((o) => ({ ...o, [first.domainCode]: true }));
@@ -575,9 +585,29 @@ function IEPPage() {
     }
 
     try {
+      const approvalBundles = buildGoalApprovalBundles({
+        learnerId: id,
+        goals: startedGoals.map((goal) => ({
+          id: goal.id,
+          domainCode: goal.domainCode,
+          text: goal.text,
+          context: goal.context,
+          criterion: goal.criterion,
+          measurementMethod: goal.measurementMethod,
+          evidenceRef: goal.evidenceRef,
+        })),
+      });
+      saveGoalApprovalBundles(id, approvalBundles);
       localStorage.setItem(
         `himam_iep_${id}`,
-        JSON.stringify({ vision, goals, services, startDate, savedAt: new Date().toISOString() }),
+        JSON.stringify({
+          vision,
+          goals,
+          services,
+          startDate,
+          goalApprovalIds: approvalBundles.map((bundle) => bundle.approval.approvalId),
+          savedAt: new Date().toISOString(),
+        }),
       );
       const raw = localStorage.getItem("himam_students");
       if (raw) {
@@ -1262,7 +1292,18 @@ function IEPPage() {
         </div>
 
         {/* Hard-stop warning */}
-        {!canSave && (
+        {!canSave && startedGoals.length === 0 && (
+          <div
+            style={{
+              marginTop: 20, background: "#FFFBEB", border: "1px solid #FCD34D",
+              borderRadius: 8, padding: 12, color: "#78350F", fontSize: 13, lineHeight: 1.7,
+            }}
+          >
+            <strong>لا يمكن الانتقال إلى الخطة قبل إضافة هدف واحد على الأقل.</strong>
+          </div>
+        )}
+
+        {!canSave && startedGoals.length > 0 && (
           <div
             style={{
               marginTop: 20, background: "#FEF2F2", border: "1px solid #FCA5A5",
@@ -1283,7 +1324,7 @@ function IEPPage() {
           <button
             type="button"
             onClick={handleSave}
-            title={canSave ? undefined : "يوجد أهداف تمنع الحفظ — الضغط سينقلك إلى أول هدف يحتاج استكمالًا"}
+            title={canSave ? undefined : "يوجد نقص يمنع الحفظ والانتقال إلى الخطة"}
             style={{
               width: "100%", background: canSave ? TEAL : "#D1D5DB", color: "white", border: "none",
               padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,

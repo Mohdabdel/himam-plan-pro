@@ -4,6 +4,13 @@ import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
 import { isMvpConceptId } from "@/data/concepts";
 import { recommendCurriculumActivities } from "@/lib/curriculum-recommendations";
+import {
+  buildPlanGovernanceBundle,
+  loadGoalApprovalBundles,
+  loadPlanGovernanceBundle,
+  savePlanGovernanceBundle,
+  type PlanGovernanceBundle,
+} from "@/lib/goal-plan-approval";
 import { calibrateMvpProfile } from "@/lib/mvp-calibration";
 import { loadLearnerProfile, saveLearnerProfile } from "@/lib/profile-repository";
 
@@ -222,6 +229,9 @@ function PlanPage() {
   const [goalEntries,      setGoalEntries]      = useState<GoalEntry[]>([]);
   const [hasGoals,         setHasGoals]         = useState(true); // optimistic; set false if IEP is empty
   const [saved,            setSaved]            = useState(false);
+  const [governanceError,  setGovernanceError]  = useState("");
+  const [approvedGoalCount,setApprovedGoalCount]= useState(0);
+  const [planGovernance,   setPlanGovernance]   = useState<PlanGovernanceBundle | null>(null);
   const [contextHint,      setContextHint]      = useState<{ context: string; reason: string }>({ context: "", reason: "" });
   const [familyPriorities, setFamilyPriorities] = useState<string[]>([]);
   const [learnedLove,      setLearnedLove]      = useState("");
@@ -237,6 +247,9 @@ function PlanPage() {
     const coverage  = safeParse<CoverageData>(`himam_coverage_${id}`) ?? {};
     const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
     const learnerV  = safeParse<LearnerVoiceData>(`himam_learner_voice_${id}`) ?? {};
+    const goalApprovalBundles = loadGoalApprovalBundles(id);
+    setApprovedGoalCount(goalApprovalBundles.filter((bundle) => bundle.approval.decision === "approved_for_plan_inclusion").length);
+    setPlanGovernance(loadPlanGovernanceBundle(id));
     const profile = s ? loadLearnerProfile(s.id) : null;
     const calibratedProfile = profile ? saveLearnerProfile(calibrateMvpProfile(profile)) : null;
     const conceptLevels = Object.fromEntries(
@@ -329,6 +342,14 @@ function PlanPage() {
   }
 
   function handleSave() {
+    const goalApprovalBundles = loadGoalApprovalBundles(id).filter((bundle) => (
+      bundle.approval.decision === "approved_for_plan_inclusion"
+    ));
+    if (goalApprovalBundles.length === 0) {
+      setGovernanceError("لا يمكن تجهيز مسودة الخطة دون أهداف معتمدة كوحدات. ارجع إلى شاشة الأهداف واحفظها لاعتمادها للإدراج.");
+      return;
+    }
+
     // Small completion signal — lets report.tsx (and the journey stage
     // below) tell whether the specialist actually selected real-context
     // activities, vs. just visiting/saving the page with nothing checked.
@@ -339,12 +360,31 @@ function PlanPage() {
       : "no_activities";
 
     try {
+      const governanceBundle = buildPlanGovernanceBundle({
+        learnerId: id,
+        goalApprovalIds: goalApprovalBundles.map((bundle) => bundle.approval.approvalId),
+        planPeriodStart: new Date().toISOString().slice(0, 10),
+        findings: [
+          `تتضمن المسودة ${goalApprovalBundles.length} هدفاً معتمداً للإدراج.`,
+          goalEntries.some((g) => g.selectedActivities.length > 0)
+            ? "تم اختيار أنشطة تنفيذية لبعض الأهداف."
+            : "لم تختر أنشطة تنفيذية بعد؛ تبقى الخطة قابلة للمراجعة وليست نهائية.",
+          "اعتماد المختص الأعلى لم ينفذ بعد في Sprint 3 ويجب ألا تعتبر الخطة معتمدة نهائياً.",
+        ],
+      });
+      savePlanGovernanceBundle(id, governanceBundle);
+      setPlanGovernance(governanceBundle);
+      setApprovedGoalCount(goalApprovalBundles.length);
       localStorage.setItem(`himam_plan_${id}`, JSON.stringify({
         learnerId:   id,
         generatedAt: new Date().toISOString(),
         goals:       goalEntries,
         status:      planRecordStatus,
+        planDraftId: governanceBundle.planDraft.planDraftId,
+        planQualityReviewId: governanceBundle.qualityReview.reviewId,
+        goalApprovalIds: goalApprovalBundles.map((bundle) => bundle.approval.approvalId),
       }));
+      setGovernanceError("");
       setSaved(true);
     } catch { /* noop */ }
 
@@ -462,6 +502,21 @@ function PlanPage() {
               {" "}من{" "}
               <strong style={{ color: TEAL }}>{goalEntries.length}</strong>
               {" "}أهداف بها أنشطة محددة
+            </p>
+          </div>
+        )}
+
+        {loaded && hasGoals && (
+          <div style={{ marginTop: 14, background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#78350F", fontWeight: 800 }}>حوكمة الخطة</p>
+            <p style={{ margin: 0, fontSize: 13, color: "#475569", lineHeight: 1.7 }}>
+              الأهداف المعتمدة للإدراج: <strong style={{ color: TEAL }}>{approvedGoalCount}</strong>
+              {planGovernance
+                ? ` - مسودة الخطة ${planGovernance.planDraft.status === "ready_for_review" ? "جاهزة للمراجعة الأعلى" : "مسودة"}`
+                : " - لم تحفظ مسودة الخطة بعد"}
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
+              اعتماد المختص الأعلى ليس منفذاً في هذه الشاشة؛ الحفظ يجهز مسودة قابلة للمراجعة ولا يعتمد الخطة نهائياً.
             </p>
           </div>
         )}
@@ -620,7 +675,12 @@ function PlanPage() {
           <div style={{ marginTop: 32 }}>
             {saved && (
               <div style={{ marginBottom: 12, padding: "10px 16px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8, color: "#166534", fontSize: 14, fontWeight: 600 }}>
-                ✓ تم حفظ الخطة بنجاح
+                ✓ تم حفظ مسودة الخطة وتجهيزها للمراجعة الأعلى
+              </div>
+            )}
+            {governanceError && (
+              <div style={{ marginBottom: 12, padding: "10px 16px", background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, color: "#991B1B", fontSize: 14, fontWeight: 700, lineHeight: 1.7 }}>
+                {governanceError}
               </div>
             )}
           <button

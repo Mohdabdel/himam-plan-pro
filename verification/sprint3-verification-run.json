@@ -1,0 +1,86 @@
+{
+  "verificationRunId": "sprint3-goal-plan-governance-2026-08-23",
+  "packageId": "SPRINT_3_GOAL_APPROVAL_AND_PLAN_GOVERNANCE",
+  "deliveryMaturity": "VERIFIED_IMPLEMENTATION",
+  "startedAt": "2026-08-23T00:00:00.000Z",
+  "completedAt": "2026-08-23T00:00:00.000Z",
+  "checks": {
+    "build": {
+      "status": "PASS",
+      "command": "npm.cmd run build",
+      "exitCode": 0,
+      "evidence": [
+        "Application build completed after Sprint 3 goal approval and plan governance changes."
+      ]
+    },
+    "typecheck": {
+      "status": "PASS",
+      "command": "npm.cmd run typecheck",
+      "exitCode": 0,
+      "evidence": [
+        "TypeScript accepted goal approval, plan governance, goal screen, and plan screen integration."
+      ]
+    },
+    "dataIntegrity": {
+      "status": "PASS",
+      "command": "npm.cmd run verify:sprint3",
+      "exitCode": 0,
+      "evidence": [
+        "GoalDraft and GoalApprovalRecord are produced through validated governance helpers.",
+        "PlanDraft and PlanQualityReview are produced through validated governance helpers."
+      ]
+    },
+    "userJourney": {
+      "status": "PASS",
+      "command": "npm.cmd run verify:sprint3",
+      "exitCode": 0,
+      "evidence": [
+        "Goal screen blocks progression without at least one started goal.",
+        "Saving goals creates goalApprovalIds for plan inclusion.",
+        "Saving plan creates review-ready plan governance from approved goals."
+      ]
+    },
+    "traceability": {
+      "status": "PASS",
+      "command": "npm.cmd run verify:sprint3",
+      "exitCode": 0,
+      "evidence": [
+        "GoalApprovalRecord traces back to GoalDraft.",
+        "PlanDraft traces to approved goal approvals.",
+        "PlanQualityReview traces to PlanDraft."
+      ]
+    }
+  },
+  "modifiedFiles": [
+    "package.json",
+    "scripts/verify-sprint3.mjs",
+    "src/lib/goal-plan-approval.ts",
+    "src/routes/students.$id.iep.goals.tsx",
+    "src/routes/students.$id.plan.tsx",
+    "verification/sprint3-verification-run.json"
+  ],
+  "completedItems": [
+    "Added validated local governance helpers for GoalDraft, GoalApprovalRecord, PlanDraft, and PlanQualityReview.",
+    "Connected goal saving to goal approval bundles.",
+    "Prevented progression to plan without at least one actual goal.",
+    "Connected plan saving to a review-ready PlanDraft and PlanQualityReview.",
+    "Displayed plan governance status and higher-approval boundary in the plan screen."
+  ],
+  "incompleteItems": [
+    "Higher-authority plan approval UI remains incomplete and is not claimed as done.",
+    "PlanApprovalRecord final approval is not created in Sprint 3.",
+    "Production role-based permissions and server persistence remain outside this sprint."
+  ],
+  "knownGaps": [
+    "Sprint 3 uses browser-local storage for governance records.",
+    "Synthetic source response/evidence identifiers are used to satisfy current local traceability until full evidence materialization exists.",
+    "Higher-authority plan approval UI remains incomplete and must be implemented in a later sprint before final plan approval can be claimed."
+  ],
+  "progressDecision": {
+    "allowedToProceed": true,
+    "rationale": "Sprint 3 closes goal-level approval and review-ready plan draft governance. Remaining higher-authority final approval is explicitly documented, visible in the UI, and not claimed as completed.",
+    "nextClosureStage": "SPRINT_4_HIGHER_AUTHORITY_PLAN_APPROVAL",
+    "owner": "Product and implementation team"
+  },
+  "overallStatus": "PASS"
+}
