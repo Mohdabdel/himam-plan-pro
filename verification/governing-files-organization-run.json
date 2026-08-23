@@ -3,10 +3,10 @@
   "verifiedAt": "2026-08-24",
   "status": "PASS",
   "manifestStatus": "ACTIVE_CANONICAL_ORDER",
-  "governingFileCount": 12,
+  "governingFileCount": 13,
   "supportingFileCount": 5,
   "canonicalFirstFile": "specs/himam_project_governance_index.md",
-  "canonicalLastFile": "specs/himam_pre_programming_governance_checklist_2026-08-24.md",
+  "canonicalLastFile": "specs/himam_architecture_readiness_pack_2026-08-24.md",
   "checks": {
     "manifestReadable": "PASS",
     "allFilesExist": "PASS",

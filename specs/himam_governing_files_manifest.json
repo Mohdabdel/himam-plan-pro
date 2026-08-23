@@ -87,6 +87,13 @@
       "role": "pre-code-gate",
       "status": "ACTIVE",
       "purpose": "Pre-programming checklist that blocks progress with unresolved or unexplained gaps."
+    },
+    {
+      "order": 13,
+      "path": "specs/himam_architecture_readiness_pack_2026-08-24.md",
+      "role": "architecture-readiness",
+      "status": "ACCEPTED_FOR_PHASED_PROGRAMMING",
+      "purpose": "Context, domain, audit, lifecycle, permission, AI, media, integration, NFR, and threat model readiness before new repo or programming work."
     }
   ],
   "supportingFiles": [

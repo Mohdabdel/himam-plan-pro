@@ -214,6 +214,7 @@ No direct CRUD status mutation for approval
 10. `himam_mvp_prd.md`
 11. `himam_final_programming_transition_plan_2026-08-23.md`
 12. `himam_pre_programming_governance_checklist_2026-08-24.md`
+13. `himam_architecture_readiness_pack_2026-08-24.md`
 
 ## 5. قرار البدء
 
