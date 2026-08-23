@@ -94,6 +94,13 @@
       "role": "architecture-readiness",
       "status": "ACCEPTED_FOR_PHASED_PROGRAMMING",
       "purpose": "Context, domain, audit, lifecycle, permission, AI, media, integration, NFR, and threat model readiness before new repo or programming work."
+    },
+    {
+      "order": 14,
+      "path": "specs/himam_screen_operating_scenarios_2026-08-24.md",
+      "role": "screen-operating-scenarios",
+      "status": "ACCEPTED_FOR_PHASED_PROGRAMMING",
+      "purpose": "Realistic operating scenario for every MVP screen, including first 30 seconds, minimum input, reuse, no-guessing, missing evidence, return state, report impact, and duplicate-entry prevention."
     }
   ],
   "supportingFiles": [

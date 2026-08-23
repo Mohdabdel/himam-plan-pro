@@ -31,6 +31,7 @@
 11. `himam_final_programming_transition_plan_2026-08-23.md`
 12. `himam_pre_programming_governance_checklist_2026-08-24.md`
 13. `himam_architecture_readiness_pack_2026-08-24.md`
+14. `himam_screen_operating_scenarios_2026-08-24.md`
 
 ## 3. بوابة السماح قبل التنفيذ
 
@@ -45,6 +46,7 @@
 | هل تمس اعتماد هدف أو خطة؟ | GoalApprovalRecord أو PlanApprovalRecord مع صلاحية وتدقيق |
 | هل تمس الواجهة فقط؟ | لا تدعي اعتماداً أو قراراً دون سجل حاكم |
 | هل تمس repo جديد أو معمارية عامة؟ | Context/Domain/Audit/Lifecycle/Permission/AI/Media/Integration/NFR/Threat محددة |
+| هل تمس شاشة أو route؟ | سيناريو الشاشة في `himam_screen_operating_scenarios_2026-08-24.md` محدد |
 | ما الاختبار؟ | build/typecheck والتحقق المرحلي أو اختبار سلبي مناسب |
 
 إذا كان أي جواب ناقصاً، تكون المهمة في وضع `NOT_READY_FOR_CODE`.
@@ -79,6 +81,7 @@
 - Sprint 1-6: `PASS` حسب ملفات `verification`.
 - Typecheck/build: نجحت في آخر تشغيل محلي.
 - حزمة الجاهزية المعمارية قبل البرمجة: `ACCEPTED_FOR_PHASED_PROGRAMMING`.
+- سيناريوهات تشغيل الشاشات: `ACCEPTED_FOR_PHASED_PROGRAMMING`.
 - فجوات الإنتاج المتبقية: AI/OCR الإنتاجي، الهوية والصلاحيات الخادمية، الوسائط الإنتاجية، التكامل الإنتاجي، Browser E2E إنتاجي.
 
 حالة عمل معلقة:
@@ -109,3 +112,4 @@
 4. كتابة سيناريو Given/When/Then للمهمة التالية قبل تنفيذها.
 5. تحديد VerificationRun المطلوب قبل فتح الكود.
 6. مطابقة المهمة مع قسم محدد في `himam_architecture_readiness_pack_2026-08-24.md` إذا كانت تمس repo أو معمارية عامة.
+7. مطابقة أي route أو شاشة مع سيناريوها الواقعي قبل تصميم المكونات.

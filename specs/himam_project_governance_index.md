@@ -27,6 +27,7 @@
 11. `himam_final_programming_transition_plan_2026-08-23.md`
 12. `himam_pre_programming_governance_checklist_2026-08-24.md`
 13. `himam_architecture_readiness_pack_2026-08-24.md`
+14. `himam_screen_operating_scenarios_2026-08-24.md`
 
 ## ملفات مساندة لا تبدأ منها القرارات
 
@@ -62,4 +63,4 @@
 
 ## قرار التثبيت
 
-حزمة 2026-08-23 مثبتة كمرجع حاكم للانتقال إلى التنفيذ البرمجي المرحلي. أغلقت Sprints 1-6 كتحقق مرحلي محلي. أضيفت حزمة الجاهزية المعمارية بتاريخ 2026-08-24 لإغلاق بنود Context, Domain, Audit, Lifecycle, Permissions, AI, Media, Integration, NFR, Threat Model قبل أي repo أو برمجة جديدة. يجب أن يستمر أي Sprint لاحق وفق قاعدة التقدم: لا انتقال مع فجوة غير مغلقة أو غير مفسرة أو غير مسجلة في الملفات الحاكمة.
+حزمة 2026-08-23 مثبتة كمرجع حاكم للانتقال إلى التنفيذ البرمجي المرحلي. أغلقت Sprints 1-6 كتحقق مرحلي محلي. أضيفت حزمة الجاهزية المعمارية وسيناريوهات تشغيل الشاشات بتاريخ 2026-08-24 لإغلاق بنود Context, Domain, Audit, Lifecycle, Permissions, AI, Media, Integration, NFR, Threat Model، وتحويل شاشات PRD إلى سيناريوهات عمل واقعية قبل أي repo أو برمجة جديدة. يجب أن يستمر أي Sprint لاحق وفق قاعدة التقدم: لا انتقال مع فجوة غير مغلقة أو غير مفسرة أو غير مسجلة في الملفات الحاكمة.
