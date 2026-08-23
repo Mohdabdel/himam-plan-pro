@@ -1,22 +1,38 @@
 import { hasLegacyHimamPrefix, HIMAM_CONCEPT_IDS, isConceptId } from "./concepts";
 import {
   evidenceRecordSchema,
+  extractedSourceDraftSchema,
+  goalApprovalRecordSchema,
+  goalDraftSchema,
   informationToolDefinitionSchema,
   inferenceSuggestionSchema,
   knowledgeSupportItemSchema,
   learnerProfileSchema,
+  planApprovalRecordSchema,
+  planDraftSchema,
+  planQualityReviewSchema,
+  sourceExtractionReviewSchema,
   structuredResponseSchema,
   toolAdministrationSchema,
+  uploadedSourceFileSchema,
   verificationRunSchema,
 } from "./schemas";
 import type {
   EvidenceRecord,
+  ExtractedSourceDraft,
+  GoalApprovalRecord,
+  GoalDraft,
   InformationToolDefinition,
   InferenceSuggestion,
   KnowledgeSupportItem,
   LearnerProfile,
+  PlanApprovalRecord,
+  PlanDraft,
+  PlanQualityReview,
+  SourceExtractionReview,
   StructuredResponse,
   ToolAdministration,
+  UploadedSourceFile,
   VerificationRun,
 } from "./types";
 
@@ -143,6 +159,46 @@ export function validateToolAdministration(value: ToolAdministration): Validatio
 
 export function validateStructuredResponse(value: StructuredResponse): ValidationResult {
   const result = structuredResponseSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateUploadedSourceFile(value: UploadedSourceFile): ValidationResult {
+  const result = uploadedSourceFileSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateExtractedSourceDraft(value: ExtractedSourceDraft): ValidationResult {
+  const result = extractedSourceDraftSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateSourceExtractionReview(value: SourceExtractionReview): ValidationResult {
+  const result = sourceExtractionReviewSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateGoalDraft(value: GoalDraft): ValidationResult {
+  const result = goalDraftSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateGoalApprovalRecord(value: GoalApprovalRecord): ValidationResult {
+  const result = goalApprovalRecordSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validatePlanDraft(value: PlanDraft): ValidationResult {
+  const result = planDraftSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validatePlanQualityReview(value: PlanQualityReview): ValidationResult {
+  const result = planQualityReviewSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validatePlanApprovalRecord(value: PlanApprovalRecord): ValidationResult {
+  const result = planApprovalRecordSchema.safeParse(value);
   return result.success ? { ok: true, issues: [] } : fromZod(result.error);
 }
 

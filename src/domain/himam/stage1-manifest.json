@@ -32,7 +32,8 @@
     "LESSON",
     "PLAN_QUALITY",
     "AGE_STAGE_ADVISORY",
-    "REPORT"
+    "REPORT",
+    "UPLOADED_SOURCE_FILE"
   ],
   "verificationChecks": ["build", "typecheck", "dataIntegrity", "userJourney", "traceability"],
   "humanApprovalReferenceWriteAuthority": "EXTERNAL_AUTHORIZED_APPROVAL_HOOK_ONLY",

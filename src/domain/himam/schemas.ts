@@ -124,28 +124,45 @@ export const independentSourceKeySchema = z
     }
   });
 
-export const evidenceRecordSchema = z.object({
-  evidenceId: nonEmptyString,
-  learnerId: nonEmptyString,
-  sourceResponseId: nonEmptyString,
-  evidenceType: z.enum([
-    "PERFORMANCE_ASSESSMENT",
-    "FUNCTIONAL_OBSERVATION",
-    "HISTORICAL_PERFORMANCE",
-  ]),
-  conceptId: conceptIdSchema,
-  competencyId: nonEmptyString.optional(),
-  componentIds: z.array(nonEmptyString),
-  performanceCode: nonEmptyString,
-  supportCodes: z.array(nonEmptyString),
-  observedAt: isoString,
-  portfolioTargetIds: z.array(portfolioTargetIdSchema).min(1),
-  evidenceStatus: z.enum(["accepted", "excluded", "superseded"]),
-  mappingMode: z.enum(["CATALOG_FIXED", "EXPLICIT_SELECTION", "INFERRED_CONFIRMED"]),
-  eligibleForLevelEngine: z.boolean(),
-  independentSourceKey: independentSourceKeySchema,
-  sourceRef: sourceRefSchema,
-});
+export const evidenceRecordSchema = z
+  .object({
+    evidenceId: nonEmptyString,
+    learnerId: nonEmptyString,
+    sourceResponseId: nonEmptyString,
+    evidenceType: z.enum([
+      "PERFORMANCE_ASSESSMENT",
+      "FUNCTIONAL_OBSERVATION",
+      "HISTORICAL_PERFORMANCE",
+    ]),
+    conceptId: conceptIdSchema,
+    competencyId: nonEmptyString.optional(),
+    componentIds: z.array(nonEmptyString),
+    performanceCode: nonEmptyString,
+    supportCodes: z.array(nonEmptyString),
+    observedAt: isoString,
+    portfolioTargetIds: z.array(portfolioTargetIdSchema).min(1),
+    evidenceStatus: z.enum(["accepted", "excluded", "superseded"]),
+    mappingMode: z.enum(["CATALOG_FIXED", "EXPLICIT_SELECTION", "INFERRED_CONFIRMED"]),
+    eligibleForLevelEngine: z.boolean(),
+    independentSourceKey: independentSourceKeySchema,
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "StructuredResponse") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "EvidenceRecord must be created from reviewed StructuredResponse, not raw files or drafts",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.sourceResponseId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "EvidenceRecord sourceRef.sourceId must match sourceResponseId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+  });
 
 export const knowledgeSupportItemSchema = z.object({
   knowledgeItemId: nonEmptyString,
@@ -321,6 +338,294 @@ export const structuredResponseSchema = z
         code: z.ZodIssueCode.custom,
         message: "Voice, family, interest, and inclination responses cannot create level evidence",
         path: ["outputChannel"],
+      });
+    }
+  });
+
+export const sourceFileSensitivitySchema = z.enum([
+  "INTERNAL_OPERATIONAL",
+  "EDUCATIONAL",
+  "PROFESSIONAL_SENSITIVE",
+  "MEDIA_SENSITIVE",
+]);
+
+export const uploadedSourcePurposeSchema = z.enum([
+  "OFFICIAL_ASSESSMENT_RESULTS",
+  "LEARNER_VOICE_FORM",
+  "FAMILY_VISION_FORM",
+  "ADDITIONAL_INFORMATION_SOURCE",
+  "PRIOR_REPORT",
+  "WORK_SAMPLE",
+  "EXECUTION_MEDIA",
+]);
+
+export const uploadedSourceFileSchema = z
+  .object({
+    fileId: nonEmptyString,
+    learnerId: nonEmptyString,
+    sourceType: sourceTypeSchema,
+    purpose: uploadedSourcePurposeSchema,
+    fileName: nonEmptyString,
+    mimeType: nonEmptyString,
+    sizeBytes: z.number().int().positive().optional(),
+    uploadedByRole: nonEmptyString,
+    uploadedAt: isoString,
+    sensitivity: sourceFileSensitivitySchema,
+    consentStatus: z.enum(["PERMITTED", "RESTRICTED", "NOT_PERMITTED", "UNKNOWN"]),
+    extractionStatus: z.enum(["not_started", "draft_created", "needs_review", "reviewed", "failed"]),
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "UploadedSourceFile") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "UploadedSourceFile sourceRef must point to UploadedSourceFile",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.fileId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "UploadedSourceFile sourceRef.sourceId must match fileId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+    if (value.consentStatus === "NOT_PERMITTED" && value.extractionStatus !== "not_started") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Files without consent cannot enter extraction",
+        path: ["extractionStatus"],
+      });
+    }
+  });
+
+export const aiDraftBoundarySchema = z.enum([
+  "DRAFT_ONLY_REQUIRES_HUMAN_REVIEW",
+  "NO_AUTOMATED_DECISION",
+  "SOURCE_SUMMARY_ONLY",
+]);
+
+export const extractedSourceItemSchema = z.object({
+  itemId: nonEmptyString,
+  statement: nonEmptyString,
+  locationRef: nonEmptyString.optional(),
+  proposedOutputChannel: z.enum([
+    "EVIDENCE_RECORD",
+    "KNOWLEDGE_SUPPORT_ITEM",
+    "INFERENCE_SUGGESTION",
+    "UNCLASSIFIED_PENDING_REVIEW",
+  ]),
+  proposedConceptIds: z.array(conceptIdSchema),
+  confidence: z.number().min(0).max(1),
+});
+
+export const extractedSourceDraftSchema = z
+  .object({
+    draftId: nonEmptyString,
+    fileId: nonEmptyString,
+    learnerId: nonEmptyString,
+    extractedAt: isoString,
+    extractedBy: z.enum(["SYSTEM_EXTRACTION", "HUMAN_ENTRY"]),
+    status: z.enum(["draft", "needs_review", "reviewed", "failed"]),
+    aiDraftBoundary: aiDraftBoundarySchema,
+    items: z.array(extractedSourceItemSchema),
+    failureReason: nonEmptyString.optional(),
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "UploadedSourceFile") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ExtractedSourceDraft must trace back to UploadedSourceFile",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.fileId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ExtractedSourceDraft sourceRef.sourceId must match fileId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+    if (value.status === "failed" && !value.failureReason) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Failed extraction requires failureReason",
+        path: ["failureReason"],
+      });
+    }
+    if (value.status !== "failed" && value.items.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Non-failed extraction draft requires at least one extracted item",
+        path: ["items"],
+      });
+    }
+    if (value.aiDraftBoundary !== "DRAFT_ONLY_REQUIRES_HUMAN_REVIEW") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Extraction output must remain draft-only until human review",
+        path: ["aiDraftBoundary"],
+      });
+    }
+  });
+
+export const sourceExtractionReviewSchema = z
+  .object({
+    reviewId: nonEmptyString,
+    draftId: nonEmptyString,
+    fileId: nonEmptyString,
+    learnerId: nonEmptyString,
+    reviewedByRole: nonEmptyString,
+    reviewedAt: isoString,
+    decision: z.enum(["approved_for_structured_response", "returned_for_correction", "rejected"]),
+    reviewerNotes: nonEmptyString.optional(),
+    createdStructuredResponseIds: z.array(nonEmptyString),
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "ExtractedSourceDraft") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "SourceExtractionReview must trace back to ExtractedSourceDraft",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.draftId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "SourceExtractionReview sourceRef.sourceId must match draftId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+    if (
+      value.decision === "approved_for_structured_response" &&
+      value.createdStructuredResponseIds.length === 0
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Approved extraction review must create at least one StructuredResponse",
+        path: ["createdStructuredResponseIds"],
+      });
+    }
+  });
+
+export const goalDraftSchema = z
+  .object({
+    goalDraftId: nonEmptyString,
+    learnerId: nonEmptyString,
+    goalText: nonEmptyString,
+    baselineEvidenceIds: z.array(nonEmptyString),
+    knowledgeContextIds: z.array(nonEmptyString),
+    measurementMethod: nonEmptyString,
+    criterion: nonEmptyString,
+    context: nonEmptyString,
+    status: z.enum(["draft", "quality_ready", "returned_for_revision"]),
+    createdByRole: nonEmptyString,
+    createdAt: isoString,
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.baselineEvidenceIds.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GoalDraft requires at least one baseline EvidenceRecord reference",
+        path: ["baselineEvidenceIds"],
+      });
+    }
+    if (value.sourceRef.sourceRecordType !== "StructuredResponse" && value.sourceRef.sourceRecordType !== "EvidenceRecord") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GoalDraft must trace to StructuredResponse or EvidenceRecord",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+  });
+
+export const goalApprovalRecordSchema = z
+  .object({
+    approvalId: nonEmptyString,
+    learnerId: nonEmptyString,
+    goalDraftId: nonEmptyString,
+    decision: z.enum(["approved_for_plan_inclusion", "returned_for_revision", "rejected"]),
+    decidedByRole: nonEmptyString,
+    decidedAt: isoString,
+    qualityCheckId: nonEmptyString,
+    decisionRationale: nonEmptyString,
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "GoalDraft") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GoalApprovalRecord must trace back to GoalDraft",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.goalDraftId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "GoalApprovalRecord sourceRef.sourceId must match goalDraftId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+  });
+
+export const planDraftSchema = z.object({
+  planDraftId: nonEmptyString,
+  learnerId: nonEmptyString,
+  goalApprovalIds: z.array(nonEmptyString).min(1),
+  planPeriodStart: isoString,
+  planPeriodEnd: isoString,
+  status: z.enum(["draft", "ready_for_review", "returned_for_revision"]),
+  createdByRole: nonEmptyString,
+  createdAt: isoString,
+  sourceRef: sourceRefSchema,
+});
+
+export const planQualityReviewSchema = z.object({
+  reviewId: nonEmptyString,
+  planDraftId: nonEmptyString,
+  learnerId: nonEmptyString,
+  reviewedAt: isoString,
+  status: z.enum(["passed", "needs_revision"]),
+  findings: z.array(nonEmptyString),
+  sourceRef: sourceRefSchema,
+});
+
+export const planApprovalRecordSchema = z
+  .object({
+    approvalId: nonEmptyString,
+    planDraftId: nonEmptyString,
+    learnerId: nonEmptyString,
+    decision: z.enum(["approved", "returned_for_revision", "rejected"]),
+    decidedByRole: nonEmptyString,
+    decidedAt: isoString,
+    planQualityReviewId: nonEmptyString,
+    approvedGoalApprovalIds: z.array(nonEmptyString),
+    decisionRationale: nonEmptyString,
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "PlanQualityReview") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "PlanApprovalRecord must trace back to PlanQualityReview",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.planQualityReviewId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "PlanApprovalRecord sourceRef.sourceId must match planQualityReviewId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+    if (value.decision === "approved" && value.approvedGoalApprovalIds.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Approved plan requires at least one approved goal",
+        path: ["approvedGoalApprovalIds"],
       });
     }
   });

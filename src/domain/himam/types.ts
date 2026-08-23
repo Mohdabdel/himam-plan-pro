@@ -218,6 +218,144 @@ export type StructuredResponse = {
   sourceRef: SourceRef;
 };
 
+export type SourceFileSensitivity =
+  | "INTERNAL_OPERATIONAL"
+  | "EDUCATIONAL"
+  | "PROFESSIONAL_SENSITIVE"
+  | "MEDIA_SENSITIVE";
+
+export type UploadedSourcePurpose =
+  | "OFFICIAL_ASSESSMENT_RESULTS"
+  | "LEARNER_VOICE_FORM"
+  | "FAMILY_VISION_FORM"
+  | "ADDITIONAL_INFORMATION_SOURCE"
+  | "PRIOR_REPORT"
+  | "WORK_SAMPLE"
+  | "EXECUTION_MEDIA";
+
+export type UploadedSourceFile = {
+  fileId: EntityId;
+  learnerId: EntityId;
+  sourceType: SourceType;
+  purpose: UploadedSourcePurpose;
+  fileName: string;
+  mimeType: string;
+  sizeBytes?: number;
+  uploadedByRole: string;
+  uploadedAt: ISODateTime;
+  sensitivity: SourceFileSensitivity;
+  consentStatus: PrivacyConsentStatus;
+  extractionStatus: "not_started" | "draft_created" | "needs_review" | "reviewed" | "failed";
+  sourceRef: SourceRef;
+};
+
+export type AiDraftBoundary =
+  | "DRAFT_ONLY_REQUIRES_HUMAN_REVIEW"
+  | "NO_AUTOMATED_DECISION"
+  | "SOURCE_SUMMARY_ONLY";
+
+export type ExtractedSourceItem = {
+  itemId: EntityId;
+  statement: string;
+  locationRef?: string;
+  proposedOutputChannel: ToolOutputChannel | "UNCLASSIFIED_PENDING_REVIEW";
+  proposedConceptIds: ConceptId[];
+  confidence: number;
+};
+
+export type ExtractedSourceDraft = {
+  draftId: EntityId;
+  fileId: EntityId;
+  learnerId: EntityId;
+  extractedAt: ISODateTime;
+  extractedBy: "SYSTEM_EXTRACTION" | "HUMAN_ENTRY";
+  status: "draft" | "needs_review" | "reviewed" | "failed";
+  aiDraftBoundary: AiDraftBoundary;
+  items: ExtractedSourceItem[];
+  failureReason?: string;
+  sourceRef: SourceRef;
+};
+
+export type SourceExtractionReviewDecision =
+  | "approved_for_structured_response"
+  | "returned_for_correction"
+  | "rejected";
+
+export type SourceExtractionReview = {
+  reviewId: EntityId;
+  draftId: EntityId;
+  fileId: EntityId;
+  learnerId: EntityId;
+  reviewedByRole: string;
+  reviewedAt: ISODateTime;
+  decision: SourceExtractionReviewDecision;
+  reviewerNotes?: string;
+  createdStructuredResponseIds: EntityId[];
+  sourceRef: SourceRef;
+};
+
+export type GoalDraft = {
+  goalDraftId: EntityId;
+  learnerId: EntityId;
+  goalText: string;
+  baselineEvidenceIds: EntityId[];
+  knowledgeContextIds: EntityId[];
+  measurementMethod: string;
+  criterion: string;
+  context: string;
+  status: "draft" | "quality_ready" | "returned_for_revision";
+  createdByRole: string;
+  createdAt: ISODateTime;
+  sourceRef: SourceRef;
+};
+
+export type GoalApprovalRecord = {
+  approvalId: EntityId;
+  learnerId: EntityId;
+  goalDraftId: EntityId;
+  decision: "approved_for_plan_inclusion" | "returned_for_revision" | "rejected";
+  decidedByRole: string;
+  decidedAt: ISODateTime;
+  qualityCheckId: EntityId;
+  decisionRationale: string;
+  sourceRef: SourceRef;
+};
+
+export type PlanDraft = {
+  planDraftId: EntityId;
+  learnerId: EntityId;
+  goalApprovalIds: EntityId[];
+  planPeriodStart: ISODate;
+  planPeriodEnd: ISODate;
+  status: "draft" | "ready_for_review" | "returned_for_revision";
+  createdByRole: string;
+  createdAt: ISODateTime;
+  sourceRef: SourceRef;
+};
+
+export type PlanQualityReview = {
+  reviewId: EntityId;
+  planDraftId: EntityId;
+  learnerId: EntityId;
+  reviewedAt: ISODateTime;
+  status: "passed" | "needs_revision";
+  findings: string[];
+  sourceRef: SourceRef;
+};
+
+export type PlanApprovalRecord = {
+  approvalId: EntityId;
+  planDraftId: EntityId;
+  learnerId: EntityId;
+  decision: "approved" | "returned_for_revision" | "rejected";
+  decidedByRole: string;
+  decidedAt: ISODateTime;
+  planQualityReviewId: EntityId;
+  approvedGoalApprovalIds: EntityId[];
+  decisionRationale: string;
+  sourceRef: SourceRef;
+};
+
 export type VerificationStatus = "NOT_RUN" | "PASS" | "FAIL" | "NOT_APPLICABLE";
 export type DeliveryMaturity =
   | "KNOWLEDGE_SPEC_ONLY"
