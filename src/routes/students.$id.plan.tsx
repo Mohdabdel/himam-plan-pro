@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { advanceStage } from "../lib/journey";
 import { JourneyStepper } from "@/components/journey-stepper";
 import { isMvpConceptId } from "@/data/concepts";
-import { recommendCurriculumActivities } from "@/lib/curriculum-recommendations";
 import {
   appendApprovalAuditEvent,
   buildApprovalAuditEvent,
@@ -129,6 +128,7 @@ function safeParse<T>(key: string): T | null {
 }
 
 type FlatGoal = { goalId: string; domainCode: string; goalText: string; raw: RawGoal };
+type CurriculumRecommender = (typeof import("@/lib/curriculum-recommendations"))["recommendCurriculumActivities"];
 
 /** Flatten IEP goals from either storage format into a stable list. */
 function normalizeGoals(raw: RawIEP | null): FlatGoal[] {
@@ -172,6 +172,7 @@ function buildEntry(
   coverage: CoverageData,
   defaultContext: string,
   conceptLevels: Record<string, { level: number | null; status: string }>,
+  recommendCurriculumActivities: CurriculumRecommender,
 ): GoalEntry {
   const { goalId, domainCode, goalText, raw } = flat;
   const concepts = DOMAIN_CONCEPT_MAP[domainCode] ?? [];
@@ -249,83 +250,96 @@ function PlanPage() {
   const [learnedLove,      setLearnedLove]      = useState("");
 
   useEffect(() => {
-    // 1. Load student
-    const students = safeParse<StoredStudent[]>("himam_students");
-    const s = students?.find((x) => x.id === id) ?? null;
-    setStudent(s);
+    let cancelled = false;
 
-    // 2. Load supporting data
-    const rawIEP    = safeParse<RawIEP>(`himam_iep_${id}`);
-    const coverage  = safeParse<CoverageData>(`himam_coverage_${id}`) ?? {};
-    const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
-    const learnerV  = safeParse<LearnerVoiceData>(`himam_learner_voice_${id}`) ?? {};
-    const goalApprovalBundles = loadGoalApprovalBundles(id);
-    setApprovedGoalCount(goalApprovalBundles.filter((bundle) => bundle.approval.decision === "approved_for_plan_inclusion").length);
-    setPlanGovernance(loadPlanGovernanceBundle(id));
-    setPlanApproval(loadPlanApprovalRecord(id));
-    const profile = s ? loadLearnerProfile(s.id) : null;
-    const calibratedProfile = profile ? saveLearnerProfile(calibrateMvpProfile(profile)) : null;
-    const conceptLevels = Object.fromEntries(
-      Object.entries(calibratedProfile?.concepts ?? {}).map(([conceptId, concept]) => [
-        conceptId,
-        { level: concept.currentLevel ?? null, status: concept.calibrationStatus },
-      ]),
-    );
+    async function loadPlanData() {
+      const { recommendCurriculumActivities } = await import("@/lib/curriculum-recommendations");
+      if (cancelled) return;
 
-    // 3. Determine default training context from learner voice environments
-    const envs = learnerV.environments ?? [];
-    const prefersHome = envs.some((e) => HOME_KEYWORDS.some((k) => e.includes(k)));
-    // Also check family vision for home clues
-    const visionHint = family.vision5y ?? "";
-    const defaultContext =
-      prefersHome || HOME_KEYWORDS.some((k) => visionHint.includes(k))
-        ? "البيت"
-        : "المركز / المدرسة";
+      // 1. Load student
+      const students = safeParse<StoredStudent[]>("himam_students");
+      const s = students?.find((x) => x.id === id) ?? null;
+      setStudent(s);
 
-    // 3b. Expose context origin and voice cues to the UI
-    setContextHint({
-      context: defaultContext,
-      reason: prefersHome
-        ? "بناءً على بيئات المتعلم"
-        : HOME_KEYWORDS.some((k) => visionHint.includes(k))
-          ? "بناءً على رؤية الأسرة"
-          : "افتراضي",
-    });
-    setFamilyPriorities((family.priorities ?? []).slice(0, 3));
-    setLearnedLove(learnerV.q_love?.trim() ?? "");
+      // 2. Load supporting data
+      const rawIEP    = safeParse<RawIEP>(`himam_iep_${id}`);
+      const coverage  = safeParse<CoverageData>(`himam_coverage_${id}`) ?? {};
+      const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
+      const learnerV  = safeParse<LearnerVoiceData>(`himam_learner_voice_${id}`) ?? {};
+      const goalApprovalBundles = loadGoalApprovalBundles(id);
+      setApprovedGoalCount(goalApprovalBundles.filter((bundle) => bundle.approval.decision === "approved_for_plan_inclusion").length);
+      setPlanGovernance(loadPlanGovernanceBundle(id));
+      setPlanApproval(loadPlanApprovalRecord(id));
+      const profile = s ? loadLearnerProfile(s.id) : null;
+      const calibratedProfile = profile ? saveLearnerProfile(calibrateMvpProfile(profile)) : null;
+      const conceptLevels = Object.fromEntries(
+        Object.entries(calibratedProfile?.concepts ?? {}).map(([conceptId, concept]) => [
+          conceptId,
+          { level: concept.currentLevel ?? null, status: concept.calibrationStatus },
+        ]),
+      );
 
-    // 4. Normalise goals
-    const flatGoals = normalizeGoals(rawIEP);
-    if (flatGoals.length === 0) {
-      setHasGoals(false);
-      setLoaded(true);
-      return;
-    }
+      // 3. Determine default training context from learner voice environments
+      const envs = learnerV.environments ?? [];
+      const prefersHome = envs.some((e) => HOME_KEYWORDS.some((k) => e.includes(k)));
+      // Also check family vision for home clues
+      const visionHint = family.vision5y ?? "";
+      const defaultContext =
+        prefersHome || HOME_KEYWORDS.some((k) => visionHint.includes(k))
+          ? "البيت"
+          : "المركز / المدرسة";
 
-    // 5. Build goal entries
-    const entries = flatGoals.map((g) => buildEntry(g, coverage, defaultContext, conceptLevels));
+      // 3b. Expose context origin and voice cues to the UI
+      setContextHint({
+        context: defaultContext,
+        reason: prefersHome
+          ? "بناءً على بيئات المتعلم"
+          : HOME_KEYWORDS.some((k) => visionHint.includes(k))
+            ? "بناءً على رؤية الأسرة"
+            : "افتراضي",
+      });
+      setFamilyPriorities((family.priorities ?? []).slice(0, 3));
+      setLearnedLove(learnerV.q_love?.trim() ?? "");
 
-    // 6. Restore saved plan selections
-    const saved = safeParse<{ goals: GoalEntry[] }>(`himam_plan_${id}`);
-    if (saved?.goals) {
-      const savedMap = new Map(saved.goals.map((g) => [g.goalId, g]));
-      for (const e of entries) {
-        const prev = savedMap.get(e.goalId);
-        if (prev) {
-          e.selectedActivities = prev.selectedActivities ?? [];
-          e.context            = prev.context            ?? e.context;
-          e.specialistNote     = prev.specialistNote     ?? "";
+      // 4. Normalise goals
+      const flatGoals = normalizeGoals(rawIEP);
+      if (flatGoals.length === 0) {
+        setHasGoals(false);
+        setLoaded(true);
+        return;
+      }
+
+      // 5. Build goal entries
+      const entries = flatGoals.map((g) => buildEntry(g, coverage, defaultContext, conceptLevels, recommendCurriculumActivities));
+
+      // 6. Restore saved plan selections
+      const saved = safeParse<{ goals: GoalEntry[] }>(`himam_plan_${id}`);
+      if (saved?.goals) {
+        const savedMap = new Map(saved.goals.map((g) => [g.goalId, g]));
+        for (const e of entries) {
+          const prev = savedMap.get(e.goalId);
+          if (prev) {
+            e.selectedActivities = prev.selectedActivities ?? [];
+            e.context            = prev.context            ?? e.context;
+            e.specialistNote     = prev.specialistNote     ?? "";
+          }
         }
       }
+
+      // 7. Sort: high → medium → low
+      const ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+      entries.sort((a, b) => ORDER[a.priority] - ORDER[b.priority]);
+
+      setGoalEntries(entries);
+      setHasGoals(true);
+      setLoaded(true);
     }
 
-    // 7. Sort: high → medium → low
-    const ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
-    entries.sort((a, b) => ORDER[a.priority] - ORDER[b.priority]);
+    void loadPlanData();
 
-    setGoalEntries(entries);
-    setHasGoals(true);
-    setLoaded(true);
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
