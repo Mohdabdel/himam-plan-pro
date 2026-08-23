@@ -37,6 +37,33 @@ export type PlanGovernanceBundle = {
 };
 
 export type PlanApprovalDecision = PlanApprovalRecord["decision"];
+export type ApprovalActorRole = "SPECIALIST" | "SENIOR_SPECIALIST" | "PROGRAM_ADMIN";
+export type ApprovalAction =
+  | "CREATE_GOAL_APPROVAL"
+  | "CREATE_PLAN_DRAFT"
+  | "CREATE_PLAN_APPROVAL";
+
+export type ApprovalAuditEvent = {
+  auditId: string;
+  learnerId: string;
+  actorRole: ApprovalActorRole;
+  action: ApprovalAction;
+  targetRecordType:
+    | "GoalApprovalRecord"
+    | "PlanDraft"
+    | "PlanQualityReview"
+    | "PlanApprovalRecord";
+  targetRecordId: string;
+  decision?: string;
+  decisionRationale?: string;
+  createdAt: string;
+};
+
+export const APPROVAL_ACCESS_MATRIX: Record<ApprovalAction, ApprovalActorRole[]> = {
+  CREATE_GOAL_APPROVAL: ["SPECIALIST", "SENIOR_SPECIALIST", "PROGRAM_ADMIN"],
+  CREATE_PLAN_DRAFT: ["SPECIALIST", "SENIOR_SPECIALIST", "PROGRAM_ADMIN"],
+  CREATE_PLAN_APPROVAL: ["SENIOR_SPECIALIST", "PROGRAM_ADMIN"],
+};
 
 function id(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -45,6 +72,12 @@ function id(prefix: string) {
 function assertValid(label: string, result: { ok: boolean; issues: Array<{ message: string }> }) {
   if (!result.ok) {
     throw new Error(`${label}: ${result.issues.map((issue) => issue.message).join("; ")}`);
+  }
+}
+
+function assertAuthorized(role: ApprovalActorRole, action: ApprovalAction) {
+  if (!APPROVAL_ACCESS_MATRIX[action].includes(role)) {
+    throw new Error(`UNAUTHORIZED_APPROVAL_ACTION: ${role} cannot ${action}`);
   }
 }
 
@@ -66,6 +99,10 @@ export function planGovernanceKey(learnerId: string) {
 
 export function planApprovalKey(learnerId: string) {
   return `himam_plan_approval_${learnerId}`;
+}
+
+export function approvalAuditKey(learnerId: string) {
+  return `himam_approval_audit_${learnerId}`;
 }
 
 export function loadGoalApprovalBundles(learnerId: string): GoalApprovalBundle[] {
@@ -111,12 +148,37 @@ export function savePlanApprovalRecord(learnerId: string, approval: PlanApproval
   return approval;
 }
 
+export function loadApprovalAuditEvents(learnerId: string): ApprovalAuditEvent[] {
+  try {
+    return JSON.parse(localStorage.getItem(approvalAuditKey(learnerId)) || "[]") as ApprovalAuditEvent[];
+  } catch {
+    return [];
+  }
+}
+
+export function appendApprovalAuditEvent(event: ApprovalAuditEvent) {
+  const events = loadApprovalAuditEvents(event.learnerId);
+  localStorage.setItem(approvalAuditKey(event.learnerId), JSON.stringify([...events, event]));
+  return event;
+}
+
+export function buildApprovalAuditEvent(input: Omit<ApprovalAuditEvent, "auditId" | "createdAt">): ApprovalAuditEvent {
+  assertAuthorized(input.actorRole, input.action);
+  return {
+    auditId: id("approval-audit"),
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+}
+
 export function buildGoalApprovalBundles(input: {
   learnerId: string;
   goals: ApprovableGoalInput[];
-  decidedByRole?: string;
+  decidedByRole?: ApprovalActorRole;
 }): GoalApprovalBundle[] {
   const now = new Date().toISOString();
+  const actorRole = input.decidedByRole ?? "SPECIALIST";
+  assertAuthorized(actorRole, "CREATE_GOAL_APPROVAL");
   return input.goals
     .filter((goal) => goal.text.trim())
     .map((goal) => {
@@ -146,7 +208,7 @@ export function buildGoalApprovalBundles(input: {
         learnerId: input.learnerId,
         goalDraftId,
         decision: "approved_for_plan_inclusion",
-        decidedByRole: input.decidedByRole ?? "SPECIALIST",
+        decidedByRole: actorRole,
         decidedAt: now,
         qualityCheckId: `quality-check-${goal.id}`,
         decisionRationale: "استوفى الهدف عناصر الحفظ الحرجة واعتمد كوحدة قابلة للإدراج في الخطة.",
@@ -174,10 +236,12 @@ export function buildPlanGovernanceBundle(input: {
   learnerId: string;
   goalApprovalIds: string[];
   planPeriodStart?: string;
-  createdByRole?: string;
+  createdByRole?: ApprovalActorRole;
   findings?: string[];
 }): PlanGovernanceBundle {
   const now = new Date().toISOString();
+  const actorRole = input.createdByRole ?? "SPECIALIST";
+  assertAuthorized(actorRole, "CREATE_PLAN_DRAFT");
   const start = input.planPeriodStart || now.slice(0, 10);
   const endYear = Number(start.slice(0, 4)) + 1;
   const end = `${endYear}${start.slice(4)}`;
@@ -190,7 +254,7 @@ export function buildPlanGovernanceBundle(input: {
     planPeriodStart: start,
     planPeriodEnd: end,
     status: "ready_for_review",
-    createdByRole: input.createdByRole ?? "SPECIALIST",
+    createdByRole: actorRole,
     createdAt: now,
     sourceRef: {
       sourceType: "GOAL",
@@ -229,15 +293,17 @@ export function buildPlanApprovalRecord(input: {
   planQualityReviewId: string;
   approvedGoalApprovalIds: string[];
   decision: PlanApprovalDecision;
-  decidedByRole?: string;
+  decidedByRole?: ApprovalActorRole;
   decisionRationale: string;
 }): PlanApprovalRecord {
+  const actorRole = input.decidedByRole ?? "SENIOR_SPECIALIST";
+  assertAuthorized(actorRole, "CREATE_PLAN_APPROVAL");
   const approval: PlanApprovalRecord = {
     approvalId: id("plan-approval"),
     planDraftId: input.planDraftId,
     learnerId: input.learnerId,
     decision: input.decision,
-    decidedByRole: input.decidedByRole ?? "SENIOR_SPECIALIST",
+    decidedByRole: actorRole,
     decidedAt: new Date().toISOString(),
     planQualityReviewId: input.planQualityReviewId,
     approvedGoalApprovalIds: input.decision === "approved" ? input.approvedGoalApprovalIds : [],

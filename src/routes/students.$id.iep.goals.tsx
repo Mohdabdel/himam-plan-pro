@@ -15,6 +15,8 @@ import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/l
 import { GoalReferencePanel } from "@/components/goal-reference-panel";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
 import {
+  appendApprovalAuditEvent,
+  buildApprovalAuditEvent,
   buildGoalApprovalBundles,
   saveGoalApprovalBundles,
 } from "@/lib/goal-plan-approval";
@@ -598,6 +600,17 @@ function IEPPage() {
         })),
       });
       saveGoalApprovalBundles(id, approvalBundles);
+      approvalBundles.forEach((bundle) => {
+        appendApprovalAuditEvent(buildApprovalAuditEvent({
+          learnerId: id,
+          actorRole: "SPECIALIST",
+          action: "CREATE_GOAL_APPROVAL",
+          targetRecordType: "GoalApprovalRecord",
+          targetRecordId: bundle.approval.approvalId,
+          decision: bundle.approval.decision,
+          decisionRationale: bundle.approval.decisionRationale,
+        }));
+      });
       localStorage.setItem(
         `himam_iep_${id}`,
         JSON.stringify({

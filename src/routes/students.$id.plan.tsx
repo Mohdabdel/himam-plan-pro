@@ -5,6 +5,8 @@ import { JourneyStepper } from "@/components/journey-stepper";
 import { isMvpConceptId } from "@/data/concepts";
 import { recommendCurriculumActivities } from "@/lib/curriculum-recommendations";
 import {
+  appendApprovalAuditEvent,
+  buildApprovalAuditEvent,
   buildPlanApprovalRecord,
   buildPlanGovernanceBundle,
   loadGoalApprovalBundles,
@@ -12,6 +14,7 @@ import {
   loadPlanGovernanceBundle,
   savePlanApprovalRecord,
   savePlanGovernanceBundle,
+  type ApprovalActorRole,
   type PlanApprovalDecision,
   type PlanGovernanceBundle,
 } from "@/lib/goal-plan-approval";
@@ -239,7 +242,7 @@ function PlanPage() {
   const [planGovernance,   setPlanGovernance]   = useState<PlanGovernanceBundle | null>(null);
   const [planApproval,     setPlanApproval]     = useState<PlanApprovalRecord | null>(null);
   const [approvalDecision, setApprovalDecision] = useState<PlanApprovalDecision>("approved");
-  const [reviewerRole,     setReviewerRole]     = useState("SENIOR_SPECIALIST");
+  const [reviewerRole,     setReviewerRole]     = useState<ApprovalActorRole>("SENIOR_SPECIALIST");
   const [decisionRationale,setDecisionRationale]= useState("");
   const [contextHint,      setContextHint]      = useState<{ context: string; reason: string }>({ context: "", reason: "" });
   const [familyPriorities, setFamilyPriorities] = useState<string[]>([]);
@@ -379,10 +382,28 @@ function PlanPage() {
           goalEntries.some((g) => g.selectedActivities.length > 0)
             ? "تم اختيار أنشطة تنفيذية لبعض الأهداف."
             : "لم تختر أنشطة تنفيذية بعد؛ تبقى الخطة قابلة للمراجعة وليست نهائية.",
-          "اعتماد المختص الأعلى لم ينفذ بعد في Sprint 3 ويجب ألا تعتبر الخطة معتمدة نهائياً.",
+          "لا تعتبر الخطة معتمدة نهائياً إلا بعد قرار المراجع الأعلى المصرح له.",
         ],
       });
       savePlanGovernanceBundle(id, governanceBundle);
+      appendApprovalAuditEvent(buildApprovalAuditEvent({
+        learnerId: id,
+        actorRole: "SPECIALIST",
+        action: "CREATE_PLAN_DRAFT",
+        targetRecordType: "PlanDraft",
+        targetRecordId: governanceBundle.planDraft.planDraftId,
+        decision: governanceBundle.planDraft.status,
+        decisionRationale: "حفظ المختص مسودة خطة مبنية من أهداف معتمدة كوحدات.",
+      }));
+      appendApprovalAuditEvent(buildApprovalAuditEvent({
+        learnerId: id,
+        actorRole: "SPECIALIST",
+        action: "CREATE_PLAN_DRAFT",
+        targetRecordType: "PlanQualityReview",
+        targetRecordId: governanceBundle.qualityReview.reviewId,
+        decision: governanceBundle.qualityReview.status,
+        decisionRationale: governanceBundle.qualityReview.findings.join(" | "),
+      }));
       setPlanGovernance(governanceBundle);
       setApprovedGoalCount(goalApprovalBundles.length);
       localStorage.setItem(`himam_plan_${id}`, JSON.stringify({
@@ -436,10 +457,19 @@ function PlanPage() {
         planQualityReviewId: governance.qualityReview.reviewId,
         approvedGoalApprovalIds: goalApprovalBundles.map((bundle) => bundle.approval.approvalId),
         decision: approvalDecision,
-        decidedByRole: reviewerRole.trim() || "SENIOR_SPECIALIST",
+        decidedByRole: reviewerRole,
         decisionRationale: decisionRationale.trim(),
       });
       savePlanApprovalRecord(id, approval);
+      appendApprovalAuditEvent(buildApprovalAuditEvent({
+        learnerId: id,
+        actorRole: reviewerRole,
+        action: "CREATE_PLAN_APPROVAL",
+        targetRecordType: "PlanApprovalRecord",
+        targetRecordId: approval.approvalId,
+        decision: approval.decision,
+        decisionRationale: approval.decisionRationale,
+      }));
       setPlanApproval(approval);
       setPlanGovernance({ ...governance, planApproval: approval });
       setGovernanceError("");
@@ -771,11 +801,14 @@ function PlanPage() {
                 </div>
                 <div>
                   <label style={{ display: "block", marginBottom: 6, color: "#64748B", fontSize: 12, fontWeight: 700 }}>دور المراجع</label>
-                  <input
+                  <select
                     value={reviewerRole}
-                    onChange={(event) => setReviewerRole(event.target.value)}
-                    style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit" }}
-                  />
+                    onChange={(event) => setReviewerRole(event.target.value as ApprovalActorRole)}
+                    style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", background: "white" }}
+                  >
+                    <option value="SENIOR_SPECIALIST">مختص أعلى</option>
+                    <option value="PROGRAM_ADMIN">إدارة البرنامج</option>
+                  </select>
                 </div>
                 <div style={{ alignSelf: "end" }}>
                   <button
