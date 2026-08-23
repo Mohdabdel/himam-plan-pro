@@ -16,6 +16,13 @@ import {
   PlanComponentsStatus,
 } from "@/components/plan-components-status";
 import { advanceStage } from "@/lib/journey";
+import {
+  appendSourceFilePipeline,
+  buildSourceFilePipeline,
+  loadSourceFilePipelines,
+  summarizeSourceFilePipeline,
+  type SourceFilePipelineRecord,
+} from "@/lib/source-file-pipeline";
 import type { AssessmentRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/assessment/official")({
@@ -74,6 +81,7 @@ function OfficialAssessmentPage() {
   const [upload, setUpload] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
+  const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
 
   useEffect(() => {
     const loadedStudent = loadStudent(id);
@@ -81,6 +89,7 @@ function OfficialAssessmentPage() {
     setStudent(loadedStudent);
     setRecords(loadedRecords);
     setComponentStatus(loadPlanComponentStatus(id));
+    setSourcePipelines(loadSourceFilePipelines(id));
     if (loadedStudent?.tool) setToolId(loadedStudent.tool);
   }, [id]);
 
@@ -120,10 +129,36 @@ function OfficialAssessmentPage() {
     const savedRecord = toolId === "OTHER_OFFICIAL_ASSESSMENT" && customToolName.trim()
       ? { ...record, toolNameAr: customToolName.trim() }
       : record;
-    const next = [...records, savedRecord];
+    const sourcePipeline = buildSourceFilePipeline({
+      learnerId: id,
+      sourceNameAr: `نتائج ${savedRecord.toolNameAr}`,
+      file: upload,
+      purpose: "OFFICIAL_ASSESSMENT_RESULTS",
+      sourceType: "INSTITUTIONAL_ASSESSMENT",
+      statements: [
+        `نتائج ${savedRecord.toolNameAr} مرفوعة ومراجعة كمصدر رسمي لبناء مستوى الأداء الحالي.`,
+        coverageReview.missingAreas.length > 0
+          ? `توجد فجوات تغطية انتقالية تحتاج مراجعة: ${coverageReview.missingAreas.map((area) => coverageAreaLabelAr(area)).join("، ")}.`
+          : "لا توجد فجوات تغطية انتقالية ظاهرة من اختيار الأداة الحالي.",
+      ],
+      outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+    });
+
+    const next = [
+      ...records,
+      {
+        ...savedRecord,
+        processingNotesAr: [
+          ...(savedRecord.processingNotesAr ?? []),
+          "تم إنشاء مسار قراءة ومراجعة للملف المرفوع وتحويله إلى استجابات منظمة قبل استخدامه في بناء الأهداف.",
+        ],
+      },
+    ];
     saveAssessmentRecords(id, next);
+    const nextPipelines = appendSourceFilePipeline(id, sourcePipeline);
     updateStudentAssessmentTool(id, toolId);
     setRecords(next);
+    setSourcePipelines(nextPipelines);
     setUpload(null);
     setComponentStatus(loadPlanComponentStatus(id));
     setError("");
@@ -281,6 +316,25 @@ function OfficialAssessmentPage() {
                   </p>
                 </div>
               ))}
+            </div>
+          )}
+
+          {sourcePipelines.length > 0 && (
+            <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
+              <p className="text-sm font-bold text-[#0F3D3E]">مسار قراءة ومراجعة الملفات المرفوعة</p>
+              <div className="mt-3 space-y-2">
+                {sourcePipelines.map((pipeline) => {
+                  const summary = summarizeSourceFilePipeline(pipeline);
+                  return (
+                    <div key={summary.id} className="rounded-lg border border-white bg-white px-3 py-2">
+                      <p className="text-xs font-bold text-[#0F3D3E]">{summary.labelAr}</p>
+                      <p className="mt-1 text-xs leading-6 text-stone-600">
+                        {summary.fileName} - {summary.statusAr} - {summary.responseCount} استجابة منظمة
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

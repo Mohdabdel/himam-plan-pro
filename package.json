@@ -12,6 +12,7 @@
     "verify:stage2": "node scripts/verify-stage2.mjs",
     "verify:stage3": "node scripts/verify-stage3.mjs",
     "verify:sprint1": "node scripts/verify-sprint1.mjs",
+    "verify:sprint2": "node scripts/verify-sprint2.mjs",
     "verify:plan-quality": "node scripts/verify-plan-quality-references.mjs",
     "verify:transition-assessment": "node scripts/verify-transition-assessment-references.mjs",
     "verify:information-sources": "node scripts/verify-information-sources.mjs",

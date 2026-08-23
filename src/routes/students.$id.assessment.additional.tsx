@@ -5,6 +5,13 @@ import {
   loadPlanComponentStatus,
   PlanComponentsStatus,
 } from "@/components/plan-components-status";
+import {
+  appendSourceFilePipeline,
+  buildSourceFilePipeline,
+  loadSourceFilePipelines,
+  summarizeSourceFilePipeline,
+  type SourceFilePipelineRecord,
+} from "@/lib/source-file-pipeline";
 
 export const Route = createFileRoute("/students/$id/assessment/additional")({
   component: AdditionalSourcesPage,
@@ -43,6 +50,7 @@ function AdditionalSourcesPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [selectedToolId, setSelectedToolId] = useState("");
   const [error, setError] = useState("");
+  const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
 
   const tools = useMemo(() => (
     INFORMATION_TOOLS.filter((tool) => (
@@ -57,6 +65,7 @@ function AdditionalSourcesPage() {
   useEffect(() => {
     setStudent(loadStudent(id));
     setComponentStatus(loadPlanComponentStatus(id));
+    setSourcePipelines(loadSourceFilePipelines(id));
   }, [id]);
 
   function saveCurrent() {
@@ -78,6 +87,20 @@ function AdditionalSourcesPage() {
     }
 
     const selectedTool = tools.find((tool) => tool.id === selectedToolId);
+    let nextPipelines = sourcePipelines;
+    if (appliedMode === "yes" && uploadedFile) {
+      const pipeline = buildSourceFilePipeline({
+        learnerId: id,
+        sourceNameAr: sourceName.trim(),
+        file: uploadedFile,
+        purpose: "ADDITIONAL_INFORMATION_SOURCE",
+        statements: [
+          `${sourceName.trim()} مرفوع ومراجع كمصدر معلومات إضافي لدعم فهم مستوى الأداء الحالي والسياق.`,
+        ],
+        outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+      });
+      nextPipelines = appendSourceFilePipeline(id, pipeline);
+    }
     localStorage.setItem(`himam_additional_sources_${id}`, JSON.stringify({
       appliedMode,
       sourceName: sourceName.trim(),
@@ -87,7 +110,9 @@ function AdditionalSourcesPage() {
       selectedToolName: selectedTool?.nameAr,
       savedAt: new Date().toISOString(),
       outputPolicy: "knowledge_support_only",
+      sourcePipelineIds: nextPipelines.map((pipeline) => pipeline.pipelineId),
     }));
+    setSourcePipelines(nextPipelines);
     setComponentStatus(loadPlanComponentStatus(id));
     setError("");
     return true;
@@ -202,6 +227,25 @@ function AdditionalSourcesPage() {
 
           {error && (
             <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>
+          )}
+
+          {sourcePipelines.length > 0 && (
+            <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
+              <p className="text-sm font-bold text-[#0F3D3E]">مصادر مرفوعة تمت مراجعتها</p>
+              <div className="mt-3 space-y-2">
+                {sourcePipelines.map((pipeline) => {
+                  const summary = summarizeSourceFilePipeline(pipeline);
+                  return (
+                    <div key={summary.id} className="rounded-lg border border-white bg-white px-3 py-2">
+                      <p className="text-xs font-bold text-[#0F3D3E]">{summary.labelAr}</p>
+                      <p className="mt-1 text-xs leading-6 text-stone-600">
+                        {summary.fileName} - {summary.statusAr} - {summary.responseCount} استجابة منظمة
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           <div className="mt-6 flex flex-col gap-3 md:flex-row">

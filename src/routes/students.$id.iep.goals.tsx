@@ -15,6 +15,11 @@ import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/l
 import { GoalReferencePanel } from "@/components/goal-reference-panel";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
 import { buildKnowledgeSupportItems, loadInformationRecords } from "@/lib/information-records";
+import {
+  loadSourceFilePipelines,
+  summarizeSourceFilePipeline,
+  type SourceFilePipelineRecord,
+} from "@/lib/source-file-pipeline";
 import type { AssessmentRecord, KnowledgeSupportItem } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/iep/goals")({
@@ -74,7 +79,13 @@ type FamilyData = {
 type LearnerVoiceData = { q_love?: string; q_good?: string; selectedLibraryToolName?: string; appliedToolName?: string };
 type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[]; completionPercent?: number };
 type AssessmentDomainEntry = { score: string; note?: string };
-type GoalSourceId = "assessment" | "family_priorities" | "family_voice" | "learner_voice" | "additional_sources";
+type GoalSourceId =
+  | "assessment"
+  | "family_priorities"
+  | "family_voice"
+  | "learner_voice"
+  | "additional_sources"
+  | "reviewed_file_sources";
 type GuidanceMode = "guided" | "direct";
 
 type GoalBuilderState = {
@@ -187,6 +198,7 @@ function sourceLabel(sourceId: GoalSourceId) {
   if (sourceId === "family_priorities") return "أولويات الأسرة";
   if (sourceId === "family_voice") return "صوت الأسرة";
   if (sourceId === "learner_voice") return "صوت المتعلم";
+  if (sourceId === "reviewed_file_sources") return "مصادر مرفوعة ومراجعة";
   return "أدوات ومصادر إضافية";
 }
 
@@ -195,6 +207,7 @@ function buildGoalSources(input: {
   family: FamilyData | null;
   learnerVoice: LearnerVoiceData | null;
   additionalSources: unknown;
+  sourcePipelines: SourceFilePipelineRecord[];
 }) {
   const sources: Array<{ id: GoalSourceId; label: string; note: string }> = [];
 
@@ -236,6 +249,18 @@ function buildGoalSources(input: {
       id: "additional_sources",
       label: "أدوات ومصادر إضافية",
       note: "مصدر داعم محفوظ",
+    });
+  }
+
+  const reviewedPipelines = input.sourcePipelines.filter((pipeline) => (
+    pipeline.review.decision === "approved_for_structured_response" &&
+    pipeline.structuredResponses.length > 0
+  ));
+  if (reviewedPipelines.length > 0) {
+    sources.push({
+      id: "reviewed_file_sources",
+      label: "مصادر مرفوعة ومراجعة",
+      note: reviewedPipelines.map((pipeline) => pipeline.sourceNameAr).join("، "),
     });
   }
 
@@ -305,6 +330,7 @@ function IEPPage() {
   const [assessmentRecords, setAssessmentRecords] = useState<AssessmentRecord[]>([]);
   const [additionalSources, setAdditionalSources] = useState<unknown>(null);
   const [knowledgeSupport, setKnowledgeSupport] = useState<KnowledgeSupportItem[]>([]);
+  const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
 
@@ -354,6 +380,7 @@ function IEPPage() {
     try { setCoverage(JSON.parse(localStorage.getItem(`himam_coverage_${id}`) || "null")); } catch { /* noop */ }
     try { setAdditionalSources(JSON.parse(localStorage.getItem(`himam_additional_sources_${id}`) || "null")); } catch { /* noop */ }
     setAssessmentRecords(loadAssessmentRecords(id));
+    setSourcePipelines(loadSourceFilePipelines(id));
     try {
       const assessRaw = JSON.parse(localStorage.getItem(`himam_assessment_${id}`) || "null");
       if (assessRaw?.domains && Array.isArray(assessRaw.domains)) {
@@ -369,7 +396,7 @@ function IEPPage() {
     setLoaded(true);
   }, [id]);
 
-  const goalSources = buildGoalSources({ assessmentRecords, family, learnerVoice, additionalSources });
+  const goalSources = buildGoalSources({ assessmentRecords, family, learnerVoice, additionalSources, sourcePipelines });
   const selectedGoalDomain = domains.find((domain) => domain.code === goalBuilder.domainCode);
   const selectedAssessmentItems = goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
     ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
@@ -899,6 +926,7 @@ function IEPPage() {
                       family={family}
                       learnerVoice={learnerVoice}
                     />
+                    <ReviewedFileSourcesPanel pipelines={sourcePipelines} />
                     <KnowledgeSupportPanel items={knowledgeSupport} />
                     {goals[d.code].length === 0 && (
                       <p style={{ color: "#94A3B8", fontSize: 14, margin: "0 0 12px" }}>
@@ -1294,6 +1322,42 @@ function KnowledgeSupportPanel({ items }: { items: KnowledgeSupportItem[] }) {
             </p>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewedFileSourcesPanel({ pipelines }: { pipelines: SourceFilePipelineRecord[] }) {
+  const reviewed = pipelines.filter((pipeline) => (
+    pipeline.review.decision === "approved_for_structured_response" &&
+    pipeline.structuredResponses.length > 0
+  ));
+
+  if (reviewed.length === 0) {
+    return (
+      <div style={{ marginBottom: 12, background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 8, padding: 10 }}>
+        <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.7 }}>
+          لم تصل ملفات مرفوعة ومراجعة إلى منشئ الأهداف بعد.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12, background: "#F4FAF9", border: "1px solid #9EC7C3", borderRadius: 8, padding: 10 }}>
+      <p style={{ margin: "0 0 8px", color: TEAL, fontSize: 12, fontWeight: 800 }}>مصادر مرفوعة ومراجعة</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {reviewed.slice(0, 5).map((pipeline) => {
+          const summary = summarizeSourceFilePipeline(pipeline);
+          return (
+            <div key={summary.id} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 8 }}>
+              <p style={{ margin: 0, color: "#334155", fontSize: 12, fontWeight: 700 }}>{summary.labelAr}</p>
+              <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 12, lineHeight: 1.6 }}>
+                {summary.fileName} - {summary.statusAr} - {summary.responseCount} استجابة منظمة
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
