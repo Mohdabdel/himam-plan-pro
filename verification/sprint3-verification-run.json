@@ -27,7 +27,8 @@
       "exitCode": 0,
       "evidence": [
         "GoalDraft and GoalApprovalRecord are produced through validated governance helpers.",
-        "PlanDraft and PlanQualityReview are produced through validated governance helpers."
+        "PlanDraft and PlanQualityReview are produced through validated governance helpers.",
+        "PlanApprovalRecord final approval is created from the higher-authority review section."
       ]
     },
     "userJourney": {
@@ -37,7 +38,8 @@
       "evidence": [
         "Goal screen blocks progression without at least one started goal.",
         "Saving goals creates goalApprovalIds for plan inclusion.",
-        "Saving plan creates review-ready plan governance from approved goals."
+        "Saving plan creates review-ready plan governance from approved goals.",
+        "Higher-authority reviewer can approve, return, or reject the plan as a whole."
       ]
     },
     "traceability": {
@@ -47,7 +49,8 @@
       "evidence": [
         "GoalApprovalRecord traces back to GoalDraft.",
         "PlanDraft traces to approved goal approvals.",
-        "PlanQualityReview traces to PlanDraft."
+        "PlanQualityReview traces to PlanDraft.",
+        "PlanApprovalRecord traces back to PlanQualityReview."
       ]
     }
   },
@@ -55,6 +58,7 @@
     "package.json",
     "scripts/verify-sprint3.mjs",
     "src/lib/goal-plan-approval.ts",
+    "src/lib/journey.ts",
     "src/routes/students.$id.iep.goals.tsx",
     "src/routes/students.$id.plan.tsx",
     "verification/sprint3-verification-run.json"
@@ -64,22 +68,24 @@
     "Connected goal saving to goal approval bundles.",
     "Prevented progression to plan without at least one actual goal.",
     "Connected plan saving to a review-ready PlanDraft and PlanQualityReview.",
-    "Displayed plan governance status and higher-approval boundary in the plan screen."
+    "Displayed plan governance status and higher-approval state in the plan screen.",
+    "Added higher-authority plan approval UI.",
+    "Created and persisted final PlanApprovalRecord.",
+    "Added plan_approved journey stage so saved plans are distinct from approved plans."
   ],
   "incompleteItems": [
-    "Higher-authority plan approval UI remains incomplete and is not claimed as done.",
-    "PlanApprovalRecord final approval is not created in Sprint 3.",
     "Production role-based permissions and server persistence remain outside this sprint."
   ],
   "knownGaps": [
     "Sprint 3 uses browser-local storage for governance records.",
     "Synthetic source response/evidence identifiers are used to satisfy current local traceability until full evidence materialization exists.",
-    "Higher-authority plan approval UI remains incomplete and must be implemented in a later sprint before final plan approval can be claimed."
+    "Production role enforcement remains a later implementation concern; the current UI captures reviewer role locally."
   ],
+  "remainingStageGaps": [],
   "progressDecision": {
     "allowedToProceed": true,
-    "rationale": "Sprint 3 closes goal-level approval and review-ready plan draft governance. Remaining higher-authority final approval is explicitly documented, visible in the UI, and not claimed as completed.",
-    "nextClosureStage": "SPRINT_4_HIGHER_AUTHORITY_PLAN_APPROVAL",
+    "rationale": "Sprint 3 now closes goal-level approval, review-ready plan draft governance, and higher-authority plan approval with PlanApprovalRecord. No declared stage gap remains open.",
+    "nextClosureStage": "PRODUCTION_ROLE_ENFORCEMENT_AND_SERVER_PERSISTENCE",
     "owner": "Product and implementation team"
   },
   "overallStatus": "PASS"

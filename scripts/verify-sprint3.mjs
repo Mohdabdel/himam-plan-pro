@@ -28,7 +28,9 @@ assert(governance.includes("validateGoalDraft"), "Sprint 3 governance must valid
 assert(governance.includes("validateGoalApprovalRecord"), "Sprint 3 governance must validate GoalApprovalRecord");
 assert(governance.includes("validatePlanDraft"), "Sprint 3 governance must validate PlanDraft");
 assert(governance.includes("validatePlanQualityReview"), "Sprint 3 governance must validate PlanQualityReview");
+assert(governance.includes("validatePlanApprovalRecord"), "Sprint 3 governance must validate PlanApprovalRecord");
 assert(governance.includes("approved_for_plan_inclusion"), "Goal approval must use approved_for_plan_inclusion decision");
+assert(governance.includes("buildPlanApprovalRecord"), "Sprint 3 governance must build PlanApprovalRecord");
 step("Goal and plan governance records validate against Sprint 1 contracts");
 
 assert(goalsRoute.includes("buildGoalApprovalBundles"), "Goal screen must build goal approval bundles");
@@ -40,13 +42,20 @@ step("Goal screen approves goals as units before plan inclusion");
 assert(planRoute.includes("loadGoalApprovalBundles"), "Plan screen must load goal approval bundles");
 assert(planRoute.includes("buildPlanGovernanceBundle"), "Plan screen must build PlanDraft and PlanQualityReview");
 assert(planRoute.includes("savePlanGovernanceBundle"), "Plan screen must persist plan governance");
-assert(planRoute.includes("اعتماد المختص الأعلى ليس منفذاً"), "Plan screen must disclose that higher approval is not complete");
-step("Plan screen builds review-ready plan draft from approved goals");
+assert(planRoute.includes("buildPlanApprovalRecord"), "Plan screen must build final PlanApprovalRecord");
+assert(planRoute.includes("اعتماد المختص الأعلى للخطة"), "Plan screen must expose higher-authority plan approval UI");
+step("Plan screen builds review-ready plan draft and final approval record from approved goals");
 
-assert(verification.includes("Higher-authority plan approval UI remains incomplete"), "Sprint 3 verification must explicitly record remaining higher-approval gap");
+assert(verification.includes("PlanApprovalRecord final approval is created from the higher-authority review section"), "Sprint 3 verification must record higher-approval closure");
 assert(verification.includes("overallStatus\": \"PASS\""), "Sprint 3 verification run must pass only with explicit gap documentation");
+assert(verification.includes("\"remainingStageGaps\": []"), "Sprint 3 verification must not leave hidden stage gaps");
 assert(constitution.includes("قاعدة إغلاق المرحلة قبل التقدم"), "Constitution must include explicit gap closure rule");
-step("Remaining gaps are explicitly documented under the constitution progress rule");
+step("Declared Sprint 3 approval gap is closed under the constitution progress rule");
+
+const journey = read("src/lib/journey.ts");
+assert(journey.includes("\"plan_approved\""), "Journey model must include plan_approved stage");
+assert(journey.includes("STAGE_RANK.plan_approved"), "Plan step must complete only after plan approval");
+step("Journey model distinguishes saved plan from approved plan");
 
 assert(packageJson.includes("\"verify:sprint3\""), "package.json must expose verify:sprint3");
 step("Sprint 3 verification command is registered");

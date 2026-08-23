@@ -18,6 +18,7 @@ export type StudentStage =
   | "iep_completed"
   | "plan_completed"
   | "report_ready"
+  | "plan_approved"
   | "implementation_recorded"
   | "report_generated";
 
@@ -36,8 +37,9 @@ export const STAGE_RANK: Record<StudentStage, number> = {
   // was saved WITH at least one real-context activity selected, so the
   // report will be meaningful rather than triggering its "no activities" warning.
   report_ready: 8,
-  implementation_recorded: 9,
-  report_generated: 10,
+  plan_approved: 9,
+  implementation_recorded: 10,
+  report_generated: 11,
 };
 
 // Status strings written by earlier versions of this app, mapped forward so
@@ -95,7 +97,7 @@ export const JOURNEY_STEPS: StepDef[] = [
   { id: "family", label: "صوت الأسرة", routeTo: "/students/$id/family", completionRank: STAGE_RANK.family_completed },
   { id: "learner_voice", label: "صوت المتعلم", routeTo: "/students/$id/student-voice", completionRank: STAGE_RANK.learner_voice_completed },
   { id: "iep", label: "الخطة التربوية", routeTo: "/students/$id/iep", completionRank: STAGE_RANK.iep_completed },
-  { id: "plan", label: "الخطة التنفيذية", routeTo: "/students/$id/plan", completionRank: STAGE_RANK.plan_completed },
+  { id: "plan", label: "الخطة التنفيذية", routeTo: "/students/$id/plan", completionRank: STAGE_RANK.plan_approved },
   { id: "implementation", label: "التنفيذ", routeTo: "/students/$id/implementation", completionRank: STAGE_RANK.implementation_recorded },
   { id: "report", label: "التقرير", routeTo: "/students/$id/report", completionRank: STAGE_RANK.report_generated },
 ];

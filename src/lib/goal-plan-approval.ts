@@ -1,12 +1,14 @@
 import type {
   GoalApprovalRecord,
   GoalDraft,
+  PlanApprovalRecord,
   PlanDraft,
   PlanQualityReview,
 } from "@/domain/himam";
 import {
   validateGoalApprovalRecord,
   validateGoalDraft,
+  validatePlanApprovalRecord,
   validatePlanDraft,
   validatePlanQualityReview,
 } from "@/domain/himam";
@@ -31,7 +33,10 @@ export type GoalApprovalBundle = {
 export type PlanGovernanceBundle = {
   planDraft: PlanDraft;
   qualityReview: PlanQualityReview;
+  planApproval?: PlanApprovalRecord;
 };
+
+export type PlanApprovalDecision = PlanApprovalRecord["decision"];
 
 function id(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -59,6 +64,10 @@ export function planGovernanceKey(learnerId: string) {
   return `himam_plan_governance_${learnerId}`;
 }
 
+export function planApprovalKey(learnerId: string) {
+  return `himam_plan_approval_${learnerId}`;
+}
+
 export function loadGoalApprovalBundles(learnerId: string): GoalApprovalBundle[] {
   try {
     return JSON.parse(localStorage.getItem(goalApprovalsKey(learnerId)) || "[]") as GoalApprovalBundle[];
@@ -83,6 +92,23 @@ export function loadPlanGovernanceBundle(learnerId: string): PlanGovernanceBundl
 export function savePlanGovernanceBundle(learnerId: string, bundle: PlanGovernanceBundle) {
   localStorage.setItem(planGovernanceKey(learnerId), JSON.stringify(bundle));
   return bundle;
+}
+
+export function loadPlanApprovalRecord(learnerId: string): PlanApprovalRecord | null {
+  try {
+    return JSON.parse(localStorage.getItem(planApprovalKey(learnerId)) || "null") as PlanApprovalRecord | null;
+  } catch {
+    return null;
+  }
+}
+
+export function savePlanApprovalRecord(learnerId: string, approval: PlanApprovalRecord) {
+  localStorage.setItem(planApprovalKey(learnerId), JSON.stringify(approval));
+  const governance = loadPlanGovernanceBundle(learnerId);
+  if (governance) {
+    savePlanGovernanceBundle(learnerId, { ...governance, planApproval: approval });
+  }
+  return approval;
 }
 
 export function buildGoalApprovalBundles(input: {
@@ -195,4 +221,35 @@ export function buildPlanGovernanceBundle(input: {
   assertValid("PlanQualityReview", validatePlanQualityReview(qualityReview));
 
   return { planDraft, qualityReview };
+}
+
+export function buildPlanApprovalRecord(input: {
+  learnerId: string;
+  planDraftId: string;
+  planQualityReviewId: string;
+  approvedGoalApprovalIds: string[];
+  decision: PlanApprovalDecision;
+  decidedByRole?: string;
+  decisionRationale: string;
+}): PlanApprovalRecord {
+  const approval: PlanApprovalRecord = {
+    approvalId: id("plan-approval"),
+    planDraftId: input.planDraftId,
+    learnerId: input.learnerId,
+    decision: input.decision,
+    decidedByRole: input.decidedByRole ?? "SENIOR_SPECIALIST",
+    decidedAt: new Date().toISOString(),
+    planQualityReviewId: input.planQualityReviewId,
+    approvedGoalApprovalIds: input.decision === "approved" ? input.approvedGoalApprovalIds : [],
+    decisionRationale: input.decisionRationale,
+    sourceRef: {
+      sourceType: "PLAN_QUALITY",
+      sourcePackage: "9A",
+      sourceRecordType: "PlanQualityReview",
+      sourceId: input.planQualityReviewId,
+    },
+  };
+
+  assertValid("PlanApprovalRecord", validatePlanApprovalRecord(approval));
+  return approval;
 }

@@ -5,12 +5,17 @@ import { JourneyStepper } from "@/components/journey-stepper";
 import { isMvpConceptId } from "@/data/concepts";
 import { recommendCurriculumActivities } from "@/lib/curriculum-recommendations";
 import {
+  buildPlanApprovalRecord,
   buildPlanGovernanceBundle,
   loadGoalApprovalBundles,
+  loadPlanApprovalRecord,
   loadPlanGovernanceBundle,
+  savePlanApprovalRecord,
   savePlanGovernanceBundle,
+  type PlanApprovalDecision,
   type PlanGovernanceBundle,
 } from "@/lib/goal-plan-approval";
+import type { PlanApprovalRecord } from "@/domain/himam";
 import { calibrateMvpProfile } from "@/lib/mvp-calibration";
 import { loadLearnerProfile, saveLearnerProfile } from "@/lib/profile-repository";
 
@@ -232,6 +237,10 @@ function PlanPage() {
   const [governanceError,  setGovernanceError]  = useState("");
   const [approvedGoalCount,setApprovedGoalCount]= useState(0);
   const [planGovernance,   setPlanGovernance]   = useState<PlanGovernanceBundle | null>(null);
+  const [planApproval,     setPlanApproval]     = useState<PlanApprovalRecord | null>(null);
+  const [approvalDecision, setApprovalDecision] = useState<PlanApprovalDecision>("approved");
+  const [reviewerRole,     setReviewerRole]     = useState("SENIOR_SPECIALIST");
+  const [decisionRationale,setDecisionRationale]= useState("");
   const [contextHint,      setContextHint]      = useState<{ context: string; reason: string }>({ context: "", reason: "" });
   const [familyPriorities, setFamilyPriorities] = useState<string[]>([]);
   const [learnedLove,      setLearnedLove]      = useState("");
@@ -250,6 +259,7 @@ function PlanPage() {
     const goalApprovalBundles = loadGoalApprovalBundles(id);
     setApprovedGoalCount(goalApprovalBundles.filter((bundle) => bundle.approval.decision === "approved_for_plan_inclusion").length);
     setPlanGovernance(loadPlanGovernanceBundle(id));
+    setPlanApproval(loadPlanApprovalRecord(id));
     const profile = s ? loadLearnerProfile(s.id) : null;
     const calibratedProfile = profile ? saveLearnerProfile(calibrateMvpProfile(profile)) : null;
     const conceptLevels = Object.fromEntries(
@@ -401,6 +411,50 @@ function PlanPage() {
     } catch { /* noop */ }
   }
 
+  function handlePlanApproval() {
+    const governance = planGovernance ?? loadPlanGovernanceBundle(id);
+    if (!governance) {
+      setGovernanceError("احفظ مسودة الخطة أولاً قبل إصدار قرار الاعتماد الأعلى.");
+      return;
+    }
+    const goalApprovalBundles = loadGoalApprovalBundles(id).filter((bundle) => (
+      bundle.approval.decision === "approved_for_plan_inclusion"
+    ));
+    if (approvalDecision === "approved" && goalApprovalBundles.length === 0) {
+      setGovernanceError("لا يمكن اعتماد الخطة دون أهداف معتمدة للإدراج.");
+      return;
+    }
+    if (!decisionRationale.trim()) {
+      setGovernanceError("اكتب مبرر قرار الاعتماد أو الإرجاع قبل حفظ القرار.");
+      return;
+    }
+
+    try {
+      const approval = buildPlanApprovalRecord({
+        learnerId: id,
+        planDraftId: governance.planDraft.planDraftId,
+        planQualityReviewId: governance.qualityReview.reviewId,
+        approvedGoalApprovalIds: goalApprovalBundles.map((bundle) => bundle.approval.approvalId),
+        decision: approvalDecision,
+        decidedByRole: reviewerRole.trim() || "SENIOR_SPECIALIST",
+        decisionRationale: decisionRationale.trim(),
+      });
+      savePlanApprovalRecord(id, approval);
+      setPlanApproval(approval);
+      setPlanGovernance({ ...governance, planApproval: approval });
+      setGovernanceError("");
+
+      const raw = localStorage.getItem("himam_students");
+      if (raw && approval.decision === "approved") {
+        const list: StoredStudent[] = JSON.parse(raw);
+        const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "plan_approved") } : s));
+        localStorage.setItem("himam_students", JSON.stringify(updated));
+      }
+    } catch (error) {
+      setGovernanceError(error instanceof Error ? error.message : "تعذر حفظ قرار اعتماد الخطة.");
+    }
+  }
+
   // ── Missing learner fallback ─────────────────────────────────────────────────
   if (loaded && !student) {
     return (
@@ -514,10 +568,13 @@ function PlanPage() {
               {planGovernance
                 ? ` - مسودة الخطة ${planGovernance.planDraft.status === "ready_for_review" ? "جاهزة للمراجعة الأعلى" : "مسودة"}`
                 : " - لم تحفظ مسودة الخطة بعد"}
+              {planApproval ? ` - قرار الخطة: ${planApproval.decision === "approved" ? "معتمدة" : planApproval.decision === "returned_for_revision" ? "معادة للتعديل" : "مرفوضة"}` : ""}
             </p>
-            <p style={{ margin: 0, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
-              اعتماد المختص الأعلى ليس منفذاً في هذه الشاشة؛ الحفظ يجهز مسودة قابلة للمراجعة ولا يعتمد الخطة نهائياً.
-            </p>
+            {!planApproval && (
+              <p style={{ margin: 0, fontSize: 12, color: "#92400E", lineHeight: 1.7 }}>
+                بعد حفظ مسودة الخطة، يصدر المختص الأعلى قرار الاعتماد من القسم أسفل الصفحة.
+              </p>
+            )}
           </div>
         )}
 
@@ -683,6 +740,65 @@ function PlanPage() {
                 {governanceError}
               </div>
             )}
+          <section style={{ marginBottom: 12, padding: 16, background: "white", border: "1px solid #E5E7EB", borderRadius: 12 }}>
+            <p style={{ margin: 0, color: TEAL, fontSize: 15, fontWeight: 800 }}>اعتماد المختص الأعلى للخطة</p>
+            <p style={{ margin: "6px 0 12px", color: "#64748B", fontSize: 13, lineHeight: 1.7 }}>
+              يراجع المختص الأعلى الأهداف كوحدات والخطة ككل. لا تصبح الخطة نهائية إلا بعد حفظ قرار اعتماد الخطة.
+            </p>
+
+            {planApproval ? (
+              <div style={{ background: planApproval.decision === "approved" ? "#F0FDF4" : "#FFFBEB", border: `1px solid ${planApproval.decision === "approved" ? "#86EFAC" : "#FCD34D"}`, borderRadius: 8, padding: 12 }}>
+                <p style={{ margin: 0, color: planApproval.decision === "approved" ? "#166534" : "#78350F", fontSize: 14, fontWeight: 800 }}>
+                  القرار محفوظ: {planApproval.decision === "approved" ? "اعتماد الخطة" : planApproval.decision === "returned_for_revision" ? "إرجاع للتعديل" : "رفض الخطة"}
+                </p>
+                <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 13, lineHeight: 1.7 }}>
+                  المراجع: {planApproval.decidedByRole} - المبرر: {planApproval.decisionRationale}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, color: "#64748B", fontSize: 12, fontWeight: 700 }}>قرار المراجعة</label>
+                  <select
+                    value={approvalDecision}
+                    onChange={(event) => setApprovalDecision(event.target.value as PlanApprovalDecision)}
+                    style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", background: "white" }}
+                  >
+                    <option value="approved">اعتماد الخطة</option>
+                    <option value="returned_for_revision">إرجاع للتعديل</option>
+                    <option value="rejected">رفض الخطة</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: 6, color: "#64748B", fontSize: 12, fontWeight: 700 }}>دور المراجع</label>
+                  <input
+                    value={reviewerRole}
+                    onChange={(event) => setReviewerRole(event.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit" }}
+                  />
+                </div>
+                <div style={{ alignSelf: "end" }}>
+                  <button
+                    type="button"
+                    onClick={handlePlanApproval}
+                    style={{ width: "100%", background: TEAL, color: "white", border: "none", padding: "11px 14px", borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    حفظ قرار الخطة
+                  </button>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", marginBottom: 6, color: "#64748B", fontSize: 12, fontWeight: 700 }}>مبرر القرار</label>
+                  <textarea
+                    value={decisionRationale}
+                    onChange={(event) => setDecisionRationale(event.target.value)}
+                    rows={3}
+                    placeholder="اكتب سبب الاعتماد أو الإرجاع للتعديل بناءً على مراجعة الأهداف والخطة ككل."
+                    style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
           <button
             type="button"
             onClick={handleSave}
