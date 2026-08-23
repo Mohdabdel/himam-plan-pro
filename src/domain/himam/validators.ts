@@ -11,6 +11,7 @@ import {
   planApprovalRecordSchema,
   planDraftSchema,
   planQualityReviewSchema,
+  protectedSourceFileMetadataSchema,
   sourceExtractionReviewSchema,
   structuredResponseSchema,
   toolAdministrationSchema,
@@ -29,6 +30,7 @@ import type {
   PlanApprovalRecord,
   PlanDraft,
   PlanQualityReview,
+  ProtectedSourceFileMetadata,
   SourceExtractionReview,
   StructuredResponse,
   ToolAdministration,
@@ -164,6 +166,13 @@ export function validateStructuredResponse(value: StructuredResponse): Validatio
 
 export function validateUploadedSourceFile(value: UploadedSourceFile): ValidationResult {
   const result = uploadedSourceFileSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateProtectedSourceFileMetadata(
+  value: ProtectedSourceFileMetadata,
+): ValidationResult {
+  const result = protectedSourceFileMetadataSchema.safeParse(value);
   return result.success ? { ok: true, issues: [] } : fromZod(result.error);
 }
 

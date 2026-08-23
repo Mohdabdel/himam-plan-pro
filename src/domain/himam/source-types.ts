@@ -43,6 +43,7 @@ export const SOURCE_RECORD_TYPES = [
   "ToolAdministration",
   "StructuredResponse",
   "UploadedSourceFile",
+  "ProtectedSourceFileMetadata",
   "ExtractedSourceDraft",
   "SourceExtractionReview",
   "EvidenceRecord",

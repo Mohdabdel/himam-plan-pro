@@ -224,6 +224,12 @@ export type SourceFileSensitivity =
   | "PROFESSIONAL_SENSITIVE"
   | "MEDIA_SENSITIVE";
 
+export type SourceFileReadFailureReason =
+  | "FILE_METADATA_MISSING"
+  | "FILE_UNREADABLE"
+  | "FILE_PROTECTED"
+  | "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW";
+
 export type UploadedSourcePurpose =
   | "OFFICIAL_ASSESSMENT_RESULTS"
   | "LEARNER_VOICE_FORM"
@@ -246,6 +252,23 @@ export type UploadedSourceFile = {
   sensitivity: SourceFileSensitivity;
   consentStatus: PrivacyConsentStatus;
   extractionStatus: "not_started" | "draft_created" | "needs_review" | "reviewed" | "failed";
+  sourceRef: SourceRef;
+};
+
+export type ProtectedSourceFileMetadata = {
+  metadataId: EntityId;
+  fileId: EntityId;
+  learnerId: EntityId;
+  originalFileName: string;
+  mimeType: string;
+  sizeBytes?: number;
+  sensitivity: SourceFileSensitivity;
+  consentStatus: PrivacyConsentStatus;
+  protectedStoragePolicy: "METADATA_ONLY_NO_RAW_CONTENT";
+  readFailureReason?: SourceFileReadFailureReason;
+  uploadedByRole: string;
+  uploadedAt: ISODateTime;
+  reviewAccessRoles: string[];
   sourceRef: SourceRef;
 };
 
@@ -272,7 +295,7 @@ export type ExtractedSourceDraft = {
   status: "draft" | "needs_review" | "reviewed" | "failed";
   aiDraftBoundary: AiDraftBoundary;
   items: ExtractedSourceItem[];
-  failureReason?: string;
+  failureReason?: SourceFileReadFailureReason;
   sourceRef: SourceRef;
 };
 

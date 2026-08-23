@@ -349,6 +349,13 @@ export const sourceFileSensitivitySchema = z.enum([
   "MEDIA_SENSITIVE",
 ]);
 
+export const sourceFileReadFailureReasonSchema = z.enum([
+  "FILE_METADATA_MISSING",
+  "FILE_UNREADABLE",
+  "FILE_PROTECTED",
+  "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW",
+]);
+
 export const uploadedSourcePurposeSchema = z.enum([
   "OFFICIAL_ASSESSMENT_RESULTS",
   "LEARNER_VOICE_FORM",
@@ -399,6 +406,40 @@ export const uploadedSourceFileSchema = z
     }
   });
 
+export const protectedSourceFileMetadataSchema = z
+  .object({
+    metadataId: nonEmptyString,
+    fileId: nonEmptyString,
+    learnerId: nonEmptyString,
+    originalFileName: nonEmptyString,
+    mimeType: nonEmptyString,
+    sizeBytes: z.number().int().positive().optional(),
+    sensitivity: sourceFileSensitivitySchema,
+    consentStatus: z.enum(["PERMITTED", "RESTRICTED", "NOT_PERMITTED", "UNKNOWN"]),
+    protectedStoragePolicy: z.literal("METADATA_ONLY_NO_RAW_CONTENT"),
+    readFailureReason: sourceFileReadFailureReasonSchema.optional(),
+    uploadedByRole: nonEmptyString,
+    uploadedAt: isoString,
+    reviewAccessRoles: z.array(nonEmptyString).min(1),
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    if (value.sourceRef.sourceRecordType !== "UploadedSourceFile") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ProtectedSourceFileMetadata must trace back to UploadedSourceFile",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.fileId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ProtectedSourceFileMetadata sourceRef.sourceId must match fileId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+  });
+
 export const aiDraftBoundarySchema = z.enum([
   "DRAFT_ONLY_REQUIRES_HUMAN_REVIEW",
   "NO_AUTOMATED_DECISION",
@@ -429,7 +470,7 @@ export const extractedSourceDraftSchema = z
     status: z.enum(["draft", "needs_review", "reviewed", "failed"]),
     aiDraftBoundary: aiDraftBoundarySchema,
     items: z.array(extractedSourceItemSchema),
-    failureReason: nonEmptyString.optional(),
+    failureReason: sourceFileReadFailureReasonSchema.optional(),
     sourceRef: sourceRefSchema,
   })
   .superRefine((value, ctx) => {

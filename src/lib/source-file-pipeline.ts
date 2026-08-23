@@ -1,5 +1,7 @@
 import type {
   ExtractedSourceDraft,
+  ProtectedSourceFileMetadata,
+  SourceFileReadFailureReason,
   SourceExtractionReview,
   SourceFileSensitivity,
   SourceExtractionReviewDecision,
@@ -11,6 +13,7 @@ import type {
 } from "@/domain/himam";
 import {
   validateExtractedSourceDraft,
+  validateProtectedSourceFileMetadata,
   validateSourceExtractionReview,
   validateStructuredResponse,
   validateUploadedSourceFile,
@@ -21,6 +24,7 @@ export type SourceFilePipelineRecord = {
   learnerId: string;
   sourceNameAr: string;
   file: UploadedSourceFile;
+  protectedMetadata: ProtectedSourceFileMetadata;
   draft: ExtractedSourceDraft;
   review?: SourceExtractionReview;
   structuredResponses: StructuredResponse[];
@@ -47,7 +51,7 @@ type PipelineInput = {
 };
 
 type DraftPipelineInput = Omit<PipelineInput, "reviewerRole"> & {
-  extractionFailureReason?: string;
+  extractionFailureReason?: SourceFileReadFailureReason;
 };
 
 type ReviewInput = {
@@ -91,13 +95,13 @@ export function splitSourceDraftText(value: string) {
 
 export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promise<{
   statements: string[];
-  failureReason?: string;
+  failureReason?: SourceFileReadFailureReason;
 }> {
   if (!file.name?.trim()) {
     return { statements: [], failureReason: "FILE_METADATA_MISSING" };
   }
   if (file.size === 0) {
-    return { statements: [], failureReason: "FILE_EMPTY_OR_UNREADABLE" };
+    return { statements: [], failureReason: "FILE_UNREADABLE" };
   }
 
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -110,7 +114,7 @@ export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promis
       statements: [
         `تعذر استخراج نص آلي من ${file.name}. يلزم المختص بمراجعة الملف وإدخال البنود المستخلصة يدوياً قبل تحويلها إلى استجابات منظمة.`,
       ],
-      failureReason: "UNSUPPORTED_PREVIEW_REQUIRES_MANUAL_REVIEW",
+      failureReason: "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW",
     };
   }
 
@@ -118,11 +122,11 @@ export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promis
     const text = await (file as File).text();
     const statements = splitSourceDraftText(text).slice(0, 8);
     if (statements.length === 0) {
-      return { statements: [], failureReason: "FILE_EMPTY_OR_UNREADABLE" };
+      return { statements: [], failureReason: "FILE_UNREADABLE" };
     }
     return { statements };
   } catch {
-    return { statements: [], failureReason: "FILE_PROTECTED_OR_UNREADABLE" };
+    return { statements: [], failureReason: "FILE_PROTECTED" };
   }
 }
 
@@ -179,6 +183,28 @@ export function buildSourceFileDraftPipeline(input: DraftPipelineInput): SourceF
     },
   };
 
+  const protectedMetadata: ProtectedSourceFileMetadata = {
+    metadataId: id("protected-file-metadata"),
+    fileId,
+    learnerId: input.learnerId,
+    originalFileName: input.file.name,
+    mimeType: input.file.type || "application/octet-stream",
+    sizeBytes: input.file.size && input.file.size > 0 ? input.file.size : undefined,
+    sensitivity: input.sensitivity ?? "PROFESSIONAL_SENSITIVE",
+    consentStatus: "PERMITTED",
+    protectedStoragePolicy: "METADATA_ONLY_NO_RAW_CONTENT",
+    readFailureReason: input.extractionFailureReason,
+    uploadedByRole: input.uploadedByRole ?? "SPECIALIST",
+    uploadedAt: now,
+    reviewAccessRoles: ["SPECIALIST", "SENIOR_SPECIALIST", "PROGRAM_ADMIN"],
+    sourceRef: {
+      sourceType: "UPLOADED_SOURCE_FILE",
+      sourcePackage: "3A",
+      sourceRecordType: "UploadedSourceFile",
+      sourceId: fileId,
+    },
+  };
+
   const draft: ExtractedSourceDraft = {
     draftId,
     fileId,
@@ -206,6 +232,8 @@ export function buildSourceFileDraftPipeline(input: DraftPipelineInput): SourceF
 
   const fileValidation = validateUploadedSourceFile(file);
   assertValid("UploadedSourceFile", fileValidation.ok, fileValidation.issues);
+  const metadataValidation = validateProtectedSourceFileMetadata(protectedMetadata);
+  assertValid("ProtectedSourceFileMetadata", metadataValidation.ok, metadataValidation.issues);
   const draftValidation = validateExtractedSourceDraft(draft);
   assertValid("ExtractedSourceDraft", draftValidation.ok, draftValidation.issues);
 
@@ -214,6 +242,7 @@ export function buildSourceFileDraftPipeline(input: DraftPipelineInput): SourceF
     learnerId: input.learnerId,
     sourceNameAr: input.sourceNameAr,
     file,
+    protectedMetadata,
     draft,
     structuredResponses: [],
     savedAt: now,

@@ -7,12 +7,22 @@
     "draftExtractionBoundary": "PASS",
     "humanReviewBeforeStructuredResponse": "PASS",
     "failureStates": "PASS",
+    "protectedMetadata": "PASS",
     "officialAssessmentFileFlow": "PASS",
     "additionalSourceFileFlow": "PASS",
     "goalBuilderExcludesUnreviewedDrafts": "PASS"
   },
+  "failureClassificationCount": 4,
+  "failureClassifications": [
+    "FILE_METADATA_MISSING",
+    "FILE_UNREADABLE",
+    "FILE_PROTECTED",
+    "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW"
+  ],
   "completedItems": [
     "Added a draft-first source file pipeline that creates ExtractedSourceDraft before any review.",
+    "Added ProtectedSourceFileMetadata as a metadata-only protected record linked to UploadedSourceFile.",
+    "Separated Sprint 5 file failure classifications into metadata missing, unreadable, protected, and unsupported-manual-review categories.",
     "Added human review application that creates StructuredResponse only after approved_for_structured_response.",
     "Added browser-safe preliminary reading for text-like files and manual-review fallback for unsupported/protected files.",
     "Connected official assessment uploads to editable draft review before structured output.",
