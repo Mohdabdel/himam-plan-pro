@@ -4,10 +4,13 @@ import { INFORMATION_TOOLS } from "@/data/information-tools";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import {
+  applySourceExtractionReview,
   appendSourceFilePipeline,
-  buildSourceFilePipeline,
+  buildSourceFileDraftPipeline,
   loadSourceFilePipelines,
+  readAllowedSourceFileDraft,
   summarizeSourceFilePipeline,
+  splitSourceDraftText,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
 
@@ -46,6 +49,9 @@ function AdditionalSourcesPage() {
   const [appliedMode, setAppliedMode] = useState<AppliedMode>("");
   const [sourceName, setSourceName] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [draftText, setDraftText] = useState("");
+  const [reviewerNotes, setReviewerNotes] = useState("");
+  const [extractionWarning, setExtractionWarning] = useState("");
   const [selectedToolId, setSelectedToolId] = useState("");
   const [error, setError] = useState("");
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
@@ -66,7 +72,19 @@ function AdditionalSourcesPage() {
     setSourcePipelines(loadSourceFilePipelines(id));
   }, [id]);
 
-  function saveCurrent() {
+  async function handleFileChange(file: File | null) {
+    setUploadedFile(file);
+    setDraftText("");
+    setExtractionWarning("");
+    if (!file) return;
+    const result = await readAllowedSourceFileDraft(file);
+    if (result.failureReason) {
+      setExtractionWarning(result.failureReason);
+    }
+    setDraftText(result.statements.join("\n"));
+  }
+
+  async function saveCurrent() {
     if (!appliedMode) {
       setError("يرجى تحديد هل توجد أدوات أو مصادر إضافية تم تطبيقها.");
       return false;
@@ -83,16 +101,31 @@ function AdditionalSourcesPage() {
       setError("يرجى اختيار أداة أو نموذج من المكتبة.");
       return false;
     }
+    const reviewedStatements = splitSourceDraftText(draftText);
+    if (appliedMode === "yes" && reviewedStatements.length === 0) {
+      setError("راجع مسودة قراءة الملف وأدخل بنداً واحداً على الأقل قبل تحويلها إلى استجابات منظمة.");
+      return false;
+    }
 
     const selectedTool = tools.find((tool) => tool.id === selectedToolId);
     let nextPipelines = sourcePipelines;
     if (appliedMode === "yes" && uploadedFile) {
-      const pipeline = buildSourceFilePipeline({
+      const readResult = await readAllowedSourceFileDraft(uploadedFile);
+      const draftPipeline = buildSourceFileDraftPipeline({
         learnerId: id,
         sourceNameAr: sourceName.trim(),
         file: uploadedFile,
         purpose: "ADDITIONAL_INFORMATION_SOURCE",
-        statements: [
+        statements: readResult.statements.length > 0 ? readResult.statements : reviewedStatements,
+        outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+        extractionFailureReason: readResult.statements.length === 0 ? readResult.failureReason : undefined,
+      });
+      const pipeline = applySourceExtractionReview(draftPipeline, {
+        decision: "approved_for_structured_response",
+        reviewerRole: "SPECIALIST",
+        reviewerNotes: reviewerNotes.trim() || "راجع المختص مسودة قراءة المصدر الإضافي واعتمد البنود المصححة.",
+        correctedStatements: [
+          ...reviewedStatements,
           `${sourceName.trim()} مرفوع ومراجع كمصدر معلومات إضافي لدعم فهم مستوى الأداء الحالي والسياق.`,
         ],
         outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
@@ -111,13 +144,16 @@ function AdditionalSourcesPage() {
       sourcePipelineIds: nextPipelines.map((pipeline) => pipeline.pipelineId),
     }));
     setSourcePipelines(nextPipelines);
+    setDraftText("");
+    setReviewerNotes("");
+    setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
     setError("");
     return true;
   }
 
-  function handleNext() {
-    if (!saveCurrent()) return;
+  async function handleNext() {
+    if (!(await saveCurrent())) return;
     navigate({ to: "/students/$id/coverage", params: { id } });
   }
 
@@ -196,10 +232,33 @@ function AdditionalSourcesPage() {
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
-                  onChange={(event) => setUploadedFile(event.target.files?.[0] ?? null)}
+                  onChange={(event) => void handleFileChange(event.target.files?.[0] ?? null)}
                   className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
                 />
                 {uploadedFile && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{uploadedFile.name}</p>}
+                {extractionWarning && (
+                  <p className="mt-2 rounded-lg border border-[#D9764A]/30 bg-[#FBE9E1] px-3 py-2 text-xs leading-6 text-stone-700">
+                    لم تُستخدم قراءة آلية نهائية للملف. أدخل أو صحح البنود في مسودة القراءة قبل الاعتماد.
+                  </p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-stone-500">مسودة قراءة الملف القابلة للتصحيح</label>
+                <textarea
+                  value={draftText}
+                  onChange={(event) => setDraftText(event.target.value)}
+                  rows={5}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  placeholder="راجع البنود المستخلصة من الملف أو أدخلها يدوياً، كل بند في سطر مستقل."
+                />
+                <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
+                <input
+                  type="text"
+                  value={reviewerNotes}
+                  onChange={(event) => setReviewerNotes(event.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  placeholder="اختياري - سبب اعتماد البنود أو التصحيح"
+                />
               </div>
             </div>
           )}

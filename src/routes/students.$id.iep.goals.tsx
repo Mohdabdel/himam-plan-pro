@@ -259,7 +259,7 @@ function buildGoalSources(input: {
   }
 
   const reviewedPipelines = input.sourcePipelines.filter((pipeline) => (
-    pipeline.review.decision === "approved_for_structured_response" &&
+    pipeline.review?.decision === "approved_for_structured_response" &&
     pipeline.structuredResponses.length > 0
   ));
   if (reviewedPipelines.length > 0) {
@@ -1383,7 +1383,7 @@ function KnowledgeSupportPanel({ items }: { items: KnowledgeSupportItem[] }) {
 
 function ReviewedFileSourcesPanel({ pipelines }: { pipelines: SourceFilePipelineRecord[] }) {
   const reviewed = pipelines.filter((pipeline) => (
-    pipeline.review.decision === "approved_for_structured_response" &&
+    pipeline.review?.decision === "approved_for_structured_response" &&
     pipeline.structuredResponses.length > 0
   ));
 

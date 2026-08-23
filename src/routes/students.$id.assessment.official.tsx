@@ -15,10 +15,13 @@ import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import { advanceStage } from "@/lib/journey";
 import {
+  applySourceExtractionReview,
   appendSourceFilePipeline,
-  buildSourceFilePipeline,
+  buildSourceFileDraftPipeline,
   loadSourceFilePipelines,
+  readAllowedSourceFileDraft,
   summarizeSourceFilePipeline,
+  splitSourceDraftText,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
 import type { AssessmentRecord } from "@/types/himam";
@@ -77,6 +80,9 @@ function OfficialAssessmentPage() {
   const [assessorName, setAssessorName] = useState("");
   const [assessmentDate, setAssessmentDate] = useState("");
   const [upload, setUpload] = useState<File | null>(null);
+  const [draftText, setDraftText] = useState("");
+  const [reviewerNotes, setReviewerNotes] = useState("");
+  const [extractionWarning, setExtractionWarning] = useState("");
   const [error, setError] = useState("");
   const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
@@ -101,7 +107,19 @@ function OfficialAssessmentPage() {
     selectedToolId: toolId,
   });
 
-  function handleSave() {
+  async function handleUploadChange(file: File | null) {
+    setUpload(file);
+    setExtractionWarning("");
+    setDraftText("");
+    if (!file) return;
+    const result = await readAllowedSourceFileDraft(file);
+    if (result.failureReason) {
+      setExtractionWarning(result.failureReason);
+    }
+    setDraftText(result.statements.join("\n"));
+  }
+
+  async function handleSave() {
     if (!toolId) {
       setError("يرجى تحديد أداة التقييم الرسمية.");
       return false;
@@ -112,6 +130,11 @@ function OfficialAssessmentPage() {
     }
     if (!upload) {
       setError("يرجى رفع نتائج التقييم الرسمي أو التقرير.");
+      return false;
+    }
+    const reviewedStatements = splitSourceDraftText(draftText);
+    if (reviewedStatements.length === 0) {
+      setError("راجع مسودة قراءة الملف وأدخل بنداً واحداً على الأقل قبل تحويلها إلى استجابات منظمة.");
       return false;
     }
 
@@ -127,13 +150,23 @@ function OfficialAssessmentPage() {
     const savedRecord = toolId === "OTHER_OFFICIAL_ASSESSMENT" && customToolName.trim()
       ? { ...record, toolNameAr: customToolName.trim() }
       : record;
-    const sourcePipeline = buildSourceFilePipeline({
+    const readResult = await readAllowedSourceFileDraft(upload);
+    const sourceDraftPipeline = buildSourceFileDraftPipeline({
       learnerId: id,
       sourceNameAr: `نتائج ${savedRecord.toolNameAr}`,
       file: upload,
       purpose: "OFFICIAL_ASSESSMENT_RESULTS",
       sourceType: "INSTITUTIONAL_ASSESSMENT",
-      statements: [
+      statements: readResult.statements.length > 0 ? readResult.statements : reviewedStatements,
+      outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+      extractionFailureReason: readResult.statements.length === 0 ? readResult.failureReason : undefined,
+    });
+    const sourcePipeline = applySourceExtractionReview(sourceDraftPipeline, {
+      decision: "approved_for_structured_response",
+      reviewerRole: "SPECIALIST",
+      reviewerNotes: reviewerNotes.trim() || "راجع المختص مسودة قراءة ملف التقييم الرسمي واعتمد البنود المصححة.",
+      correctedStatements: [
+        ...reviewedStatements,
         `نتائج ${savedRecord.toolNameAr} مرفوعة ومراجعة كمصدر رسمي لبناء مستوى الأداء الحالي.`,
         coverageReview.missingAreas.length > 0
           ? `توجد فجوات تغطية انتقالية تحتاج مراجعة: ${coverageReview.missingAreas.map((area) => coverageAreaLabelAr(area)).join("، ")}.`
@@ -158,14 +191,17 @@ function OfficialAssessmentPage() {
     setRecords(next);
     setSourcePipelines(nextPipelines);
     setUpload(null);
+    setDraftText("");
+    setReviewerNotes("");
+    setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
     setError("");
     return true;
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (records.length === 0) {
-      const saved = handleSave();
+      const saved = await handleSave();
       if (!saved) return;
     }
     navigate({ to: "/students/$id/student-voice", params: { id } });
@@ -280,12 +316,38 @@ function OfficialAssessmentPage() {
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
-                onChange={(event) => setUpload(event.target.files?.[0] ?? null)}
+                onChange={(event) => void handleUploadChange(event.target.files?.[0] ?? null)}
                 className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
               />
               {upload && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{upload.name}</p>}
+              {extractionWarning && (
+                <p className="mt-2 rounded-lg border border-[#D9764A]/30 bg-[#FBE9E1] px-3 py-2 text-xs leading-6 text-stone-700">
+                  لم تُستخدم قراءة آلية نهائية للملف. أدخل أو صحح البنود في مسودة القراءة قبل الاعتماد.
+                </p>
+              )}
             </div>
           </div>
+
+          {upload && (
+            <div className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
+              <label className="mb-1 block text-xs font-semibold text-stone-500">مسودة قراءة الملف القابلة للتصحيح</label>
+              <textarea
+                value={draftText}
+                onChange={(event) => setDraftText(event.target.value)}
+                rows={5}
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                placeholder="راجع البنود المستخلصة من الملف أو أدخلها يدوياً، كل بند في سطر مستقل."
+              />
+              <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
+              <input
+                type="text"
+                value={reviewerNotes}
+                onChange={(event) => setReviewerNotes(event.target.value)}
+                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                placeholder="اختياري - سبب اعتماد البنود أو التصحيح"
+              />
+            </div>
+          )}
 
           {selectedTool && (
             <div className="mt-5 rounded-xl border border-stone-200 bg-stone-50 p-4">

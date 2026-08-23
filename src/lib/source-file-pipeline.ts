@@ -2,6 +2,7 @@ import type {
   ExtractedSourceDraft,
   SourceExtractionReview,
   SourceFileSensitivity,
+  SourceExtractionReviewDecision,
   SourceType,
   StructuredResponse,
   ToolOutputChannel,
@@ -21,7 +22,7 @@ export type SourceFilePipelineRecord = {
   sourceNameAr: string;
   file: UploadedSourceFile;
   draft: ExtractedSourceDraft;
-  review: SourceExtractionReview;
+  review?: SourceExtractionReview;
   structuredResponses: StructuredResponse[];
   savedAt: string;
 };
@@ -42,6 +43,18 @@ type PipelineInput = {
   uploadedByRole?: string;
   reviewerRole?: string;
   statements?: string[];
+  outputChannel?: ToolOutputChannel;
+};
+
+type DraftPipelineInput = Omit<PipelineInput, "reviewerRole"> & {
+  extractionFailureReason?: string;
+};
+
+type ReviewInput = {
+  reviewerRole?: string;
+  decision: SourceExtractionReviewDecision;
+  reviewerNotes?: string;
+  correctedStatements?: string[];
   outputChannel?: ToolOutputChannel;
 };
 
@@ -66,6 +79,53 @@ function assertValid(label: string, ok: boolean, issues: Array<{ message: string
   }
 }
 
+function normalizeStatements(statements: string[] | undefined) {
+  return (statements ?? [])
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+}
+
+export function splitSourceDraftText(value: string) {
+  return normalizeStatements(value.split(/\r?\n/));
+}
+
+export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promise<{
+  statements: string[];
+  failureReason?: string;
+}> {
+  if (!file.name?.trim()) {
+    return { statements: [], failureReason: "FILE_METADATA_MISSING" };
+  }
+  if (file.size === 0) {
+    return { statements: [], failureReason: "FILE_EMPTY_OR_UNREADABLE" };
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const textLike =
+    file.type?.startsWith("text/") ||
+    ["csv", "txt", "md", "json"].includes(extension);
+
+  if (!textLike || typeof (file as File).text !== "function") {
+    return {
+      statements: [
+        `تعذر استخراج نص آلي من ${file.name}. يلزم المختص بمراجعة الملف وإدخال البنود المستخلصة يدوياً قبل تحويلها إلى استجابات منظمة.`,
+      ],
+      failureReason: "UNSUPPORTED_PREVIEW_REQUIRES_MANUAL_REVIEW",
+    };
+  }
+
+  try {
+    const text = await (file as File).text();
+    const statements = splitSourceDraftText(text).slice(0, 8);
+    if (statements.length === 0) {
+      return { statements: [], failureReason: "FILE_EMPTY_OR_UNREADABLE" };
+    }
+    return { statements };
+  } catch {
+    return { statements: [], failureReason: "FILE_PROTECTED_OR_UNREADABLE" };
+  }
+}
+
 export function sourceFilePipelinesKey(learnerId: string) {
   return `himam_source_file_pipelines_${learnerId}`;
 }
@@ -83,18 +143,20 @@ export function saveSourceFilePipelines(learnerId: string, records: SourceFilePi
   return records;
 }
 
-export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelineRecord {
+export function buildSourceFileDraftPipeline(input: DraftPipelineInput): SourceFilePipelineRecord {
   const now = new Date().toISOString();
   const sourceType = input.sourceType ?? sourceTypeForPurpose(input.purpose);
   const fileId = id("file");
   const draftId = id("extract");
-  const reviewId = id("review");
-  const statements = input.statements?.filter((statement) => statement.trim()) ?? [];
-  const extractedStatements = statements.length > 0
-    ? statements
-    : [
-        `تم رفع ${input.sourceNameAr} للمراجعة المهنية وبناء مستوى الأداء الحالي دون استخدام الملف الخام كدليل مباشر.`,
-      ];
+  const statements = normalizeStatements(input.statements);
+  const failed = Boolean(input.extractionFailureReason && statements.length === 0);
+  const extractedStatements = failed
+    ? []
+    : statements.length > 0
+      ? statements
+      : [
+          `تم رفع ${input.sourceNameAr} ويجب على المختص مراجعة الملف وتأكيد البنود المستخلصة قبل تحويلها إلى استجابات منظمة.`,
+        ];
 
   const file: UploadedSourceFile = {
     fileId,
@@ -108,7 +170,7 @@ export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelin
     uploadedAt: now,
     sensitivity: input.sensitivity ?? "PROFESSIONAL_SENSITIVE",
     consentStatus: "PERMITTED",
-    extractionStatus: "reviewed",
+    extractionStatus: failed ? "failed" : "needs_review",
     sourceRef: {
       sourceType: "UPLOADED_SOURCE_FILE",
       sourcePackage: "3A",
@@ -122,8 +184,8 @@ export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelin
     fileId,
     learnerId: input.learnerId,
     extractedAt: now,
-    extractedBy: "HUMAN_ENTRY",
-    status: "reviewed",
+    extractedBy: "SYSTEM_EXTRACTION",
+    status: failed ? "failed" : "needs_review",
     aiDraftBoundary: "DRAFT_ONLY_REQUIRES_HUMAN_REVIEW",
     items: extractedStatements.map((statement, index) => ({
       itemId: id("extract-item"),
@@ -133,6 +195,7 @@ export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelin
       proposedConceptIds: [DEFAULT_CONCEPT_ID],
       confidence: 1,
     })),
+    failureReason: failed ? input.extractionFailureReason : undefined,
     sourceRef: {
       sourceType: "UPLOADED_SOURCE_FILE",
       sourcePackage: "3A",
@@ -141,19 +204,43 @@ export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelin
     },
   };
 
-  const structuredResponses: StructuredResponse[] = draft.items.map((item, index) => ({
-    responseId: id("structured-response"),
-    administrationId: `upload-admin-${fileId}`,
+  const fileValidation = validateUploadedSourceFile(file);
+  assertValid("UploadedSourceFile", fileValidation.ok, fileValidation.issues);
+  const draftValidation = validateExtractedSourceDraft(draft);
+  assertValid("ExtractedSourceDraft", draftValidation.ok, draftValidation.issues);
+
+  return {
+    pipelineId: id("source-pipeline"),
     learnerId: input.learnerId,
-    toolId: input.purpose,
+    sourceNameAr: input.sourceNameAr,
+    file,
+    draft,
+    structuredResponses: [],
+    savedAt: now,
+  };
+}
+
+function buildStructuredResponses(input: {
+  record: SourceFilePipelineRecord;
+  reviewId: string;
+  statements: string[];
+  outputChannel?: ToolOutputChannel;
+}) {
+  const now = new Date().toISOString();
+  const sourceType = input.record.file.sourceType;
+  return input.statements.map((statement, index) => ({
+    responseId: id("structured-response"),
+    administrationId: `upload-admin-${input.record.file.fileId}`,
+    learnerId: input.record.learnerId,
+    toolId: input.record.file.purpose,
     questionId: `uploaded-source-review-${index + 1}`,
     responseValueType: "TEXT",
     responseCode: `UPLOADED_SOURCE_REVIEW_${index + 1}`,
-    valueText: item.statement,
+    valueText: statement,
     selectedOptionIds: [],
-    conceptIds: item.proposedConceptIds.length > 0 ? item.proposedConceptIds : [DEFAULT_CONCEPT_ID],
+    conceptIds: [DEFAULT_CONCEPT_ID],
     portfolioTargetIds: [DEFAULT_PORTFOLIO_ID],
-    operationalFunction: input.purpose === "OFFICIAL_ASSESSMENT_RESULTS"
+    operationalFunction: input.record.file.purpose === "OFFICIAL_ASSESSMENT_RESULTS"
       ? "ESTABLISH_CURRENT_PERFORMANCE"
       : "REPORT_INPUT",
     outputChannel: input.outputChannel ?? "KNOWLEDGE_SUPPORT_ITEM",
@@ -162,32 +249,74 @@ export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelin
       sourceType,
       sourcePackage: "3A",
       sourceRecordType: "SourceExtractionReview",
-      sourceId: reviewId,
-      provenanceRef: draftId,
+      sourceId: input.reviewId,
+      provenanceRef: input.record.draft.draftId,
     },
-  }));
+  })) satisfies StructuredResponse[];
+}
+
+export function applySourceExtractionReview(
+  record: SourceFilePipelineRecord,
+  input: ReviewInput,
+): SourceFilePipelineRecord {
+  if (record.draft.status === "failed") {
+    throw new Error("FAILED_EXTRACTION_CANNOT_BE_REVIEWED_WITHOUT_NEW_DRAFT");
+  }
+
+  const reviewId = id("review");
+  const now = new Date().toISOString();
+  const correctedStatements = normalizeStatements(input.correctedStatements);
+  const statements = correctedStatements.length > 0
+    ? correctedStatements
+    : record.draft.items.map((item) => item.statement);
+  const structuredResponses = input.decision === "approved_for_structured_response"
+    ? buildStructuredResponses({
+        record,
+        reviewId,
+        statements,
+        outputChannel: input.outputChannel,
+      })
+    : [];
 
   const review: SourceExtractionReview = {
     reviewId,
-    draftId,
-    fileId,
-    learnerId: input.learnerId,
+    draftId: record.draft.draftId,
+    fileId: record.file.fileId,
+    learnerId: record.learnerId,
     reviewedByRole: input.reviewerRole ?? "SPECIALIST",
     reviewedAt: now,
-    decision: "approved_for_structured_response",
-    reviewerNotes: "تمت مراجعة المصدر المرفوع وتحويله إلى استجابات منظمة قبل استخدامه في بناء الهدف أو الخطة.",
+    decision: input.decision,
+    reviewerNotes: input.reviewerNotes,
     createdStructuredResponseIds: structuredResponses.map((response) => response.responseId),
     sourceRef: {
       sourceType: "UPLOADED_SOURCE_FILE",
       sourcePackage: "3A",
       sourceRecordType: "ExtractedSourceDraft",
-      sourceId: draftId,
+      sourceId: record.draft.draftId,
     },
   };
 
-  const fileValidation = validateUploadedSourceFile(file);
+  const nextDraft: ExtractedSourceDraft = {
+    ...record.draft,
+    status: input.decision === "approved_for_structured_response" ? "reviewed" : "needs_review",
+    items: statements.map((statement, index) => ({
+      itemId: record.draft.items[index]?.itemId ?? id("extract-item"),
+      statement,
+      locationRef: record.draft.items[index]?.locationRef ?? `مراجعة مختص - بند ${index + 1}`,
+      proposedOutputChannel: input.outputChannel ?? "KNOWLEDGE_SUPPORT_ITEM",
+      proposedConceptIds: [DEFAULT_CONCEPT_ID],
+      confidence: 1,
+    })),
+  };
+
+  const nextFile: UploadedSourceFile = {
+    ...record.file,
+    extractionStatus: input.decision === "approved_for_structured_response" ? "reviewed" : "needs_review",
+  };
+
+  const fileValidation = validateUploadedSourceFile(nextFile);
   assertValid("UploadedSourceFile", fileValidation.ok, fileValidation.issues);
-  const draftValidation = validateExtractedSourceDraft(draft);
+  const draftValidation = validateExtractedSourceDraft(nextDraft);
   assertValid("ExtractedSourceDraft", draftValidation.ok, draftValidation.issues);
   const reviewValidation = validateSourceExtractionReview(review);
   assertValid("SourceExtractionReview", reviewValidation.ok, reviewValidation.issues);
@@ -197,15 +326,24 @@ export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelin
   }
 
   return {
-    pipelineId: id("source-pipeline"),
-    learnerId: input.learnerId,
-    sourceNameAr: input.sourceNameAr,
-    file,
-    draft,
+    ...record,
+    file: nextFile,
+    draft: nextDraft,
     review,
     structuredResponses,
     savedAt: now,
   };
+}
+
+export function buildSourceFilePipeline(input: PipelineInput): SourceFilePipelineRecord {
+  const draftRecord = buildSourceFileDraftPipeline(input);
+  return applySourceExtractionReview(draftRecord, {
+    reviewerRole: input.reviewerRole,
+    decision: "approved_for_structured_response",
+    reviewerNotes: "تمت مراجعة المصدر المرفوع وتحويله إلى استجابات منظمة قبل استخدامه في بناء الهدف أو الخطة.",
+    correctedStatements: input.statements,
+    outputChannel: input.outputChannel,
+  });
 }
 
 export function appendSourceFilePipeline(learnerId: string, record: SourceFilePipelineRecord) {
@@ -217,9 +355,13 @@ export function summarizeSourceFilePipeline(record: SourceFilePipelineRecord) {
     id: record.pipelineId,
     labelAr: record.sourceNameAr,
     fileName: record.file.fileName,
-    statusAr: record.review.decision === "approved_for_structured_response"
+    statusAr: record.draft.status === "failed"
+      ? "فشل استخراج المسودة"
+      : !record.review
+        ? "مسودة قراءة بانتظار مراجعة المختص"
+        : record.review.decision === "approved_for_structured_response"
       ? "مراجع ومحوّل إلى استجابات منظمة"
-      : "بحاجة إلى مراجعة",
+      : "أعيد للتصحيح أو رُفض",
     responseCount: record.structuredResponses.length,
   };
 }
