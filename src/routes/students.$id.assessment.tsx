@@ -1,9 +1,7 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  loadPlanComponentStatus,
-  PlanComponentsStatus,
-} from "@/components/plan-components-status";
+import { PlanComponentsStatus } from "@/components/plan-components-status";
+import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 
 export const Route = createFileRoute("/students/$id/assessment")({
   component: InformationSourcesHubPage,

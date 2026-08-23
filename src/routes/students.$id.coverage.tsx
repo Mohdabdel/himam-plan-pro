@@ -6,10 +6,8 @@ import {
   coverageAreaLabelAr,
   isDevelopmentalAssessmentUnder9,
 } from "@/lib/information-source-review";
-import {
-  loadPlanComponentStatus,
-  PlanComponentsStatus,
-} from "@/components/plan-components-status";
+import { PlanComponentsStatus } from "@/components/plan-components-status";
+import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import type { AssessmentRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/coverage")({

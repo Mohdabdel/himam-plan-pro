@@ -1,10 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { INFORMATION_TOOLS } from "@/data/information-tools";
-import {
-  loadPlanComponentStatus,
-  PlanComponentsStatus,
-} from "@/components/plan-components-status";
+import { PlanComponentsStatus } from "@/components/plan-components-status";
+import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import {
   appendSourceFilePipeline,
   buildSourceFilePipeline,
