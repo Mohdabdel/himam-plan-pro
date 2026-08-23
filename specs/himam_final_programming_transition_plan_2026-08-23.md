@@ -124,7 +124,52 @@ GoalDraft
 4. منع اختيار KSI كbaseline.
 5. ربط الهدف بمصدر/دليل مناسب.
 
-### Sprint 4 — File Reading Draft Flow
+### Sprint 4 — Approval Authorization, Storage, and Audit
+
+الهدف: تحويل الاعتماد من وظيفة واجهة محلية إلى قرار مخول ومخزن وقابل للتدقيق.
+
+سبب وضعه قبل أي توسع جديد:
+
+- Sprint 3 أغلق مسار `PlanApprovalRecord` كواجهة وبيانات محلية.
+- لا يجوز وفق الدستور البناء فوق الاعتماد قبل ضبط من يملك حق إصداره وكيف يحفظ ويدقق.
+- الاعتماد النهائي للخطة يؤثر على حالة المتعلم، التقرير، والتنفيذ؛ لذلك يحتاج صلاحية وتاريخ قرار واضحين.
+
+المهام:
+
+1. تعريف Access Matrix أولية:
+   - `SPECIALIST`
+   - `SENIOR_SPECIALIST`
+   - `PROGRAM_ADMIN`
+2. منع إنشاء:
+   - `GoalApprovalRecord` من دور غير مخول.
+   - `PlanApprovalRecord` من دور غير مخول.
+3. إضافة Repository منظم لسجلات الحوكمة بدلاً من الاعتماد المباشر على مفاتيح `localStorage` داخل الواجهات.
+4. إضافة `AuditRecord` أو `ApprovalAuditEvent` لكل قرار:
+   - actor role
+   - action
+   - target record
+   - decision rationale
+   - timestamp
+5. إضافة اختبارات سلبية تمنع:
+   - اعتماد خطة بلا صلاحية.
+   - اعتماد خطة دون `PlanQualityReview`.
+   - تعديل حالة اعتماد عبر حفظ مباشر غير حاكم.
+6. تحديث VerificationRun خاص بـ Sprint 4 يثبت:
+   - authorization = PASS
+   - storage = PASS
+   - audit = PASS
+   - negative tests = PASS
+
+معيار الإغلاق:
+
+```text
+No approval without authorized role
+No approval without audit event
+No UI-only approval claim
+No direct CRUD status mutation for approval
+```
+
+### Sprint 5 — File Reading Draft Flow
 
 الهدف: قراءة ملفات مرفوعة كمسودات استخراج فقط.
 
@@ -136,7 +181,7 @@ GoalDraft
 4. تحويل المراجعة إلى StructuredResponse فقط بعد قرار مختص.
 5. إضافة حالات فشل: ملف غير قابل للقراءة، ملف ناقص metadata، ملف محمي.
 
-### Sprint 5 — E2E MVP Verification
+### Sprint 6 — E2E MVP Verification
 
 الهدف: إثبات الرحلة المرجعية:
 
@@ -177,4 +222,3 @@ START_FROM_UI = NO
 START_FROM_AI = NO
 START_FROM_PRODUCTION_APPROVAL = NO
 ```
-
