@@ -1,6 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
+import {
+  buildCurrentPerformanceWorkspace,
+  summarizeCurrentPerformanceWorkspace,
+  type CurrentPerformanceCard,
+} from "@/lib/current-performance-workspace";
 import { advanceStage } from "@/lib/journey";
 import {
   coverageAreaLabelAr,
@@ -8,6 +13,7 @@ import {
 } from "@/lib/information-source-review";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
+import { loadSourceFilePipelines } from "@/lib/source-file-pipeline";
 import type { AssessmentRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/coverage")({
@@ -209,12 +215,14 @@ function InformationSufficiencyPage() {
   });
   const [showGateMessage, setShowGateMessage] = useState(false);
   const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
+  const [currentPerformanceCards, setCurrentPerformanceCards] = useState<CurrentPerformanceCard[]>([]);
 
   useEffect(() => {
     const loadedStudent = loadStudent(id);
     setStudent(loadedStudent);
     setRecords(loadAssessmentRecords(id));
     setSources(loadSourceSnapshot(id));
+    setCurrentPerformanceCards(buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)));
     setComponentStatus(loadPlanComponentStatus(id));
     markCoverageReady(id);
   }, [id]);
@@ -227,6 +235,10 @@ function InformationSufficiencyPage() {
   const qualityItems = recommendations.filter((item) => item.level === "quality");
   const enrichmentItems = recommendations.filter((item) => item.level === "enrichment");
   const canProceed = blockers.length === 0;
+  const currentPerformanceSummary = useMemo(
+    () => summarizeCurrentPerformanceWorkspace(currentPerformanceCards),
+    [currentPerformanceCards],
+  );
 
   function handleNext() {
     if (!canProceed) {
@@ -341,6 +353,51 @@ function InformationSufficiencyPage() {
         </section>
 
         <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-[#D9764A]">مستوى الأداء الحالي</p>
+              <h3 className="mt-1 text-lg font-bold text-[#0F3D3E]">بطاقات أداء وسياق من مصادر مرفوعة ومراجعة</h3>
+            </div>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${currentPerformanceSummary.baselineReady ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+              {currentPerformanceSummary.baselineReady ? "يوجد مدخل baseline قابل للتتبع" : "لا يوجد baseline مراجع بعد"}
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <MetricBox label="دلائل أداء حالي" value={currentPerformanceSummary.currentPerformanceCueCount} />
+            <MetricBox label="معلومات سياقية" value={currentPerformanceSummary.contextSupportCount} />
+            <MetricBox label="فجوات ملف" value={currentPerformanceSummary.completionGapCount} />
+          </div>
+
+          {currentPerformanceCards.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
+              لا توجد بعد ملفات مرفوعة ومراجعة يمكن تحويلها إلى بطاقات أداء أو سياق. ارفع مصدر التقييم الرسمي أو مصدر معلومات ثم راجع مسودة القراءة.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {currentPerformanceCards.slice(0, 8).map((card) => (
+                <article key={card.cardId} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-[#0F3D3E]">{card.sourceNameAr}</p>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-stone-600">
+                      {card.kind === "CURRENT_PERFORMANCE_CUE"
+                        ? "أداء حالي"
+                        : card.kind === "CONTEXT_SUPPORT"
+                          ? "سياق داعم"
+                          : "فجوة استكمال"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-stone-700">{card.statement}</p>
+                  <p className="mt-2 text-xs leading-6 text-stone-500">
+                    المصدر: {card.provenanceLabel} - {card.canSupportGoalBaseline ? "يمكن مراجعته كخط أساس لهدف" : "لا يكفي وحده كخط أساس"}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <h3 className="text-base font-bold text-[#0F3D3E]">مدخل شاشة الدعم المعرفي التالية</h3>
           <p className="mt-2 text-sm leading-7 text-stone-600">
             عند الانتقال لإعداد الخطة، ستُنقل هذه الصفحة كملخص داعم: مصادر مثبتة، معلومات ناقصة، توصيات جودة، وتنبيهات عمرية. كل ذلك يبقى معلومات داعمة للمختص ولا يتحول إلى اعتماد آلي أو مستوى أداء نهائي.
@@ -379,5 +436,14 @@ function StatusCard(props: { title: string; status: string; body: string }) {
       </div>
       <p className="mt-2 text-sm leading-7 text-stone-600">{props.body}</p>
     </article>
+  );
+}
+
+function MetricBox(props: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+      <p className="text-2xl font-bold text-[#0F3D3E]">{props.value}</p>
+      <p className="mt-1 text-xs font-bold text-stone-500">{props.label}</p>
+    </div>
   );
 }
