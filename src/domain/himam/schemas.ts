@@ -671,6 +671,71 @@ export const planApprovalRecordSchema = z
     }
   });
 
+export const endToEndTraceStepCodeSchema = z.enum([
+  "CREATE_LEARNER",
+  "UPLOAD_SOURCE",
+  "CREATE_EXTRACTION_DRAFT",
+  "REVIEW_EXTRACTION",
+  "INFORMATION_SUFFICIENCY",
+  "KNOWLEDGE_SUPPORT",
+  "CREATE_GOAL_DRAFT",
+  "APPROVE_GOAL",
+  "CREATE_PLAN_DRAFT",
+  "APPROVE_PLAN",
+  "TRACE_COMPLETE",
+]);
+
+export const endToEndTraceStepSchema = z.object({
+  stepCode: endToEndTraceStepCodeSchema,
+  sourceRef: sourceRefSchema,
+  status: z.enum(["PASS", "FAIL"]),
+  checkedAt: isoString,
+});
+
+export const endToEndTraceSchema = z
+  .object({
+    traceId: nonEmptyString,
+    learnerId: nonEmptyString,
+    startedAt: isoString,
+    completedAt: isoString,
+    steps: z.array(endToEndTraceStepSchema),
+    overallStatus: z.enum(["PASS", "FAIL"]),
+    sourceRef: sourceRefSchema,
+  })
+  .superRefine((value, ctx) => {
+    const presentSteps = new Set(value.steps.map((step) => step.stepCode));
+    for (const step of endToEndTraceStepCodeSchema.options) {
+      if (!presentSteps.has(step)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `EndToEndTrace is missing required step ${step}`,
+          path: ["steps"],
+        });
+      }
+    }
+    if (value.overallStatus === "PASS" && value.steps.some((step) => step.status !== "PASS")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Passing EndToEndTrace cannot contain failed steps",
+        path: ["overallStatus"],
+      });
+    }
+    if (value.sourceRef.sourceRecordType !== "EndToEndTrace") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "EndToEndTrace sourceRef must point to EndToEndTrace",
+        path: ["sourceRef", "sourceRecordType"],
+      });
+    }
+    if (value.sourceRef.sourceId !== value.traceId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "EndToEndTrace sourceRef.sourceId must match traceId",
+        path: ["sourceRef", "sourceId"],
+      });
+    }
+  });
+
 export const verificationCheckSchema = z.object({
   status: z.enum(["NOT_RUN", "PASS", "FAIL", "NOT_APPLICABLE"]),
   command: z.string().optional(),

@@ -1,0 +1,46 @@
+{
+  "packageId": "SPRINT_6_E2E_MVP_VERIFICATION",
+  "runDate": "2026-08-23",
+  "deliveryMaturity": "VERIFIED_IMPLEMENTATION",
+  "overallStatus": "PASS",
+  "checks": {
+    "endToEndTraceContract": "PASS",
+    "canonicalJourneyOrder": "PASS",
+    "sourceRefTraceability": "PASS",
+    "sprint5Prerequisites": "PASS",
+    "noRemainingStageGaps": "PASS"
+  },
+  "journeyStepCount": 11,
+  "canonicalJourneySteps": [
+    "CREATE_LEARNER",
+    "UPLOAD_SOURCE",
+    "CREATE_EXTRACTION_DRAFT",
+    "REVIEW_EXTRACTION",
+    "INFORMATION_SUFFICIENCY",
+    "KNOWLEDGE_SUPPORT",
+    "CREATE_GOAL_DRAFT",
+    "APPROVE_GOAL",
+    "CREATE_PLAN_DRAFT",
+    "APPROVE_PLAN",
+    "TRACE_COMPLETE"
+  ],
+  "completedItems": [
+    "Added EndToEndTrace and EndToEndTraceStep domain contracts.",
+    "Added a Sprint 6 E2E trace fixture covering the MVP journey from learner creation to trace completion.",
+    "Added validation that every E2E step carries a SourceRef and passes in canonical order.",
+    "Added Sprint 6 verification that depends on Sprint 5 protected metadata and literal file failure taxonomy."
+  ],
+  "remainingStageGaps": [],
+  "knownDeferredWork": [
+    "This Sprint 6 package verifies the local MVP trace contract and journey order; browser-driven production E2E automation remains a later deployment-stage concern."
+  ],
+  "modifiedFiles": [
+    "package.json",
+    "scripts/verify-sprint6.mjs",
+    "src/domain/himam/schemas.ts",
+    "src/domain/himam/sprint6-e2e-fixtures.ts",
+    "src/domain/himam/types.ts",
+    "src/domain/himam/validators.ts",
+    "verification/sprint6-verification-run.json"
+  ]
+}

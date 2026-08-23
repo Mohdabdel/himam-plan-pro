@@ -379,6 +379,36 @@ export type PlanApprovalRecord = {
   sourceRef: SourceRef;
 };
 
+export type EndToEndTraceStepCode =
+  | "CREATE_LEARNER"
+  | "UPLOAD_SOURCE"
+  | "CREATE_EXTRACTION_DRAFT"
+  | "REVIEW_EXTRACTION"
+  | "INFORMATION_SUFFICIENCY"
+  | "KNOWLEDGE_SUPPORT"
+  | "CREATE_GOAL_DRAFT"
+  | "APPROVE_GOAL"
+  | "CREATE_PLAN_DRAFT"
+  | "APPROVE_PLAN"
+  | "TRACE_COMPLETE";
+
+export type EndToEndTraceStep = {
+  stepCode: EndToEndTraceStepCode;
+  sourceRef: SourceRef;
+  status: "PASS" | "FAIL";
+  checkedAt: ISODateTime;
+};
+
+export type EndToEndTrace = {
+  traceId: EntityId;
+  learnerId: EntityId;
+  startedAt: ISODateTime;
+  completedAt: ISODateTime;
+  steps: EndToEndTraceStep[];
+  overallStatus: "PASS" | "FAIL";
+  sourceRef: SourceRef;
+};
+
 export type VerificationStatus = "NOT_RUN" | "PASS" | "FAIL" | "NOT_APPLICABLE";
 export type DeliveryMaturity =
   | "KNOWLEDGE_SPEC_ONLY"

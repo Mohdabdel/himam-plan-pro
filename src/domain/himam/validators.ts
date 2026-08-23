@@ -1,6 +1,7 @@
 import { hasLegacyHimamPrefix, HIMAM_CONCEPT_IDS, isConceptId } from "./concepts";
 import {
   evidenceRecordSchema,
+  endToEndTraceSchema,
   extractedSourceDraftSchema,
   goalApprovalRecordSchema,
   goalDraftSchema,
@@ -20,6 +21,7 @@ import {
 } from "./schemas";
 import type {
   EvidenceRecord,
+  EndToEndTrace,
   ExtractedSourceDraft,
   GoalApprovalRecord,
   GoalDraft,
@@ -208,6 +210,11 @@ export function validatePlanQualityReview(value: PlanQualityReview): ValidationR
 
 export function validatePlanApprovalRecord(value: PlanApprovalRecord): ValidationResult {
   const result = planApprovalRecordSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateEndToEndTrace(value: EndToEndTrace): ValidationResult {
+  const result = endToEndTraceSchema.safeParse(value);
   return result.success ? { ok: true, issues: [] } : fromZod(result.error);
 }
 
