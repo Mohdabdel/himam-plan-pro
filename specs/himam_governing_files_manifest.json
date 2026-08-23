@@ -1,0 +1,119 @@
+{
+  "manifestName": "Himam Governing Files Manifest",
+  "issuedAt": "2026-08-24",
+  "status": "ACTIVE_CANONICAL_ORDER",
+  "rule": "Do not start design, sprint work, or implementation from an isolated document. Read the governing files in this order, then apply the sprint-specific plan.",
+  "governingFiles": [
+    {
+      "order": 1,
+      "path": "specs/himam_project_governance_index.md",
+      "role": "entrypoint",
+      "status": "ACTIVE",
+      "purpose": "Single entrypoint, reading order, and draft intake rule."
+    },
+    {
+      "order": 2,
+      "path": "specs/himam_evidence_inventory_authority_map.md",
+      "role": "authority-map",
+      "status": "ACCEPTED",
+      "purpose": "Inventory of source documents, authority levels, conflicts, and use decisions."
+    },
+    {
+      "order": 3,
+      "path": "specs/himam_product_constitution.md",
+      "role": "constitution",
+      "status": "ACCEPTED",
+      "purpose": "Non-negotiable operating rules, progress rule, and product boundaries."
+    },
+    {
+      "order": 4,
+      "path": "specs/himam_domain_glossary.md",
+      "role": "domain-glossary",
+      "status": "ACCEPTED_FOR_STAGE_1",
+      "purpose": "Controlled terminology for domain, product, and implementation language."
+    },
+    {
+      "order": 5,
+      "path": "specs/himam_workflow_maps.md",
+      "role": "workflow-map",
+      "status": "ACCEPTED_FOR_STAGE_1",
+      "purpose": "Canonical journeys and workflow boundaries."
+    },
+    {
+      "order": 6,
+      "path": "specs/himam_decision_and_conflict_register.md",
+      "role": "decision-register",
+      "status": "ACTIVE",
+      "purpose": "ADR/conflict register and required decisions before scope changes."
+    },
+    {
+      "order": 7,
+      "path": "specs/himam_governance_privacy_ai_policy.md",
+      "role": "policy",
+      "status": "ACCEPTED_FOR_STAGE_1",
+      "purpose": "Privacy, AI boundary, sensitive data, and review policy."
+    },
+    {
+      "order": 8,
+      "path": "specs/himam_readiness_gate_and_execution_rules.md",
+      "role": "readiness-gate",
+      "status": "PASSED_FOR_STAGE_1_DATA_CONTRACTS",
+      "purpose": "Readiness gate, stop rules, and allowed/disallowed implementation scope."
+    },
+    {
+      "order": 9,
+      "path": "specs/himam_gap_analysis_2026-08-23.md",
+      "role": "gap-analysis",
+      "status": "ACTIVE",
+      "purpose": "Current closed gaps, remaining production gaps, and next implementation constraints."
+    },
+    {
+      "order": 10,
+      "path": "specs/himam_mvp_prd.md",
+      "role": "mvp-prd",
+      "status": "ACCEPTED_FOR_IMPLEMENTATION_PLANNING",
+      "purpose": "MVP scope after applying the governing documents."
+    },
+    {
+      "order": 11,
+      "path": "specs/himam_final_programming_transition_plan_2026-08-23.md",
+      "role": "execution-plan",
+      "status": "ACTIVE_AFTER_SPRINT_6",
+      "purpose": "Sprint execution sequence and programming transition plan."
+    },
+    {
+      "order": 12,
+      "path": "specs/himam_pre_programming_governance_checklist_2026-08-24.md",
+      "role": "pre-code-gate",
+      "status": "ACTIVE",
+      "purpose": "Pre-programming checklist that blocks progress with unresolved or unexplained gaps."
+    }
+  ],
+  "supportingFiles": [
+    {
+      "path": "specs/himam_specialist_journey_spec.md",
+      "role": "supporting-journey-spec"
+    },
+    {
+      "path": "specs/himam_learner_profile_spec.md",
+      "role": "supporting-learner-profile-spec"
+    },
+    {
+      "path": "specs/himam-learner-profile-architecture-matrix.md",
+      "role": "supporting-architecture-matrix"
+    },
+    {
+      "path": "specs/himam_new_project_execution_document.md",
+      "role": "supporting-execution-context"
+    },
+    {
+      "path": "specs/himam_HANDOVER.md",
+      "role": "handover-context"
+    }
+  ],
+  "verification": {
+    "script": "scripts/verify-governing-files.mjs",
+    "output": "verification/governing-files-organization-run.json",
+    "requiredPackageScript": "verify:governing-files"
+  }
+}

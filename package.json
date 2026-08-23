@@ -17,6 +17,7 @@
     "verify:sprint4": "node scripts/verify-sprint4.mjs",
     "verify:sprint5": "node scripts/verify-sprint5.mjs",
     "verify:sprint6": "node scripts/verify-sprint6.mjs",
+    "verify:governing-files": "node scripts/verify-governing-files.mjs",
     "verify:plan-quality": "node scripts/verify-plan-quality-references.mjs",
     "verify:transition-assessment": "node scripts/verify-transition-assessment-references.mjs",
     "verify:information-sources": "node scripts/verify-information-sources.mjs",

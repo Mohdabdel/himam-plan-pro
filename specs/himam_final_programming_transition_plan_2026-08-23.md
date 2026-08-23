@@ -200,7 +200,7 @@ No direct CRUD status mutation for approval
 
 ## 4. ترتيب الملفات الحاكمة
 
-أي تنفيذ يجب أن يراجع بالترتيب:
+أي تنفيذ يجب أن يراجع بالترتيب التالي. النسخة القابلة للتحقق آلياً من هذا الترتيب محفوظة في `himam_governing_files_manifest.json`، ويجب تشغيل `npm run verify:governing-files` بعد أي تعديل في وثائق الحوكمة:
 
 1. `himam_project_governance_index.md`
 2. `himam_evidence_inventory_authority_map.md`
@@ -212,6 +212,8 @@ No direct CRUD status mutation for approval
 8. `himam_readiness_gate_and_execution_rules.md`
 9. `himam_gap_analysis_2026-08-23.md`
 10. `himam_mvp_prd.md`
+11. `himam_final_programming_transition_plan_2026-08-23.md`
+12. `himam_pre_programming_governance_checklist_2026-08-24.md`
 
 ## 5. قرار البدء
 
