@@ -111,9 +111,7 @@ export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promis
 
   if (!textLike || typeof (file as File).text !== "function") {
     return {
-      statements: [
-        `تعذر استخراج نص آلي من ${file.name}. يلزم المختص بمراجعة الملف وإدخال البنود المستخلصة يدوياً قبل تحويلها إلى استجابات منظمة.`,
-      ],
+      statements: [],
       failureReason: "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW",
     };
   }

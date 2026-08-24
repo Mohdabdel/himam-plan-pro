@@ -121,8 +121,9 @@ function buildRecommendations(input: {
   student: StoredStudent | null;
   records: AssessmentRecord[];
   sources: SourceSnapshot;
+  hasReviewedOfficialAssessment: boolean;
 }): Recommendation[] {
-  const { student, records, sources } = input;
+  const { student, records, sources, hasReviewedOfficialAssessment } = input;
   const ageYears = student?.ageYears;
   const age14Plus = student?.ageBand === "AGE_14_PLUS" || (typeof ageYears === "number" && ageYears >= 14);
   const recommendations: Recommendation[] = [];
@@ -140,6 +141,14 @@ function buildRecommendations(input: {
       level: "blocking",
       title: "مصدر التقييم الرسمي غير مكتمل",
       body: "يلزم تحديد أداة تقييم رسمية ورفع نتائجها على الأقل قبل الانتقال لإعداد الخطة.",
+    });
+  }
+
+  if (!hasReviewedOfficialAssessment) {
+    recommendations.push({
+      level: "blocking",
+      title: "نتائج التقييم الرسمي لم تفسر بعد",
+      body: "الحد الأدنى لا يتحقق بمجرد رفع الملف. يجب مراجعة مسودة قراءة نتائج التقييم وتحويل نتيجة مفسرة واحدة على الأقل إلى استجابة منظمة قابلة للتتبع قبل توليد الأهداف.",
     });
   }
 
@@ -224,27 +233,33 @@ function InformationSufficiencyPage() {
     setSources(loadSourceSnapshot(id));
     setCurrentPerformanceCards(buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)));
     setComponentStatus(loadPlanComponentStatus(id));
-    markCoverageReady(id);
   }, [id]);
 
+  const currentPerformanceSummary = useMemo(
+    () => summarizeCurrentPerformanceWorkspace(currentPerformanceCards),
+    [currentPerformanceCards],
+  );
+
   const recommendations = useMemo(() => (
-    buildRecommendations({ student, records, sources })
-  ), [student, records, sources]);
+    buildRecommendations({
+      student,
+      records,
+      sources,
+      hasReviewedOfficialAssessment: currentPerformanceSummary.baselineReady,
+    })
+  ), [student, records, sources, currentPerformanceSummary.baselineReady]);
 
   const blockers = recommendations.filter((item) => item.level === "blocking");
   const qualityItems = recommendations.filter((item) => item.level === "quality");
   const enrichmentItems = recommendations.filter((item) => item.level === "enrichment");
   const canProceed = blockers.length === 0;
-  const currentPerformanceSummary = useMemo(
-    () => summarizeCurrentPerformanceWorkspace(currentPerformanceCards),
-    [currentPerformanceCards],
-  );
 
   function handleNext() {
     if (!canProceed) {
       setShowGateMessage(true);
       return;
     }
+    markCoverageReady(id);
     navigate({ to: "/students/$id/iep", params: { id } });
   }
 
@@ -348,6 +363,7 @@ function InformationSufficiencyPage() {
           {showGateMessage && !canProceed && (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-7 text-red-800">
               لا يمكن الانتقال لإعداد الخطة قبل إدخال العمر ووجود أداة تقييم رسمية محفوظة بنتيجة مرفوعة.
+              كما يجب أن تكون نتيجة تقييم رسمية واحدة على الأقل مفسرة ومراجعة كاستجابة منظمة.
             </div>
           )}
         </section>

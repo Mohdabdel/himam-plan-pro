@@ -46,6 +46,17 @@ type StoredStudent = {
   tool?: string;
 };
 
+function hasInterpretedAssessmentStatements(statements: string[]) {
+  return statements.some((statement) => {
+    const normalized = statement.trim();
+    return (
+      normalized.length >= 20 &&
+      !normalized.startsWith("تعذر") &&
+      !normalized.startsWith("تم رفع")
+    );
+  });
+}
+
 function loadStudent(id: string): StoredStudent | null {
   try {
     const list = JSON.parse(localStorage.getItem("himam_students") || "[]") as StoredStudent[];
@@ -134,7 +145,11 @@ function OfficialAssessmentPage() {
     }
     const reviewedStatements = splitSourceDraftText(draftText);
     if (reviewedStatements.length === 0) {
-      setError("راجع مسودة قراءة الملف وأدخل بنداً واحداً على الأقل قبل تحويلها إلى استجابات منظمة.");
+      setError("راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
+      return false;
+    }
+    if (!hasInterpretedAssessmentStatements(reviewedStatements)) {
+      setError("الحد الأدنى ليس رفع الملف فقط؛ اكتب نتيجة مفسرة مثل الدرجة أو الملاحظة المهنية ومعناها الوظيفي قبل المتابعة.");
       return false;
     }
 
@@ -157,7 +172,7 @@ function OfficialAssessmentPage() {
       file: upload,
       purpose: "OFFICIAL_ASSESSMENT_RESULTS",
       sourceType: "INSTITUTIONAL_ASSESSMENT",
-      statements: readResult.statements.length > 0 ? readResult.statements : reviewedStatements,
+      statements: reviewedStatements,
       outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
       extractionFailureReason: readResult.statements.length === 0 ? readResult.failureReason : undefined,
     });
@@ -322,7 +337,7 @@ function OfficialAssessmentPage() {
               {upload && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{upload.name}</p>}
               {extractionWarning && (
                 <p className="mt-2 rounded-lg border border-[#D9764A]/30 bg-[#FBE9E1] px-3 py-2 text-xs leading-6 text-stone-700">
-                  لم تُستخدم قراءة آلية نهائية للملف. أدخل أو صحح البنود في مسودة القراءة قبل الاعتماد.
+                  لم تُنشأ قراءة آلية قابلة للاعتماد لهذا النوع من الملفات. أدخل نتائج التقييم الرسمية المفسرة يدوياً في مسودة القراءة قبل المتابعة.
                 </p>
               )}
             </div>
@@ -336,7 +351,7 @@ function OfficialAssessmentPage() {
                 onChange={(event) => setDraftText(event.target.value)}
                 rows={5}
                 className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
-                placeholder="راجع البنود المستخلصة من الملف أو أدخلها يدوياً، كل بند في سطر مستقل."
+                placeholder="مثال: في مجال التواصل الوظيفي حصل المتعلم على مستوى ناشئ؛ يحتاج إلى دعم بصري للبدء والاستجابة في سياق المجموعة. اكتب كل نتيجة مفسرة في سطر مستقل."
               />
               <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
               <input
@@ -365,6 +380,33 @@ function OfficialAssessmentPage() {
               )}
             </div>
           )}
+
+          <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-[#0F3D3E]">مكتبة أدوات التقييم المتاحة للتجربة</p>
+                <p className="mt-1 text-xs leading-6 text-stone-600">
+                  هذه مكتبة محولات مرجعية للأدوات المطبقة خارج همم. لا تطبق الأداة كاملة داخل المنصة حالياً، لكنها توضح الأداة ومجالاتها وتدعم تفسير النتائج المرفوعة يدوياً.
+                </p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0F3D3E]">
+                {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").length} أدوات
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+              {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => setToolId(tool.id)}
+                  className="rounded-lg border border-white bg-white px-3 py-2 text-right transition hover:border-[#0F3D3E]"
+                >
+                  <p className="text-xs font-bold text-[#0F3D3E]">{tool.nameAr}</p>
+                  <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-stone-500">{tool.descriptionAr}</p>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {records.length > 0 && (
             <div className="mt-5 space-y-3">

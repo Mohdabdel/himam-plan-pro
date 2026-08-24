@@ -17,7 +17,10 @@ function requireText(label, content, expected) {
 
 const plan = read("specs/himam_build_cycle_02_execution_plan_2026-08-24.md");
 const workspace = read("src/lib/current-performance-workspace.ts");
+const pipeline = read("src/lib/source-file-pipeline.ts");
+const official = read("src/routes/students.$id.assessment.official.tsx");
 const coverage = read("src/routes/students.$id.coverage.tsx");
+const iep = read("src/routes/students.$id.iep.tsx");
 const packageJson = read("package.json");
 const ci = read(".github/workflows/quality-gates.yml");
 
@@ -50,18 +53,32 @@ requireText("no raw file dependency", workspace, "structuredResponses.map");
 requireText("baseline guard", workspace, "canSupportGoalBaseline: kind === \"CURRENT_PERFORMANCE_CUE\"");
 requireText("human review before claim flag", workspace, "requiresHumanReviewBeforeClaim");
 
+requireText("unsupported files require manual interpretation", pipeline, "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW");
+requireText("unsupported file does not create placeholder statements", pipeline, "statements: []");
+requireText("official interpreted result guard", official, "hasInterpretedAssessmentStatements");
+requireText("official upload alone is insufficient", official, "الحد الأدنى ليس رفع الملف فقط");
+requireText("official draft uses reviewed statements", official, "statements: reviewedStatements");
+requireText("official assessment tool library visible", official, "مكتبة أدوات التقييم المتاحة للتجربة");
+requireText("official library selects tool", official, "onClick={() => setToolId(tool.id)}");
+
 requireText("coverage imports workspace", coverage, "buildCurrentPerformanceWorkspace");
 requireText("coverage loads pipelines", coverage, "loadSourceFilePipelines");
 requireText("coverage displays current performance cards", coverage, "بطاقات أداء وسياق من مصادر مرفوعة ومراجعة");
 requireText("coverage shows provenance", coverage, "provenanceLabel");
 requireText("coverage shows baseline readiness", coverage, "baselineReady");
+requireText("coverage blocks without reviewed interpretation", coverage, "نتائج التقييم الرسمي لم تفسر بعد");
+requireText("coverage does not mark ready on page load", coverage, "markCoverageReady(id);");
+
+requireText("iep imports current performance workspace", iep, "buildCurrentPerformanceWorkspace");
+requireText("iep blocks goal generation without baseline", iep, "مغلق حتى تفسير التقييم");
+requireText("iep routes blocked goal card to coverage", iep, "لا يفتح توليد الأهداف قبل وجود نتيجة تقييم رسمية مفسرة ومراجعة");
 
 requireText("package script", packageJson, "\"verify:build-cycle-02\"");
 requireText("ci runs cycle02", ci, "npm run verify:build-cycle-02");
 
 const result = {
   verification: "build-cycle-02",
-  verifiedAt: "2026-08-24",
+  verifiedAt: "2026-08-25",
   status: failures.length === 0 ? "PASS" : "FAIL",
   cycle: "BUILD_CYCLE_02",
   scope: "CURRENT_PERFORMANCE_FROM_REVIEWED_SOURCE_FILES",

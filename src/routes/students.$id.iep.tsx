@@ -1,6 +1,11 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
+import {
+  buildCurrentPerformanceWorkspace,
+  summarizeCurrentPerformanceWorkspace,
+} from "@/lib/current-performance-workspace";
+import { loadSourceFilePipelines } from "@/lib/source-file-pipeline";
 
 export const Route = createFileRoute("/students/$id/iep")({
   component: PlanPreparationHubPage,
@@ -74,6 +79,9 @@ function PlanPreparationHubPage() {
   }
 
   const assessmentRecords = loadAssessmentRecords(id);
+  const currentPerformanceSummary = summarizeCurrentPerformanceWorkspace(
+    buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)),
+  );
   const learnerVoice = safeParse(`himam_learner_voice_${id}`);
   const familyVoice = safeParse(`himam_family_${id}`);
   const additionalSources = safeParse(`himam_additional_sources_${id}`);
@@ -89,7 +97,7 @@ function PlanPreparationHubPage() {
       key: "currentLevel",
       title: "مستوى الأداء الحالي",
       body: "عرض ملخص مصادر جمع المعلومات التي ستغذي صياغة مستوى الأداء الحالي دون اعتماد آلي.",
-      status: assessmentRecords.length > 0 ? "مصدر تقييم موجود" : "ينقصه تقييم رسمي",
+      status: currentPerformanceSummary.baselineReady ? "نتيجة مفسرة مراجعة" : "ينقصه تفسير رسمي",
     },
     {
       key: "specialistVision",
@@ -101,7 +109,7 @@ function PlanPreparationHubPage() {
       key: "goals",
       title: "توليد الأهداف",
       body: "يفتح صفحة مستقلة تجمع هيكلة توليد الأهداف مع شاشة الدعم المعرفي بجانبها.",
-      status: "صفحة مستقلة",
+      status: currentPerformanceSummary.baselineReady ? "متاح" : "مغلق حتى تفسير التقييم",
     },
   ];
 
@@ -151,7 +159,7 @@ function PlanPreparationHubPage() {
           {cards.map((card) => {
             const isActive = activeSection === card.key;
             if (card.key === "goals") {
-              return (
+              return currentPerformanceSummary.baselineReady ? (
                 <Link
                   key={card.key}
                   to="/students/$id/iep/goals"
@@ -159,6 +167,18 @@ function PlanPreparationHubPage() {
                   className="rounded-2xl border bg-white p-5 text-right shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
                 >
                   <ComponentCardContent card={card} active={false} />
+                </Link>
+              ) : (
+                <Link
+                  key={card.key}
+                  to="/students/$id/coverage"
+                  params={{ id }}
+                  className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-right shadow-sm transition hover:border-amber-400"
+                >
+                  <ComponentCardContent card={card} active={false} />
+                  <p className="mt-3 text-xs font-bold leading-6 text-amber-800">
+                    لا يفتح توليد الأهداف قبل وجود نتيجة تقييم رسمية مفسرة ومراجعة.
+                  </p>
                 </Link>
               );
             }
@@ -182,6 +202,7 @@ function PlanPreparationHubPage() {
           {activeSection === "currentLevel" && (
             <CurrentLevelSection
               assessmentCount={assessmentRecords.length}
+              interpretedAssessmentCount={currentPerformanceSummary.currentPerformanceCueCount}
               learnerVoice={Boolean(learnerVoice)}
               familyVoice={Boolean(familyVoice)}
               additionalSources={Boolean(additionalSources)}
@@ -247,12 +268,14 @@ function BasicDataSection({ student }: { student: StoredStudent | null }) {
 
 function CurrentLevelSection(props: {
   assessmentCount: number;
+  interpretedAssessmentCount: number;
   learnerVoice: boolean;
   familyVoice: boolean;
   additionalSources: boolean;
 }) {
   const rows = [
     ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
+    ["نتائج مفسرة مراجعة", props.interpretedAssessmentCount > 0 ? `${props.interpretedAssessmentCount} بطاقة قابلة للتتبع` : "غير متاحة بعد"],
     ["صوت المتعلم", props.learnerVoice ? "متاح كمصدر داعم" : "غير موثق"],
     ["صوت الأسرة", props.familyVoice ? "متاح كمصدر داعم" : "غير موثق"],
     ["مصادر إضافية", props.additionalSources ? "متاحة كمصدر داعم" : "غير موثقة"],
