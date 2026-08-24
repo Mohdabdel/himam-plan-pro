@@ -1,8 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { INFORMATION_TOOLS } from "@/data/information-tools";
+import { InformationToolApplication } from "@/components/information-tool-application";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
+import {
+  hasInformationRecordResponse,
+  loadInformationRecords,
+  upsertInformationRecord,
+} from "@/lib/information-records";
 import {
   applySourceExtractionReview,
   appendSourceFilePipeline,
@@ -13,6 +19,7 @@ import {
   splitSourceDraftText,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
+import type { InformationRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/assessment/additional")({
   component: AdditionalSourcesPage,
@@ -53,6 +60,7 @@ function AdditionalSourcesPage() {
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [extractionWarning, setExtractionWarning] = useState("");
   const [selectedToolId, setSelectedToolId] = useState("");
+  const [platformRecord, setPlatformRecord] = useState<InformationRecord | null>(null);
   const [error, setError] = useState("");
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
 
@@ -70,6 +78,15 @@ function AdditionalSourcesPage() {
     setStudent(loadStudent(id));
     setComponentStatus(loadPlanComponentStatus(id));
     setSourcePipelines(loadSourceFilePipelines(id));
+    try {
+      const saved = JSON.parse(localStorage.getItem(`himam_additional_sources_${id}`) || "null");
+      if (saved?.selectedToolId) setSelectedToolId(saved.selectedToolId);
+      if (saved?.platformInformationRecordId) {
+        setPlatformRecord(loadInformationRecords(id).find((record) => record.id === saved.platformInformationRecordId) ?? null);
+      }
+    } catch {
+      /* noop */
+    }
   }, [id]);
 
   async function handleFileChange(file: File | null) {
@@ -99,6 +116,10 @@ function AdditionalSourcesPage() {
     }
     if (appliedMode === "no" && !selectedToolId) {
       setError("يرجى اختيار أداة أو نموذج من المكتبة.");
+      return false;
+    }
+    if (appliedMode === "no" && !hasInformationRecordResponse(platformRecord)) {
+      setError("يرجى تطبيق أداة المكتبة داخل المنصة وإدخال استجابة وصفية واحدة على الأقل.");
       return false;
     }
     const reviewedStatements = splitSourceDraftText(draftText);
@@ -132,6 +153,9 @@ function AdditionalSourcesPage() {
       });
       nextPipelines = appendSourceFilePipeline(id, pipeline);
     }
+    if (appliedMode === "no" && platformRecord) {
+      upsertInformationRecord(id, platformRecord);
+    }
     localStorage.setItem(`himam_additional_sources_${id}`, JSON.stringify({
       appliedMode,
       sourceName: sourceName.trim(),
@@ -139,6 +163,7 @@ function AdditionalSourcesPage() {
       uploadedFileType: uploadedFile?.type,
       selectedToolId,
       selectedToolName: selectedTool?.nameAr,
+      platformInformationRecordId: platformRecord?.id,
       savedAt: new Date().toISOString(),
       outputPolicy: "knowledge_support_only",
       sourcePipelineIds: nextPipelines.map((pipeline) => pipeline.pipelineId),
@@ -266,19 +291,16 @@ function AdditionalSourcesPage() {
           {appliedMode === "no" && (
             <div className="mt-5 rounded-xl bg-stone-50 p-4">
               <p className="text-sm leading-7 text-stone-600">
-                يمكنكم تطبيق أحد النماذج والأدوات الإضافية الواردة بمكتبة الأدوات والنماذج لإثراء الخطة الفردية التربوية.
+                يمكن تطبيق أحد النماذج والأدوات الإضافية داخل المنصة لإنتاج محتوى وصفي داعم قابل لإعادة الاستخدام في دعم المعرفة.
               </p>
-              <label className="mt-4 mb-1 block text-xs font-semibold text-stone-500">الأدوات والنماذج الإضافية المتاحة بالمكتبة</label>
-              <select
-                value={selectedToolId}
-                onChange={(event) => setSelectedToolId(event.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-              >
-                <option value="">اختر الأداة</option>
-                {tools.map((tool) => (
-                  <option key={tool.id} value={tool.id}>{tool.nameAr}</option>
-                ))}
-              </select>
+              <InformationToolApplication
+                learnerId={id}
+                tools={tools}
+                selectedToolId={selectedToolId}
+                record={platformRecord}
+                onSelectedToolIdChange={setSelectedToolId}
+                onRecordChange={setPlatformRecord}
+              />
             </div>
           )}
 

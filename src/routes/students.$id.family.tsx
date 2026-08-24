@@ -1,9 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { INFORMATION_TOOLS } from "@/data/information-tools";
+import { InformationToolApplication } from "@/components/information-tool-application";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
+import {
+  hasInformationRecordResponse,
+  loadInformationRecords,
+  upsertInformationRecord,
+} from "@/lib/information-records";
 import { advanceStage } from "@/lib/journey";
+import {
+  applySourceExtractionReview,
+  appendSourceFilePipeline,
+  buildSourceFileDraftPipeline,
+  loadSourceFilePipelines,
+  readAllowedSourceFileDraft,
+  summarizeSourceFilePipeline,
+  splitSourceDraftText,
+  type SourceFilePipelineRecord,
+} from "@/lib/source-file-pipeline";
+import type { InformationRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/family")({
   component: FamilyVoicePage,
@@ -56,8 +73,13 @@ function FamilyVoicePage() {
   const [appliedMode, setAppliedMode] = useState<AppliedMode>("");
   const [appliedToolName, setAppliedToolName] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [draftText, setDraftText] = useState("");
+  const [reviewerNotes, setReviewerNotes] = useState("");
+  const [extractionWarning, setExtractionWarning] = useState("");
   const [toolCategory, setToolCategory] = useState("رؤية الخطة الفردية");
   const [selectedLibraryToolId, setSelectedLibraryToolId] = useState("");
+  const [platformRecord, setPlatformRecord] = useState<InformationRecord | null>(null);
+  const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
   const [error, setError] = useState("");
 
   const familyTools = useMemo(() => (
@@ -67,6 +89,7 @@ function FamilyVoicePage() {
   useEffect(() => {
     setStudent(loadStudent(id));
     setComponentStatus(loadPlanComponentStatus(id));
+    setSourcePipelines(loadSourceFilePipelines(id));
     try {
       const saved = JSON.parse(localStorage.getItem(`himam_family_${id}`) || "null");
       if (saved) {
@@ -74,13 +97,28 @@ function FamilyVoicePage() {
         setAppliedToolName(saved.appliedToolName ?? "");
         setToolCategory(saved.toolCategory ?? "رؤية الخطة الفردية");
         setSelectedLibraryToolId(saved.selectedLibraryToolId ?? "");
+        if (saved.platformInformationRecordId) {
+          setPlatformRecord(loadInformationRecords(id).find((record) => record.id === saved.platformInformationRecordId) ?? null);
+        }
       }
     } catch {
       /* noop */
     }
   }, [id]);
 
-  function saveCurrent() {
+  async function handleFileChange(file: File | null) {
+    setUploadedFile(file);
+    setDraftText("");
+    setExtractionWarning("");
+    if (!file) return;
+    const result = await readAllowedSourceFileDraft(file);
+    if (result.failureReason) {
+      setExtractionWarning(result.failureReason);
+    }
+    setDraftText(result.statements.join("\n"));
+  }
+
+  async function saveCurrent() {
     if (!appliedMode) {
       setError("يرجى تحديد هل طُبقت أداة أو نموذج لاستيفاء صوت الأسرة.");
       return false;
@@ -97,8 +135,44 @@ function FamilyVoicePage() {
       setError("يرجى اختيار أداة من مكتبة صوت الأسرة.");
       return false;
     }
+    const reviewedStatements = splitSourceDraftText(draftText);
+    if (appliedMode === "yes" && reviewedStatements.length === 0) {
+      setError("راجع مسودة قراءة الملف وأدخل بنداً وصفياً واحداً على الأقل قبل اعتماد صوت الأسرة.");
+      return false;
+    }
+    if (appliedMode === "no" && !hasInformationRecordResponse(platformRecord)) {
+      setError("يرجى تطبيق أداة صوت الأسرة داخل المنصة وإدخال استجابة وصفية واحدة على الأقل.");
+      return false;
+    }
 
     const selectedTool = familyTools.find((tool) => tool.id === selectedLibraryToolId);
+    let nextPipelines = sourcePipelines;
+    if (appliedMode === "yes" && uploadedFile) {
+      const readResult = await readAllowedSourceFileDraft(uploadedFile);
+      const draftPipeline = buildSourceFileDraftPipeline({
+        learnerId: id,
+        sourceNameAr: appliedToolName.trim(),
+        file: uploadedFile,
+        purpose: "FAMILY_VISION_FORM",
+        statements: readResult.statements.length > 0 ? readResult.statements : reviewedStatements,
+        outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+        extractionFailureReason: readResult.statements.length === 0 ? readResult.failureReason : undefined,
+      });
+      const pipeline = applySourceExtractionReview(draftPipeline, {
+        decision: "approved_for_structured_response",
+        reviewerRole: "SPECIALIST",
+        reviewerNotes: reviewerNotes.trim() || "راجع المختص مسودة صوت الأسرة واعتمد البنود الوصفية.",
+        correctedStatements: [
+          ...reviewedStatements,
+          `${appliedToolName.trim()} مرفوع ومراجع كمصدر وصفي لرؤية الأسرة وأولوياتها ومخاوفها.`,
+        ],
+        outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+      });
+      nextPipelines = appendSourceFilePipeline(id, pipeline);
+    }
+    if (appliedMode === "no" && platformRecord) {
+      upsertInformationRecord(id, platformRecord);
+    }
     localStorage.setItem(`himam_family_${id}`, JSON.stringify({
       appliedMode,
       appliedToolName: appliedToolName.trim(),
@@ -107,17 +181,23 @@ function FamilyVoicePage() {
       toolCategory,
       selectedLibraryToolId,
       selectedLibraryToolName: selectedTool?.nameAr,
+      platformInformationRecordId: platformRecord?.id,
       savedAt: new Date().toISOString(),
       outputPolicy: "knowledge_support_only",
+      sourcePipelineIds: nextPipelines.map((pipeline) => pipeline.pipelineId),
     }));
     advanceFamilyStatus(id, "family_completed");
+    setSourcePipelines(nextPipelines);
+    setDraftText("");
+    setReviewerNotes("");
+    setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
     setError("");
     return true;
   }
 
-  function handleNext() {
-    if (!saveCurrent()) return;
+  async function handleNext() {
+    if (!(await saveCurrent())) return;
     navigate({ to: "/students/$id/assessment/additional", params: { id } });
   }
 
@@ -202,10 +282,33 @@ function FamilyVoicePage() {
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
-                  onChange={(event) => setUploadedFile(event.target.files?.[0] ?? null)}
+                  onChange={(event) => void handleFileChange(event.target.files?.[0] ?? null)}
                   className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
                 />
                 {uploadedFile && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{uploadedFile.name}</p>}
+                {extractionWarning && (
+                  <p className="mt-2 rounded-lg border border-[#D9764A]/30 bg-[#FBE9E1] px-3 py-2 text-xs leading-6 text-stone-700">
+                    لم تكف القراءة الآلية للملف. أدخل أو صحح البنود الوصفية قبل الاعتماد.
+                  </p>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-stone-500">مسودة قراءة الملف القابلة للتصحيح</label>
+                <textarea
+                  value={draftText}
+                  onChange={(event) => setDraftText(event.target.value)}
+                  rows={5}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  placeholder="راجع البنود المستخلصة من الملف أو أدخل رؤية الأسرة وأولوياتها يدوياً، كل بند في سطر مستقل."
+                />
+                <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
+                <input
+                  type="text"
+                  value={reviewerNotes}
+                  onChange={(event) => setReviewerNotes(event.target.value)}
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  placeholder="اختياري - سبب اعتماد البنود أو التصحيح"
+                />
               </div>
             </div>
           )}
@@ -228,36 +331,40 @@ function FamilyVoicePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">الأدوات والنماذج المتاحة لتغطية صوت الأسرة</label>
-                  <select
-                    value={selectedLibraryToolId}
-                    onChange={(event) => setSelectedLibraryToolId(event.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-                  >
-                    <option value="">اختر الأداة</option>
-                    {familyTools.map((tool) => (
-                      <option key={tool.id} value={tool.id}>{tool.nameAr}</option>
-                    ))}
-                  </select>
+                  <p className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs leading-6 text-stone-600">
+                    اختر الأداة في نموذج التطبيق أدناه ثم أدخل رؤية الأسرة أو أولوياتها ومخاوفها.
+                  </p>
                 </div>
               </div>
-              {selectedLibraryToolId && (
-                <div className="mt-4 rounded-lg border border-stone-200 bg-white p-3">
-                  <p className="text-xs leading-6 text-stone-600">
-                    {familyTools.find((tool) => tool.id === selectedLibraryToolId)?.descriptionAr}
-                  </p>
-                  {familyTools.find((tool) => tool.id === selectedLibraryToolId)?.externalUrl && (
-                    <a
-                      href={familyTools.find((tool) => tool.id === selectedLibraryToolId)?.externalUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex text-xs font-bold text-[#0F3D3E] underline"
-                    >
-                      الذهاب لتطبيق الأداة المختارة
-                    </a>
-                  )}
-                </div>
-              )}
+              <InformationToolApplication
+                learnerId={id}
+                tools={familyTools}
+                selectedToolId={selectedLibraryToolId}
+                record={platformRecord}
+                onSelectedToolIdChange={setSelectedLibraryToolId}
+                onRecordChange={setPlatformRecord}
+              />
+            </div>
+          )}
+
+          {sourcePipelines.some((pipeline) => pipeline.file.purpose === "FAMILY_VISION_FORM") && (
+            <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
+              <p className="text-sm font-bold text-[#0F3D3E]">ملفات صوت الأسرة المراجعة</p>
+              <div className="mt-3 space-y-2">
+                {sourcePipelines
+                  .filter((pipeline) => pipeline.file.purpose === "FAMILY_VISION_FORM")
+                  .map((pipeline) => {
+                    const summary = summarizeSourceFilePipeline(pipeline);
+                    return (
+                      <div key={summary.id} className="rounded-lg border border-white bg-white px-3 py-2">
+                        <p className="text-xs font-bold text-[#0F3D3E]">{summary.labelAr}</p>
+                        <p className="mt-1 text-xs leading-6 text-stone-600">
+                          {summary.fileName} - {summary.statusAr} - {summary.responseCount} استجابة منظمة
+                        </p>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           )}
 

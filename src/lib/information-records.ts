@@ -18,6 +18,15 @@ export function saveInformationRecords(learnerId: string, records: InformationRe
   return records;
 }
 
+export function upsertInformationRecord(learnerId: string, record: InformationRecord) {
+  const records = loadInformationRecords(learnerId);
+  const next = [
+    ...records.filter((item) => item.id !== record.id),
+    { ...record, updatedAt: new Date().toISOString() },
+  ];
+  return saveInformationRecords(learnerId, next);
+}
+
 export function createInformationRecord(input: {
   learnerId: string;
   toolId: string;
@@ -74,5 +83,14 @@ export function buildKnowledgeSupportItems(records: InformationRecord[]): Knowle
       targetPortfolio: response.targetPortfolio,
       operatingRoles: response.operatingRoles,
     }];
+  }));
+}
+
+export function hasInformationRecordResponse(record: InformationRecord | null) {
+  return Boolean(record?.responses.some((response) => {
+    const value = response.value;
+    return Array.isArray(value)
+      ? value.some((item) => item.trim().length > 0)
+      : value.trim().length > 0;
   }));
 }
