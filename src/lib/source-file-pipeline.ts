@@ -35,6 +35,8 @@ type UploadedFileLike = {
   name: string;
   type?: string;
   size?: number;
+  text?: () => Promise<string>;
+  arrayBuffer?: () => Promise<ArrayBuffer>;
 };
 
 type PipelineInput = {
@@ -93,6 +95,71 @@ export function splitSourceDraftText(value: string) {
   return normalizeStatements(value.split(/\r?\n/));
 }
 
+function extensionOf(fileName: string) {
+  return fileName.split(".").pop()?.toLowerCase() ?? "";
+}
+
+function normalizeExtractedText(value: string) {
+  return splitSourceDraftText(
+    value
+      .split(String.fromCharCode(0)).join(" ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n"),
+  ).slice(0, 24);
+}
+
+async function readPdfStatements(file: UploadedFileLike) {
+  if (typeof file.arrayBuffer !== "function") return [];
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/legacy/build/pdf.worker.mjs",
+    import.meta.url,
+  ).toString();
+
+  const document = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const pageTexts: string[] = [];
+  const maxPages = Math.min(document.numPages, 8);
+  for (let pageNumber = 1; pageNumber <= maxPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const text = content.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .filter(Boolean)
+      .join(" ");
+    if (text.trim()) pageTexts.push(`صفحة ${pageNumber}: ${text}`);
+  }
+  return normalizeExtractedText(pageTexts.join("\n"));
+}
+
+async function readDocxStatements(file: UploadedFileLike) {
+  if (typeof file.arrayBuffer !== "function") return [];
+  const mammoth = await import("mammoth/mammoth.browser");
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return normalizeExtractedText(result.value);
+}
+
+async function readSpreadsheetStatements(file: UploadedFileLike) {
+  if (typeof file.arrayBuffer !== "function") return [];
+  const readXlsxFile = (await import("read-excel-file/browser")).default;
+  const sheets = await readXlsxFile(await file.arrayBuffer());
+  const rows: string[] = [];
+  for (const sheet of sheets.slice(0, 4)) {
+    sheet.data.slice(0, 12).forEach((row, rowIndex) => {
+      const cells = row
+        .map((value, cellIndex) => ({
+          label: `عمود ${cellIndex + 1}`,
+          text: String(value ?? "").trim(),
+        }))
+        .filter((cell) => cell.text.length > 0)
+        .map((cell) => `${cell.label}: ${cell.text}`);
+      if (cells.length > 0) {
+        rows.push(`${sheet.sheet} - صف ${rowIndex + 1}: ${cells.join(" | ")}`);
+      }
+    });
+  }
+  return normalizeExtractedText(rows.join("\n"));
+}
+
 export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promise<{
   statements: string[];
   failureReason?: SourceFileReadFailureReason;
@@ -104,21 +171,33 @@ export async function readAllowedSourceFileDraft(file: UploadedFileLike): Promis
     return { statements: [], failureReason: "FILE_UNREADABLE" };
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const extension = extensionOf(file.name);
   const textLike =
     file.type?.startsWith("text/") ||
     ["csv", "txt", "md", "json"].includes(extension);
 
-  if (!textLike || typeof (file as File).text !== "function") {
-    return {
-      statements: [],
-      failureReason: "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW",
-    };
-  }
-
   try {
-    const text = await (file as File).text();
-    const statements = splitSourceDraftText(text).slice(0, 8);
+    let statements: string[] = [];
+    if (textLike && typeof file.text === "function") {
+      statements = normalizeExtractedText(await file.text());
+    } else if (extension === "pdf" || file.type === "application/pdf") {
+      statements = await readPdfStatements(file);
+    } else if (extension === "docx") {
+      statements = await readDocxStatements(file);
+    } else if (extension === "xlsx") {
+      statements = await readSpreadsheetStatements(file);
+    } else if (extension === "xls") {
+      return {
+        statements: [],
+        failureReason: "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW",
+      };
+    } else {
+      return {
+        statements: [],
+        failureReason: "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW",
+      };
+    }
+
     if (statements.length === 0) {
       return { statements: [], failureReason: "FILE_UNREADABLE" };
     }

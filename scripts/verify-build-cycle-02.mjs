@@ -55,6 +55,12 @@ requireText("human review before claim flag", workspace, "requiresHumanReviewBef
 
 requireText("unsupported files require manual interpretation", pipeline, "UNSUPPORTED_FILE_REQUIRES_MANUAL_REVIEW");
 requireText("unsupported file does not create placeholder statements", pipeline, "statements: []");
+requireText("pdf reader is wired", pipeline, "pdfjs-dist/legacy/build/pdf.mjs");
+requireText("docx reader is wired", pipeline, "mammoth/mammoth.browser");
+requireText("spreadsheet reader is wired", pipeline, "read-excel-file");
+requireText("pdf extraction pages", pipeline, "getTextContent");
+requireText("docx raw text extraction", pipeline, "extractRawText");
+requireText("spreadsheet row extraction", pipeline, "readXlsxFile");
 requireText("official interpreted result guard", official, "hasInterpretedAssessmentStatements");
 requireText("official upload alone is insufficient", official, "الحد الأدنى ليس رفع الملف فقط");
 requireText("official draft uses reviewed statements", official, "statements: reviewedStatements");
