@@ -60,6 +60,12 @@ requireText("official upload alone is insufficient", official, "الحد الأ�
 requireText("official draft uses reviewed statements", official, "statements: reviewedStatements");
 requireText("official assessment tool library visible", official, "مكتبة أدوات التقييم المتاحة للتجربة");
 requireText("official library selects tool", official, "onClick={() => setToolId(tool.id)}");
+requireText("official platform mode enabled", official, "type EntryMode = \"upload\" | \"platform\"");
+requireText("official platform application button", official, "تطبيق الأداة داخل المنصة");
+requireText("official domain result inputs", official, "domainInputs");
+requireText("official applied tool statements", official, "buildAppliedToolStatements");
+requireText("official platform source pipeline", official, "application/himam-assessment+json");
+requireText("official platform result processing note", official, "تم تطبيق أداة من مكتبة التقييم داخل المنصة");
 
 requireText("coverage imports workspace", coverage, "buildCurrentPerformanceWorkspace");
 requireText("coverage loads pipelines", coverage, "loadSourceFilePipelines");

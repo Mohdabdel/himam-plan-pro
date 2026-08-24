@@ -24,7 +24,7 @@ import {
   splitSourceDraftText,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
-import type { AssessmentRecord } from "@/types/himam";
+import type { AssessmentRecord, AssessmentRating } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/assessment/official")({
   component: OfficialAssessmentPage,
@@ -46,6 +46,20 @@ type StoredStudent = {
   tool?: string;
 };
 
+type EntryMode = "upload" | "platform";
+
+type DomainInput = {
+  rating: AssessmentRating;
+  note: string;
+};
+
+const RATING_LABELS: Record<AssessmentRating, string> = {
+  pass: "متقن/ناجح",
+  emerge: "ناشئ/يحتاج دعم",
+  fail: "لم يظهر بعد",
+  not_observed: "غير ملاحظ",
+};
+
 function hasInterpretedAssessmentStatements(statements: string[]) {
   return statements.some((statement) => {
     const normalized = statement.trim();
@@ -55,6 +69,15 @@ function hasInterpretedAssessmentStatements(statements: string[]) {
       !normalized.startsWith("تم رفع")
     );
   });
+}
+
+function buildAppliedToolStatements(domainInputs: Record<string, DomainInput>) {
+  return Object.values(domainInputs)
+    .filter((domain) => domain.rating !== "not_observed")
+    .map((domain) => domain.note.trim())
+    .filter(Boolean)
+    .map((note) => note.length >= 20 ? note : "")
+    .filter(Boolean);
 }
 
 function loadStudent(id: string): StoredStudent | null {
@@ -90,6 +113,8 @@ function OfficialAssessmentPage() {
   const [customToolName, setCustomToolName] = useState("");
   const [assessorName, setAssessorName] = useState("");
   const [assessmentDate, setAssessmentDate] = useState("");
+  const [entryMode, setEntryMode] = useState<EntryMode>("upload");
+  const [domainInputs, setDomainInputs] = useState<Record<string, DomainInput>>({});
   const [upload, setUpload] = useState<File | null>(null);
   const [draftText, setDraftText] = useState("");
   const [reviewerNotes, setReviewerNotes] = useState("");
@@ -118,6 +143,17 @@ function OfficialAssessmentPage() {
     selectedToolId: toolId,
   });
 
+  useEffect(() => {
+    if (!selectedTool) return;
+    setDomainInputs((current) => {
+      const next: Record<string, DomainInput> = {};
+      for (const domain of selectedTool.domains) {
+        next[domain.code] = current[domain.code] ?? { rating: "not_observed", note: "" };
+      }
+      return next;
+    });
+  }, [selectedTool]);
+
   async function handleUploadChange(file: File | null) {
     setUpload(file);
     setExtractionWarning("");
@@ -139,13 +175,20 @@ function OfficialAssessmentPage() {
       setError("يرجى كتابة اسم الأداة عند اختيار أخرى.");
       return false;
     }
-    if (!upload) {
+    if (entryMode === "upload" && !upload) {
       setError("يرجى رفع نتائج التقييم الرسمي أو التقرير.");
       return false;
     }
-    const reviewedStatements = splitSourceDraftText(draftText);
+    const appliedToolStatements = selectedTool
+      ? buildAppliedToolStatements(domainInputs)
+      : [];
+    const reviewedStatements = entryMode === "platform"
+      ? appliedToolStatements
+      : splitSourceDraftText(draftText);
     if (reviewedStatements.length === 0) {
-      setError("راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
+      setError(entryMode === "platform"
+        ? "أدخل نتيجة مفسرة واحدة على الأقل في مجال من مجالات أداة التقييم قبل الحفظ."
+        : "راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
       return false;
     }
     if (!hasInterpretedAssessmentStatements(reviewedStatements)) {
@@ -159,17 +202,36 @@ function OfficialAssessmentPage() {
       assessorName,
       assessmentDate,
       ageBand: student?.ageBand,
-      uploadedFileName: upload.name,
-      uploadedFileType: upload.type,
+      uploadedFileName: entryMode === "upload" ? upload?.name : undefined,
+      uploadedFileType: entryMode === "upload" ? upload?.type : undefined,
     });
     const savedRecord = toolId === "OTHER_OFFICIAL_ASSESSMENT" && customToolName.trim()
       ? { ...record, toolNameAr: customToolName.trim() }
       : record;
-    const readResult = await readAllowedSourceFileDraft(upload);
+    const completedRecord: AssessmentRecord = {
+      ...savedRecord,
+      status: "completed",
+      domains: savedRecord.domains.map((domain) => {
+        const input = domainInputs[domain.domainCode];
+        return input
+          ? { ...domain, rating: input.rating, note: input.note.trim() || undefined }
+          : domain;
+      }),
+    };
+    const readResult = entryMode === "upload" && upload
+      ? await readAllowedSourceFileDraft(upload)
+      : { statements: reviewedStatements };
+    const pipelineFile = entryMode === "upload" && upload
+      ? upload
+      : {
+          name: `تطبيق ${savedRecord.toolNameAr} داخل منصة همم.himam-assessment`,
+          type: "application/himam-assessment+json",
+          size: reviewedStatements.join("\n").length,
+        };
     const sourceDraftPipeline = buildSourceFileDraftPipeline({
       learnerId: id,
       sourceNameAr: `نتائج ${savedRecord.toolNameAr}`,
-      file: upload,
+      file: pipelineFile,
       purpose: "OFFICIAL_ASSESSMENT_RESULTS",
       sourceType: "INSTITUTIONAL_ASSESSMENT",
       statements: reviewedStatements,
@@ -193,10 +255,12 @@ function OfficialAssessmentPage() {
     const next = [
       ...records,
       {
-        ...savedRecord,
+        ...completedRecord,
         processingNotesAr: [
-          ...(savedRecord.processingNotesAr ?? []),
-          "تم إنشاء مسار قراءة ومراجعة للملف المرفوع وتحويله إلى استجابات منظمة قبل استخدامه في بناء الأهداف.",
+          ...(completedRecord.processingNotesAr ?? []),
+          entryMode === "platform"
+            ? "تم تطبيق أداة من مكتبة التقييم داخل المنصة وتحويل نتائجها المفسرة إلى استجابات منظمة قبل استخدامه في بناء الأهداف."
+            : "تم إنشاء مسار قراءة ومراجعة للملف المرفوع وتحويله إلى استجابات منظمة قبل استخدامه في بناء الأهداف.",
         ],
       },
     ];
@@ -207,6 +271,7 @@ function OfficialAssessmentPage() {
     setSourcePipelines(nextPipelines);
     setUpload(null);
     setDraftText("");
+    setDomainInputs({});
     setReviewerNotes("");
     setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
@@ -305,25 +370,37 @@ function OfficialAssessmentPage() {
         <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold text-[#0F3D3E]">نتائج التقييم الرسمي</h3>
           <p className="mt-2 text-sm leading-7 text-stone-600">
-            قم بتحديد طريقة إدخال نتائج التقييم. في هذه النسخة المعتمدة للتجربة يكون المسار العملي هو رفع النتائج، أما التطبيق داخل منصة همم فهو خيار مؤجل حتى تحدد المؤسسة أدواتها التقييمية المطلوب برمجتها.
+            قم بتحديد طريقة إدخال نتائج التقييم: رفع ملف نتائج مطبق خارج المنصة، أو تطبيق أداة من مكتبة همم وإدخال نتائجها المفسرة داخل المنصة.
           </p>
 
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-              <p className="text-sm font-bold text-stone-700">التطبيق بمنصة همم</p>
+            <div
+              className="rounded-xl border p-4"
+              style={{
+                backgroundColor: entryMode === "platform" ? "#E6F2F1" : "#F8FAFC",
+                borderColor: entryMode === "platform" ? "#0F3D3E" : "#E7E5E4",
+              }}
+            >
+              <p className="text-sm font-bold text-[#0F3D3E]">التطبيق بمنصة همم</p>
               <p className="mt-2 text-xs leading-6 text-stone-500">
-                محفوظ كبنية مستقبلية بعد اعتماد أدوات المؤسسة وبرمجة نماذجها داخل مكتبة التقييم.
+                استخدم مجالات الأداة المختارة من المكتبة، وأدخل لكل مجال نتيجة مفسرة قابلة للمراجعة.
               </p>
               <button
                 type="button"
-                disabled
-                className="mt-3 rounded-lg border border-stone-200 bg-white px-4 py-2 text-xs font-bold text-stone-400"
+                onClick={() => setEntryMode("platform")}
+                className="mt-3 rounded-lg border border-[#0F3D3E] bg-white px-4 py-2 text-xs font-bold text-[#0F3D3E]"
               >
-                غير مفعّل في هذه النسخة
+                تطبيق الأداة داخل المنصة
               </button>
             </div>
 
-            <div className="rounded-xl border border-[#9EC7C3] bg-[#E6F2F1] p-4">
+            <div
+              className="rounded-xl border p-4"
+              style={{
+                backgroundColor: entryMode === "upload" ? "#E6F2F1" : "#FFFFFF",
+                borderColor: entryMode === "upload" ? "#0F3D3E" : "#9EC7C3",
+              }}
+            >
               <p className="text-sm font-bold text-[#0F3D3E]">رفع النتائج</p>
               <p className="mt-2 text-xs leading-6 text-stone-600">
                 ارفع ملف نتائج التقييم أو التقرير كما طبقه المختص خارج منصة همم.
@@ -331,7 +408,10 @@ function OfficialAssessmentPage() {
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
-                onChange={(event) => void handleUploadChange(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  setEntryMode("upload");
+                  void handleUploadChange(event.target.files?.[0] ?? null);
+                }}
                 className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
               />
               {upload && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{upload.name}</p>}
@@ -342,6 +422,60 @@ function OfficialAssessmentPage() {
               )}
             </div>
           </div>
+
+          {entryMode === "platform" && selectedTool && (
+            <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-white p-4">
+              <p className="text-sm font-bold text-[#0F3D3E]">تطبيق {selectedTool.nameAr}</p>
+              <p className="mt-1 text-xs leading-6 text-stone-600">
+                أدخل نتيجة مفسرة لكل مجال تم تقييمه. المجال غير الملاحظ لا يدخل في الحد الأدنى ولا يستخدم كخط أساس.
+              </p>
+              <div className="mt-4 space-y-3">
+                {selectedTool.domains.map((domain) => {
+                  const input = domainInputs[domain.code] ?? { rating: "not_observed", note: "" };
+                  return (
+                    <div key={domain.code} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-[#0F3D3E]">{domain.nameAr}</p>
+                          <p className="mt-1 text-[11px] leading-5 text-stone-500">
+                            المفاهيم المرتبطة: {domain.linkedConcepts.join("، ")}
+                          </p>
+                        </div>
+                        <select
+                          value={input.rating}
+                          onChange={(event) => setDomainInputs((current) => ({
+                            ...current,
+                            [domain.code]: {
+                              ...(current[domain.code] ?? { note: "" }),
+                              rating: event.target.value as AssessmentRating,
+                            },
+                          }))}
+                          className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-bold text-stone-700 outline-none focus:border-[#0F3D3E]"
+                        >
+                          {Object.entries(RATING_LABELS).map(([rating, label]) => (
+                            <option key={rating} value={rating}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <textarea
+                        value={input.note}
+                        onChange={(event) => setDomainInputs((current) => ({
+                          ...current,
+                          [domain.code]: {
+                            ...(current[domain.code] ?? { rating: "not_observed" }),
+                            note: event.target.value,
+                          },
+                        }))}
+                        rows={2}
+                        className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs leading-6 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                        placeholder="اكتب نتيجة مفسرة: ماذا ظهر؟ ما مستوى الدعم؟ وما المعنى الوظيفي لهذه النتيجة؟"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {upload && (
             <div className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
