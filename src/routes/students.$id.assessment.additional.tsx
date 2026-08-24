@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { INFORMATION_TOOLS } from "@/data/information-tools";
 import { InformationToolApplication } from "@/components/information-tool-application";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
+import { StructuredUploadReview } from "@/components/structured-upload-review";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import {
   hasInformationRecordResponse,
@@ -16,9 +17,14 @@ import {
   loadSourceFilePipelines,
   readAllowedSourceFileDraft,
   summarizeSourceFilePipeline,
-  splitSourceDraftText,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
+import {
+  buildStructuredUploadStatements,
+  getStructuredUploadSections,
+  missingRequiredStructuredUploadSections,
+  type StructuredUploadSectionValues,
+} from "@/lib/structured-upload-sections";
 import type { InformationRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/assessment/additional")({
@@ -56,7 +62,8 @@ function AdditionalSourcesPage() {
   const [appliedMode, setAppliedMode] = useState<AppliedMode>("");
   const [sourceName, setSourceName] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [draftText, setDraftText] = useState("");
+  const [extractedDraftText, setExtractedDraftText] = useState("");
+  const [structuredValues, setStructuredValues] = useState<StructuredUploadSectionValues>({});
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [extractionWarning, setExtractionWarning] = useState("");
   const [selectedToolId, setSelectedToolId] = useState("");
@@ -73,6 +80,7 @@ function AdditionalSourcesPage() {
       tool.category === "preference_survey"
     ))
   ), []);
+  const uploadSections = useMemo(() => getStructuredUploadSections("ADDITIONAL_INFORMATION_SOURCE"), []);
 
   useEffect(() => {
     setStudent(loadStudent(id));
@@ -91,14 +99,15 @@ function AdditionalSourcesPage() {
 
   async function handleFileChange(file: File | null) {
     setUploadedFile(file);
-    setDraftText("");
+    setExtractedDraftText("");
+    setStructuredValues({});
     setExtractionWarning("");
     if (!file) return;
     const result = await readAllowedSourceFileDraft(file);
     if (result.failureReason) {
       setExtractionWarning(result.failureReason);
     }
-    setDraftText(result.statements.join("\n"));
+    setExtractedDraftText(result.statements.join("\n"));
   }
 
   async function saveCurrent() {
@@ -122,9 +131,10 @@ function AdditionalSourcesPage() {
       setError("يرجى تطبيق أداة المكتبة داخل المنصة وإدخال استجابة وصفية واحدة على الأقل.");
       return false;
     }
-    const reviewedStatements = splitSourceDraftText(draftText);
-    if (appliedMode === "yes" && reviewedStatements.length === 0) {
-      setError("راجع مسودة قراءة الملف وأدخل بنداً واحداً على الأقل قبل تحويلها إلى استجابات منظمة.");
+    const missingSections = missingRequiredStructuredUploadSections(uploadSections, structuredValues);
+    const reviewedStatements = buildStructuredUploadStatements(uploadSections, structuredValues);
+    if (appliedMode === "yes" && missingSections.length > 0) {
+      setError(`يرجى تعبئة عناوين التصنيف المطلوبة قبل اعتماد المصدر: ${missingSections.map((section) => section.labelAr).join("، ")}`);
       return false;
     }
 
@@ -169,7 +179,8 @@ function AdditionalSourcesPage() {
       sourcePipelineIds: nextPipelines.map((pipeline) => pipeline.pipelineId),
     }));
     setSourcePipelines(nextPipelines);
-    setDraftText("");
+    setExtractedDraftText("");
+    setStructuredValues({});
     setReviewerNotes("");
     setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
@@ -267,24 +278,14 @@ function AdditionalSourcesPage() {
                   </p>
                 )}
               </div>
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-xs font-semibold text-stone-500">مسودة قراءة الملف القابلة للتصحيح</label>
-                <textarea
-                  value={draftText}
-                  onChange={(event) => setDraftText(event.target.value)}
-                  rows={5}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
-                  placeholder="راجع البنود المستخلصة من الملف أو أدخلها يدوياً، كل بند في سطر مستقل."
-                />
-                <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
-                <input
-                  type="text"
-                  value={reviewerNotes}
-                  onChange={(event) => setReviewerNotes(event.target.value)}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-                  placeholder="اختياري - سبب اعتماد البنود أو التصحيح"
-                />
-              </div>
+              <StructuredUploadReview
+                sections={uploadSections}
+                values={structuredValues}
+                extractedDraftText={extractedDraftText}
+                reviewerNotes={reviewerNotes}
+                onValuesChange={setStructuredValues}
+                onReviewerNotesChange={setReviewerNotes}
+              />
             </div>
           )}
 
