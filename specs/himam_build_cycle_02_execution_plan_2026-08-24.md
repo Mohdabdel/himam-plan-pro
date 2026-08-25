@@ -101,6 +101,11 @@ summarizeCurrentPerformanceWorkspace(cards)
 - `IM_DETERMINED_GOAL_PLAN_TEMPLATE`: مسار هدف المتعلم، مستند إلى مرجعية I'm Determined Goal Plan.
 - `NTACT_INDICATOR_13_REVIEW_PROMPTS`: مسح مراجعة الانتقال ومؤشر 13، مستند إلى مرجعية NTACT:C Indicator 13 Checklists، ويستخدم كمراجعة جودة لا كحكم امتثال قانوني.
 - `NTACT_PREDICTORS_EXPERIENCE_SCAN`: مسح خبرات التنبؤ بالنجاح بعد المدرسة، مستند إلى مرجعية NTACT:C Predictor Implementation Self-Assessment، ويستخدم كمؤشر فرص حول المتعلم لا كدرجة تنفيذ برنامج.
+- `CASEY_LIFE_SKILLS_SHORT_RESULTS_SUMMARY`: ملخص نتائج Casey Life Skills القصير. بسبب قيود الترخيص، لا تعرض همم بنود الأداة ولا تعدلها ولا تقدم نسخة بديلة منها، بل تسجل نتيجة مطبقة ومفسرة فقط.
+- `P_CAET_RIASEC_CAREER_EXPLORATION_SUMMARY`: ملخص استكشاف مهني RIASEC مستند إلى P-CAET، يحفظ رموز الميول والعناقيد المهنية وخطوة الاستكشاف التالية دون نسخ قائمة الوظائف التفصيلية.
+- `TRANSITION_TN_AGE_APPROPRIATE_ASSESSMENT_TOOLBOX_REVIEW`: مراجعة صندوق أدوات تقييم الانتقال المناسب للعمر، مستندة إلى Transition Tennessee، وتستخدم لاختيار وتجويد مصادر التقييم لا لقياس أداء المتعلم مباشرة.
+- `MASARAT_REINFORCER_PREFERENCE_OBSERVATION`: نموذج تقييم المدعمات والتفضيلات، يستند إلى نموذج مرفق من مركز مسارات ويطبق كملاحظة تفضيل منظمة.
+- `MASARAT_COMMUNITY_WORKSITE_SKILLS_EVALUATION`: استمارة تقييم مهارات موقع العمل في المجتمع، مستندة إلى نماذج ملف إنجاز مرفقة، وتنتج مرشح دليل أداء فقط عند اكتمال سياق الملاحظة ومستوى الدعم.
 
 قاعدة التشغيل: كل قالب مضاف يجب أن يحمل `reference.titleAr` و`reference.publisherAr` و`reference.usageNoteAr`، وأن يظهر هذا التنويه قبل التطبيق حتى يفهم المختص وزن المصدر وحدوده.
 

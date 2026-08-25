@@ -117,6 +117,12 @@ requireText("good day plan tool registered", read("src/data/information-tools.ts
 requireText("goal plan tool registered", read("src/data/information-tools.ts"), "IM_DETERMINED_GOAL_PLAN_TEMPLATE");
 requireText("indicator 13 tool registered", read("src/data/information-tools.ts"), "NTACT_INDICATOR_13_REVIEW_PROMPTS");
 requireText("predictors scan tool registered", read("src/data/information-tools.ts"), "NTACT_PREDICTORS_EXPERIENCE_SCAN");
+requireText("casey life skills result summary registered", read("src/data/information-tools.ts"), "CASEY_LIFE_SKILLS_SHORT_RESULTS_SUMMARY");
+requireText("casey life skills license boundary preserved", read("src/data/information-tools.ts"), "لا ينسخ أو يعدل داخل همم");
+requireText("pcaet career exploration registered", read("src/data/information-tools.ts"), "P_CAET_RIASEC_CAREER_EXPLORATION_SUMMARY");
+requireText("transition tennessee toolbox review registered", read("src/data/information-tools.ts"), "TRANSITION_TN_AGE_APPROPRIATE_ASSESSMENT_TOOLBOX_REVIEW");
+requireText("reinforcer preference observation registered", read("src/data/information-tools.ts"), "MASARAT_REINFORCER_PREFERENCE_OBSERVATION");
+requireText("community worksite skills evaluation registered", read("src/data/information-tools.ts"), "MASARAT_COMMUNITY_WORKSITE_SKILLS_EVALUATION");
 requireText("structured upload learner section map", structuredUploadSections, "LEARNER_VOICE_FORM");
 requireText("structured upload family section map", structuredUploadSections, "FAMILY_VISION_FORM");
 requireText("structured upload additional section map", structuredUploadSections, "ADDITIONAL_INFORMATION_SOURCE");
