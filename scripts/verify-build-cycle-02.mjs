@@ -125,6 +125,8 @@ requireText("reinforcer preference observation registered", read("src/data/infor
 requireText("community worksite skills evaluation registered", read("src/data/information-tools.ts"), "MASARAT_COMMUNITY_WORKSITE_SKILLS_EVALUATION");
 requireText("cats behaviour trigger screen registered", read("src/data/information-tools.ts"), "CATS_BEHAVIOUR_TRIGGER_SCREEN");
 requireText("cats causality boundary preserved", read("src/data/information-tools.ts"), "لا تنسخ القائمة الكاملة أو تثبت السببية");
+requireText("bell ringer self awareness pre post registered", read("src/data/information-tools.ts"), "BELL_RINGER_ME_SELF_AWARENESS_PRE_POST");
+requireText("bell ringer literal copy boundary preserved", read("src/data/information-tools.ts"), "لا تنسخ النموذج الحرفي");
 requireText("structured upload learner section map", structuredUploadSections, "LEARNER_VOICE_FORM");
 requireText("structured upload family section map", structuredUploadSections, "FAMILY_VISION_FORM");
 requireText("structured upload additional section map", structuredUploadSections, "ADDITIONAL_INFORMATION_SOURCE");
