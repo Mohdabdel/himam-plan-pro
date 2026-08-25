@@ -4,7 +4,7 @@
   "status": "PASS",
   "manifestStatus": "ACTIVE_CANONICAL_ORDER",
   "governingFileCount": 14,
-  "supportingFileCount": 6,
+  "supportingFileCount": 7,
   "canonicalFirstFile": "specs/himam_project_governance_index.md",
   "canonicalLastFile": "specs/himam_screen_operating_scenarios_2026-08-24.md",
   "checks": {

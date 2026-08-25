@@ -39,6 +39,7 @@
 - `himam_new_project_execution_document.md`
 - `himam_HANDOVER.md`
 - `himam_external_iep_quality_architecture_framework.md`
+- `himam_external_automation_override_alerts_governance.md`
 
 ## قاعدة استخدام المسودات الخارجية
 
