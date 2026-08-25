@@ -123,6 +123,8 @@ requireText("pcaet career exploration registered", read("src/data/information-to
 requireText("transition tennessee toolbox review registered", read("src/data/information-tools.ts"), "TRANSITION_TN_AGE_APPROPRIATE_ASSESSMENT_TOOLBOX_REVIEW");
 requireText("reinforcer preference observation registered", read("src/data/information-tools.ts"), "MASARAT_REINFORCER_PREFERENCE_OBSERVATION");
 requireText("community worksite skills evaluation registered", read("src/data/information-tools.ts"), "MASARAT_COMMUNITY_WORKSITE_SKILLS_EVALUATION");
+requireText("cats behaviour trigger screen registered", read("src/data/information-tools.ts"), "CATS_BEHAVIOUR_TRIGGER_SCREEN");
+requireText("cats causality boundary preserved", read("src/data/information-tools.ts"), "لا تنسخ القائمة الكاملة أو تثبت السببية");
 requireText("structured upload learner section map", structuredUploadSections, "LEARNER_VOICE_FORM");
 requireText("structured upload family section map", structuredUploadSections, "FAMILY_VISION_FORM");
 requireText("structured upload additional section map", structuredUploadSections, "ADDITIONAL_INFORMATION_SOURCE");

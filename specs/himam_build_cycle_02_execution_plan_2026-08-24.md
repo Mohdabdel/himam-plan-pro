@@ -106,6 +106,7 @@ summarizeCurrentPerformanceWorkspace(cards)
 - `TRANSITION_TN_AGE_APPROPRIATE_ASSESSMENT_TOOLBOX_REVIEW`: مراجعة صندوق أدوات تقييم الانتقال المناسب للعمر، مستندة إلى Transition Tennessee، وتستخدم لاختيار وتجويد مصادر التقييم لا لقياس أداء المتعلم مباشرة.
 - `MASARAT_REINFORCER_PREFERENCE_OBSERVATION`: نموذج تقييم المدعمات والتفضيلات، يستند إلى نموذج مرفق من مركز مسارات ويطبق كملاحظة تفضيل منظمة.
 - `MASARAT_COMMUNITY_WORKSITE_SKILLS_EVALUATION`: استمارة تقييم مهارات موقع العمل في المجتمع، مستندة إلى نماذج ملف إنجاز مرفقة، وتنتج مرشح دليل أداء فقط عند اكتمال سياق الملاحظة ومستوى الدعم.
+- `CATS_BEHAVIOUR_TRIGGER_SCREEN`: مسح محفزات السلوكيات الصعبة، مستند إلى مقالة CATS 2021. يستخدم كقالب مختصر لتسجيل مجالات المحفزات والفرضية المهنية الأولية، ولا ينسخ قائمة CATS الكاملة ولا يثبت السببية أو يستبدل التحليل الوظيفي.
 
 قاعدة التشغيل: كل قالب مضاف يجب أن يحمل `reference.titleAr` و`reference.publisherAr` و`reference.usageNoteAr`، وأن يظهر هذا التنويه قبل التطبيق حتى يفهم المختص وزن المصدر وحدوده.
 

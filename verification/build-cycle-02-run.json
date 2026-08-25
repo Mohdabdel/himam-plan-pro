@@ -5,6 +5,6 @@
   "cycle": "BUILD_CYCLE_02",
   "scope": "CURRENT_PERFORMANCE_FROM_REVIEWED_SOURCE_FILES",
   "requiredGateCount": 12,
-  "checkCount": 100,
+  "checkCount": 102,
   "failures": []
 }
