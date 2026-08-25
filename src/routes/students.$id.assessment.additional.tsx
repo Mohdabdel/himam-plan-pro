@@ -68,6 +68,7 @@ function AdditionalSourcesPage() {
   const [extractionWarning, setExtractionWarning] = useState("");
   const [selectedToolId, setSelectedToolId] = useState("");
   const [platformRecord, setPlatformRecord] = useState<InformationRecord | null>(null);
+  const [platformToolSaved, setPlatformToolSaved] = useState(false);
   const [error, setError] = useState("");
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
 
@@ -91,6 +92,7 @@ function AdditionalSourcesPage() {
       if (saved?.selectedToolId) setSelectedToolId(saved.selectedToolId);
       if (saved?.platformInformationRecordId) {
         setPlatformRecord(loadInformationRecords(id).find((record) => record.id === saved.platformInformationRecordId) ?? null);
+        setPlatformToolSaved(true);
       }
     } catch {
       /* noop */
@@ -110,6 +112,26 @@ function AdditionalSourcesPage() {
     setExtractedDraftText(result.statements.join("\n"));
   }
 
+  function handlePlatformRecordChange(record: InformationRecord | null) {
+    setPlatformRecord(record);
+    setPlatformToolSaved(false);
+  }
+
+  function handlePlatformToolSubmit() {
+    if (!selectedToolId || !platformRecord) {
+      setError("يرجى اختيار أداة أو نموذج من المكتبة.");
+      return false;
+    }
+    if (!hasInformationRecordResponse(platformRecord)) {
+      setError("يرجى إدخال استجابة وصفية واحدة على الأقل قبل تسجيل الأداة.");
+      return false;
+    }
+    upsertInformationRecord(id, platformRecord);
+    setPlatformToolSaved(true);
+    setError("");
+    return true;
+  }
+
   async function saveCurrent() {
     if (!appliedMode) {
       setError("يرجى تحديد هل توجد أدوات أو مصادر إضافية تم تطبيقها.");
@@ -127,8 +149,8 @@ function AdditionalSourcesPage() {
       setError("يرجى اختيار أداة أو نموذج من المكتبة.");
       return false;
     }
-    if (appliedMode === "no" && !hasInformationRecordResponse(platformRecord)) {
-      setError("يرجى تطبيق أداة المكتبة داخل المنصة وإدخال استجابة وصفية واحدة على الأقل.");
+    if (appliedMode === "no" && !platformToolSaved) {
+      setError("يرجى الضغط على زر تسجيل إجابات الأداة قبل الانتقال، أو تطبيق أداة إضافية ثم تسجيلها.");
       return false;
     }
     const missingSections = missingRequiredStructuredUploadSections(uploadSections, structuredValues);
@@ -300,7 +322,9 @@ function AdditionalSourcesPage() {
                 selectedToolId={selectedToolId}
                 record={platformRecord}
                 onSelectedToolIdChange={setSelectedToolId}
-                onRecordChange={setPlatformRecord}
+                onRecordChange={handlePlatformRecordChange}
+                onSubmit={handlePlatformToolSubmit}
+                successMessage="تم تسجيل إجابات الأداة وحفظها ببروفايل المتعلم. يمكن تطبيق أداة إضافية من المكتبة أو الضغط على التالي."
               />
             </div>
           )}

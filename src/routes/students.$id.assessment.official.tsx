@@ -184,11 +184,15 @@ function OfficialAssessmentPage() {
       : [];
     const reviewedStatements = entryMode === "platform"
       ? appliedToolStatements
-      : splitSourceDraftText(draftText);
+      : [...splitSourceDraftText(draftText), ...appliedToolStatements];
     if (reviewedStatements.length === 0) {
       setError(entryMode === "platform"
         ? "أدخل نتيجة مفسرة واحدة على الأقل في مجال من مجالات أداة التقييم قبل الحفظ."
         : "راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
+      return false;
+    }
+    if (entryMode === "upload" && appliedToolStatements.length === 0) {
+      setError("بعد رفع الملف، صنف نتيجة مفسرة واحدة على الأقل تحت مجال من مجالات الأداة حتى يمكن بناء مستوى أداء أو مرجعية مهنية عليها.");
       return false;
     }
     if (!hasInterpretedAssessmentStatements(reviewedStatements)) {
@@ -423,11 +427,13 @@ function OfficialAssessmentPage() {
             </div>
           </div>
 
-          {entryMode === "platform" && selectedTool && (
+          {(entryMode === "platform" || upload) && selectedTool && (
             <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-white p-4">
-              <p className="text-sm font-bold text-[#0F3D3E]">تطبيق {selectedTool.nameAr}</p>
+              <p className="text-sm font-bold text-[#0F3D3E]">
+                {entryMode === "platform" ? `تطبيق ${selectedTool.nameAr}` : `معالجة نتائج ${selectedTool.nameAr}`}
+              </p>
               <p className="mt-1 text-xs leading-6 text-stone-600">
-                أدخل نتيجة مفسرة لكل مجال تم تقييمه. المجال غير الملاحظ لا يدخل في الحد الأدنى ولا يستخدم كخط أساس.
+                أدخل نتيجة مفسرة لكل مجال تم تقييمه. في حالة الرفع، هذه الخطوة تحول الملف المقروء إلى مرجعية مصنفة يمكن البناء عليها في مستوى الأداء الحالي.
               </p>
               <div className="mt-4 space-y-3">
                 {selectedTool.domains.map((domain) => {

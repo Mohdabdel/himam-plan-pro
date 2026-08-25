@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { InformationToolDefinition } from "@/data/information-tools";
 import {
   createInformationRecord,
@@ -12,6 +13,9 @@ type Props = {
   record: InformationRecord | null;
   onSelectedToolIdChange: (toolId: string) => void;
   onRecordChange: (record: InformationRecord | null) => void;
+  onSubmit?: () => boolean | Promise<boolean>;
+  submitLabel?: string;
+  successMessage?: string;
 };
 
 function responseHasValue(value: string | string[]) {
@@ -34,18 +38,31 @@ export function InformationToolApplication({
   record,
   onSelectedToolIdChange,
   onRecordChange,
+  onSubmit,
+  submitLabel = "تسجيل إجابات الأداة",
+  successMessage = "تم تسجيل إجابات الأداة وحفظها ببروفايل المتعلم.",
 }: Props) {
+  const [submitMessage, setSubmitMessage] = useState("");
   const selectedTool = tools.find((tool) => tool.id === selectedToolId);
   const answeredCount = record?.responses.filter((response) => responseHasValue(response.value)).length ?? 0;
 
   function selectTool(toolId: string) {
+    setSubmitMessage("");
     onSelectedToolIdChange(toolId);
     onRecordChange(toolId ? createInformationRecord({ learnerId, toolId }) : null);
   }
 
   function updateResponse(questionId: string, value: string | string[]) {
     if (!record) return;
+    setSubmitMessage("");
     onRecordChange(updateInformationResponse(record, questionId, value));
+  }
+
+  async function submitTool() {
+    const saved = onSubmit ? await onSubmit() : true;
+    if (saved !== false) {
+      setSubmitMessage(successMessage);
+    }
   }
 
   return (
@@ -119,6 +136,19 @@ export function InformationToolApplication({
               </div>
             );
           })}
+
+          <div className="rounded-lg border border-[#9EC7C3] bg-[#F4FAF9] p-3">
+            <button
+              type="button"
+              onClick={() => void submitTool()}
+              className="rounded-lg bg-[#0F3D3E] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+            >
+              {submitLabel}
+            </button>
+            {submitMessage && (
+              <p className="mt-2 text-xs font-bold leading-6 text-[#0F3D3E]">{submitMessage}</p>
+            )}
+          </div>
         </div>
       )}
     </div>

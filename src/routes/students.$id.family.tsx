@@ -83,9 +83,9 @@ function FamilyVoicePage() {
   const [structuredValues, setStructuredValues] = useState<StructuredUploadSectionValues>({});
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [extractionWarning, setExtractionWarning] = useState("");
-  const [toolCategory, setToolCategory] = useState("رؤية الخطة الفردية");
   const [selectedLibraryToolId, setSelectedLibraryToolId] = useState("");
   const [platformRecord, setPlatformRecord] = useState<InformationRecord | null>(null);
+  const [platformToolSaved, setPlatformToolSaved] = useState(false);
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
   const [error, setError] = useState("");
 
@@ -103,10 +103,10 @@ function FamilyVoicePage() {
       if (saved) {
         setAppliedMode(saved.appliedMode ?? "");
         setAppliedToolName(saved.appliedToolName ?? "");
-        setToolCategory(saved.toolCategory ?? "رؤية الخطة الفردية");
         setSelectedLibraryToolId(saved.selectedLibraryToolId ?? "");
         if (saved.platformInformationRecordId) {
           setPlatformRecord(loadInformationRecords(id).find((record) => record.id === saved.platformInformationRecordId) ?? null);
+          setPlatformToolSaved(true);
         }
       }
     } catch {
@@ -125,6 +125,26 @@ function FamilyVoicePage() {
       setExtractionWarning(result.failureReason);
     }
     setExtractedDraftText(result.statements.join("\n"));
+  }
+
+  function handlePlatformRecordChange(record: InformationRecord | null) {
+    setPlatformRecord(record);
+    setPlatformToolSaved(false);
+  }
+
+  function handlePlatformToolSubmit() {
+    if (!selectedLibraryToolId || !platformRecord) {
+      setError("يرجى اختيار أداة من مكتبة صوت الأسرة.");
+      return false;
+    }
+    if (!hasInformationRecordResponse(platformRecord)) {
+      setError("يرجى إدخال استجابة وصفية واحدة على الأقل قبل تسجيل الأداة.");
+      return false;
+    }
+    upsertInformationRecord(id, platformRecord);
+    setPlatformToolSaved(true);
+    setError("");
+    return true;
   }
 
   async function saveCurrent() {
@@ -150,8 +170,8 @@ function FamilyVoicePage() {
       setError(`يرجى تعبئة عناوين التصنيف المطلوبة قبل اعتماد صوت الأسرة: ${missingSections.map((section) => section.labelAr).join("، ")}`);
       return false;
     }
-    if (appliedMode === "no" && !hasInformationRecordResponse(platformRecord)) {
-      setError("يرجى تطبيق أداة صوت الأسرة داخل المنصة وإدخال استجابة وصفية واحدة على الأقل.");
+    if (appliedMode === "no" && !platformToolSaved) {
+      setError("يرجى الضغط على زر تسجيل إجابات الأداة قبل الانتقال، أو تطبيق أداة إضافية ثم تسجيلها.");
       return false;
     }
 
@@ -188,7 +208,6 @@ function FamilyVoicePage() {
       appliedToolName: appliedToolName.trim(),
       uploadedFileName: uploadedFile?.name,
       uploadedFileType: uploadedFile?.type,
-      toolCategory,
       selectedLibraryToolId,
       selectedLibraryToolName: selectedTool?.nameAr,
       platformInformationRecordId: platformRecord?.id,
@@ -319,31 +338,18 @@ function FamilyVoicePage() {
               <p className="text-sm leading-7 text-stone-600">
                 يمكنكم تطبيق أحد النماذج والأدوات التي تستعرض صوت الأسرة لإثراء الخطة الفردية التربوية.
               </p>
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-stone-500">نوع أداة صوت الأسرة</label>
-                  <select
-                    value={toolCategory}
-                    onChange={(event) => setToolCategory(event.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-                  >
-                    <option>رؤية الخطة الفردية</option>
-                    <option>أولويات ومخاوف الأسرة</option>
-                  </select>
-                </div>
-                <div>
-                  <p className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs leading-6 text-stone-600">
-                    اختر الأداة في نموذج التطبيق أدناه ثم أدخل رؤية الأسرة أو أولوياتها ومخاوفها.
-                  </p>
-                </div>
-              </div>
+              <p className="mt-3 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs leading-6 text-stone-600">
+                اختر الأداة مباشرة من القائمة، ثم أدخل رؤية الأسرة أو أولوياتها ومخاوفها.
+              </p>
               <InformationToolApplication
                 learnerId={id}
                 tools={familyTools}
                 selectedToolId={selectedLibraryToolId}
                 record={platformRecord}
                 onSelectedToolIdChange={setSelectedLibraryToolId}
-                onRecordChange={setPlatformRecord}
+                onRecordChange={handlePlatformRecordChange}
+                onSubmit={handlePlatformToolSubmit}
+                successMessage="تم تسجيل إجابات الأداة وحفظها ببروفايل المتعلم. يمكن تطبيق أداة إضافية من المكتبة أو الضغط على التالي."
               />
             </div>
           )}

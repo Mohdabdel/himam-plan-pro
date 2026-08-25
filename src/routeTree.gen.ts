@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ToolsLibraryRouteImport } from './routes/tools-library'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudentsNewRouteImport } from './routes/students.new'
@@ -25,6 +26,11 @@ import { Route as StudentsIdIepGoalsRouteImport } from './routes/students.$id.ie
 import { Route as StudentsIdAssessmentOfficialRouteImport } from './routes/students.$id.assessment.official'
 import { Route as StudentsIdAssessmentAdditionalRouteImport } from './routes/students.$id.assessment.additional'
 
+const ToolsLibraryRoute = ToolsLibraryRouteImport.update({
+  id: '/tools-library',
+  path: '/tools-library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -107,6 +113,7 @@ const StudentsIdAssessmentAdditionalRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tools-library': typeof ToolsLibraryRoute
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRouteWithChildren
   '/students/$id/coverage': typeof StudentsIdCoverageRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tools-library': typeof ToolsLibraryRoute
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRouteWithChildren
   '/students/$id/coverage': typeof StudentsIdCoverageRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tools-library': typeof ToolsLibraryRoute
   '/students/new': typeof StudentsNewRoute
   '/students/$id/assessment': typeof StudentsIdAssessmentRouteWithChildren
   '/students/$id/coverage': typeof StudentsIdCoverageRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/sitemap.xml'
+    | '/tools-library'
     | '/students/new'
     | '/students/$id/assessment'
     | '/students/$id/coverage'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/sitemap.xml'
+    | '/tools-library'
     | '/students/new'
     | '/students/$id/assessment'
     | '/students/$id/coverage'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/sitemap.xml'
+    | '/tools-library'
     | '/students/new'
     | '/students/$id/assessment'
     | '/students/$id/coverage'
@@ -213,6 +225,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ToolsLibraryRoute: typeof ToolsLibraryRoute
   StudentsNewRoute: typeof StudentsNewRoute
   StudentsIdAssessmentRoute: typeof StudentsIdAssessmentRouteWithChildren
   StudentsIdCoverageRoute: typeof StudentsIdCoverageRoute
@@ -227,6 +240,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tools-library': {
+      id: '/tools-library'
+      path: '/tools-library'
+      fullPath: '/tools-library'
+      preLoaderRoute: typeof ToolsLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -363,6 +383,7 @@ const StudentsIdIepRouteWithChildren = StudentsIdIepRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ToolsLibraryRoute: ToolsLibraryRoute,
   StudentsNewRoute: StudentsNewRoute,
   StudentsIdAssessmentRoute: StudentsIdAssessmentRouteWithChildren,
   StudentsIdCoverageRoute: StudentsIdCoverageRoute,

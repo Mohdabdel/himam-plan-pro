@@ -1,5 +1,4 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
 
 import type { ComponentStatus } from "@/components/plan-components-status-store";
 
@@ -40,23 +39,18 @@ export function PlanComponentsStatus({
   current: keyof ComponentStatus;
   status: ComponentStatus;
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <section className="fixed left-4 top-20 z-50 w-[min(320px,calc(100vw-2rem))]" dir="rtl">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between rounded-xl border border-[#0F3D3E] bg-[#0F3D3E] px-4 py-3 text-sm font-bold text-white shadow-lg"
-        aria-expanded={open}
-      >
-        <span>مكونات الخطة التربوية الفردية</span>
-        <span className="text-base leading-none">{open ? "▲" : "▼"}</span>
-      </button>
-
-      {open && (
-      <div className="mt-2 rounded-xl border border-stone-200 bg-white p-3 shadow-xl">
-        <div className="space-y-2">
+    <section className="sticky top-0 z-40 mb-5 rounded-xl border border-stone-200 bg-white/95 p-3 shadow-sm backdrop-blur" dir="rtl">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold text-[#0F3D3E]">مكونات الخطة التربوية الفردية</p>
+        <Link
+          to="/tools-library"
+          className="rounded-lg border border-[#0F3D3E] bg-[#F4FAF9] px-3 py-2 text-xs font-bold text-[#0F3D3E] transition hover:bg-[#E6F2F1]"
+        >
+          مكتبة الأدوات المجمعة
+        </Link>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {COMPONENTS.map((item) => {
           const done = status[item.key];
           const active = current === item.key;
@@ -65,8 +59,7 @@ export function PlanComponentsStatus({
               key={item.key}
               to={item.href}
               params={{ id: learnerId }}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg border px-3 py-2 text-xs font-bold transition hover:border-[#0F3D3E]"
+              className="flex min-w-fit items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition hover:border-[#0F3D3E]"
               style={{
                 backgroundColor: active ? "#E6F2F1" : "white",
                 borderColor: active ? "#0F3D3E" : done ? "#9EC7C3" : "#E7E5E4",
@@ -87,9 +80,7 @@ export function PlanComponentsStatus({
             </Link>
           );
         })}
-        </div>
       </div>
-      )}
     </section>
   );
 }
