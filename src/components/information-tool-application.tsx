@@ -84,6 +84,25 @@ export function InformationToolApplication({
           <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
             <p className="text-sm font-bold text-[#0F3D3E]">{selectedTool.nameAr}</p>
             <p className="mt-1 text-xs leading-6 text-stone-600">{selectedTool.descriptionAr}</p>
+            {selectedTool.reference && (
+              <div className="mt-3 rounded-lg border border-stone-200 bg-white p-3">
+                <p className="text-xs font-bold text-[#0F3D3E]">مرجعية النموذج</p>
+                <p className="mt-1 text-xs leading-6 text-stone-600">
+                  {selectedTool.reference.titleAr} - {selectedTool.reference.publisherAr}
+                </p>
+                <p className="mt-1 text-xs leading-6 text-stone-500">{selectedTool.reference.usageNoteAr}</p>
+                {selectedTool.reference.url && (
+                  <a
+                    href={selectedTool.reference.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-block text-xs font-bold text-[#D9764A] underline-offset-4 hover:underline"
+                  >
+                    فتح المصدر المرجعي
+                  </a>
+                )}
+              </div>
+            )}
             <p className="mt-2 text-xs font-bold text-[#D9764A]">
               {answeredCount} من {record.responses.length} بنود مدخلة كمحتوى وصفي داعم
             </p>

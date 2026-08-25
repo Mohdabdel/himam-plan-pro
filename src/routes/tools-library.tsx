@@ -124,6 +124,13 @@ function ToolsLibraryPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs leading-6 text-stone-600">{tool.descriptionAr}</p>
+                {tool.reference && (
+                  <div className="mt-3 rounded-lg border border-stone-100 bg-stone-50 p-3">
+                    <p className="text-[11px] font-bold text-[#0F3D3E]">المرجعية: {tool.reference.titleAr}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-stone-500">{tool.reference.publisherAr}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-stone-500">{tool.reference.usageNoteAr}</p>
+                  </div>
+                )}
               </Link>
             ))}
           </div>

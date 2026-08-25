@@ -109,6 +109,14 @@ requireText("plan components library link", planComponentsStatus, "مكتبة ا
 requireText("tools library route exists", toolsLibrary, "createFileRoute(\"/tools-library\")");
 requireText("tools library chooses learner", toolsLibrary, "اختر مستفيداً مسجلاً");
 requireText("tools library supports new learner", toolsLibrary, "مستفيد جديد");
+requireText("tools library shows model reference", toolsLibrary, "المرجعية:");
+requireText("platform tool shows model reference", informationToolApplication, "مرجعية النموذج");
+requireText("information tool reference metadata", read("src/data/information-tools.ts"), "usageNoteAr");
+requireText("one pager tool registered", read("src/data/information-tools.ts"), "IM_DETERMINED_ONE_PAGER_TEMPLATE");
+requireText("good day plan tool registered", read("src/data/information-tools.ts"), "IM_DETERMINED_GOOD_DAY_PLAN_TEMPLATE");
+requireText("goal plan tool registered", read("src/data/information-tools.ts"), "IM_DETERMINED_GOAL_PLAN_TEMPLATE");
+requireText("indicator 13 tool registered", read("src/data/information-tools.ts"), "NTACT_INDICATOR_13_REVIEW_PROMPTS");
+requireText("predictors scan tool registered", read("src/data/information-tools.ts"), "NTACT_PREDICTORS_EXPERIENCE_SCAN");
 requireText("structured upload learner section map", structuredUploadSections, "LEARNER_VOICE_FORM");
 requireText("structured upload family section map", structuredUploadSections, "FAMILY_VISION_FORM");
 requireText("structured upload additional section map", structuredUploadSections, "ADDITIONAL_INFORMATION_SOURCE");
