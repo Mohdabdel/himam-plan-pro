@@ -123,6 +123,10 @@
     {
       "path": "specs/himam_HANDOVER.md",
       "role": "handover-context"
+    },
+    {
+      "path": "specs/himam_external_iep_quality_architecture_framework.md",
+      "role": "supporting-external-iep-quality-framework"
     }
   ],
   "verification": {
