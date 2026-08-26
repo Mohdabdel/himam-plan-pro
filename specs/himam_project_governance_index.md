@@ -40,6 +40,7 @@
 - `himam_HANDOVER.md`
 - `himam_external_iep_quality_architecture_framework.md`
 - `himam_external_automation_override_alerts_governance.md`
+- `himam_external_baseline_alignment_gap_report.md`
 
 ## قاعدة استخدام المسودات الخارجية
 

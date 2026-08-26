@@ -131,6 +131,10 @@
     {
       "path": "specs/himam_external_automation_override_alerts_governance.md",
       "role": "supporting-automation-override-alert-governance"
+    },
+    {
+      "path": "specs/himam_external_baseline_alignment_gap_report.md",
+      "role": "supporting-baseline-alignment-gap-report"
     }
   ],
   "verification": {
