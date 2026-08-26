@@ -135,6 +135,10 @@
     {
       "path": "specs/himam_external_baseline_alignment_gap_report.md",
       "role": "supporting-baseline-alignment-gap-report"
+    },
+    {
+      "path": "specs/himam_external_transition_skill_alignment_matrix.md",
+      "role": "supporting-transition-skill-alignment-matrix"
     }
   ],
   "verification": {
