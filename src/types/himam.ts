@@ -116,6 +116,55 @@ export type InformationRecord = {
   updatedAt: string;
 };
 
+export type InformationProcessingSignalKind =
+  | "profile_strength"
+  | "profile_need"
+  | "support_condition"
+  | "priority_hint"
+  | "risk_context"
+  | "motivation_context"
+  | "evidence_candidate";
+
+export type InformationProcessingSignal = {
+  id: string;
+  sourceRecordId: string;
+  sourceToolId: string;
+  sourceToolNameAr: string;
+  kind: InformationProcessingSignalKind;
+  labelAr: string;
+  valueAr: string;
+  linkedConcepts: ConceptId[];
+  targetPortfolio: string;
+  operatingRoles: string[];
+  processingLevel: "structured_descriptive" | "evidence_candidate" | "requires_specialist_interpretation";
+  canInformCurrentPerformance: boolean;
+  canSupportGoalSelection: boolean;
+  requiresSpecialistInterpretation: boolean;
+};
+
+export type InformationProcessingConceptSummary = {
+  conceptId: ConceptId;
+  signalCount: number;
+  evidenceCandidateCount: number;
+  priorityHintCount: number;
+  supportConditionCount: number;
+  needOrRiskCount: number;
+  sourceToolNamesAr: string[];
+};
+
+export type InformationProcessingProfile = {
+  learnerId: string;
+  recordCount: number;
+  signalCount: number;
+  evidenceCandidateCount: number;
+  currentPerformanceCandidateCount: number;
+  goalSelectionSignalCount: number;
+  processingStage: "none" | "initial_structured_processing" | "medium_profile_processing";
+  signals: InformationProcessingSignal[];
+  conceptSummaries: InformationProcessingConceptSummary[];
+  limitationsAr: string[];
+};
+
 export type KnowledgeSupportItem = {
   id: string;
   sourceRecordId: string;

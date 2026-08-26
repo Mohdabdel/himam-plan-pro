@@ -389,7 +389,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "HIMAM_CAREER_INCLINATION_SCALE_TALLY",
     nameAr: "مقياس همم للميول المهنية",
     category: "career_interest",
-    descriptionAr: "مقياس ميول مهني من 60 بنداً بسلم: أحب ذلك، عادي، لا أحب ذلك. يستخدم لتلخيص تفضيلات المتعلم المهنية ومسارات التدريب والعمل المناسبة كدعم معرفي فقط.",
+    descriptionAr: "مقياس ميول مهني من 60 بنداً بسلم: أحب ذلك، عادي، لا أحب ذلك. يستخدم لتلخيص تفضيلات المتعلم المهنية ومسارات التدريب والعمل المناسبة كإشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     externalUrl: "https://tally.so/r/XxAW8O",
     questions: [
       {
@@ -562,7 +562,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "CHARTING_LIFECOURSE_GUIDING_PRINCIPLES",
     nameAr: "Charting the LifeCourse - مبادئ ومجالات الحياة",
     category: "person_centered_planning",
-    descriptionAr: "أداة تخطيط متمركز حول الشخص تساعد على تنظيم رؤية الحياة الجيدة ومجالات الحياة والدعم والعلاقات والسياقات. مخرجاتها دعم معرفي فقط.",
+    descriptionAr: "أداة تخطيط متمركز حول الشخص تساعد على تنظيم رؤية الحياة الجيدة ومجالات الحياة والدعم والعلاقات والسياقات. مخرجاتها إشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "lifecourse_domains",
@@ -637,7 +637,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "IEP_STUDENT_VISION_STATEMENT",
     nameAr: "بيان رؤية الطالب في الخطة التربوية",
     category: "person_centered_planning",
-    descriptionAr: "أداة لصياغة رؤية مستقبلية متمركزة حول الطالب والأسرة داخل سياق الخطة التربوية. مخرجاتها رؤية وصوت وأولويات ودعم معرفي فقط.",
+    descriptionAr: "أداة لصياغة رؤية مستقبلية متمركزة حول الطالب والأسرة داخل سياق الخطة التربوية. مخرجاتها رؤية وصوت وأولويات وإشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "student_future_vision",
@@ -687,7 +687,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "LIFECOURSE_LIFE_TRAJECTORY",
     nameAr: "LifeCourse - مسار الحياة",
     category: "person_centered_planning",
-    descriptionAr: "أداة تخطيط متمركز حول الشخص لاستكشاف الرؤية المستقبلية: ما أريد، ما لا أريد، ما يساعدني، وما قد يعيقني. مخرجاتها دعم معرفي فقط.",
+    descriptionAr: "أداة تخطيط متمركز حول الشخص لاستكشاف الرؤية المستقبلية: ما أريد، ما لا أريد، ما يساعدني، وما قد يعيقني. مخرجاتها إشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "trajectory_vision_want",
@@ -727,7 +727,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "LIFECOURSE_MY_PROFILE_PAGE",
     nameAr: "LifeCourse - صفحة بروفايلي",
     category: "person_centered_planning",
-    descriptionAr: "أداة بروفايل موجزة تجمع ما يعجب الناس في المتعلم، ما هو مهم له، وكيف يتم دعمه بأفضل صورة. مخرجاتها دعم معرفي فقط.",
+    descriptionAr: "أداة بروفايل موجزة تجمع ما يعجب الناس في المتعلم، ما هو مهم له، وكيف يتم دعمه بأفضل صورة. مخرجاتها إشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "profile_people_admire",
@@ -759,7 +759,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "SELF_DISCOVERY_ADVENTURE_TALLY",
     nameAr: "مغامرة اكتشاف الذات",
     category: "person_centered_planning",
-    descriptionAr: "نموذج خارجي تفاعلي لجمع صوت المتعلم حول قوته، هواياته، طريقة تعلمه، ما يساعده على النجاح، مصادر الدعم، وحلمه المستقبلي. مخرجاته دعم معرفي فقط.",
+    descriptionAr: "نموذج خارجي تفاعلي لجمع صوت المتعلم حول قوته، هواياته، طريقة تعلمه، ما يساعده على النجاح، مصادر الدعم، وحلمه المستقبلي. مخرجاته إشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     externalUrl: "https://tally.so/r/44E1Mr",
     questions: [
       {
@@ -826,7 +826,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "IEP_DISABILITY_AWARENESS_CHECKLIST",
     nameAr: "قائمة وعي المتعلم بالخطة والإعاقة",
     category: "transition_checklist",
-    descriptionAr: "قائمة قصيرة لرصد وعي المتعلم بالخطة التربوية الفردية، مشاركته في الاجتماع، معرفته باحتياجه أو إعاقته، وما يساعده على التعلم. مخرجاتها دعم معرفي فقط ولا تثبت مستوى أداء.",
+    descriptionAr: "قائمة قصيرة لرصد وعي المتعلم بالخطة التربوية الفردية، مشاركته في الاجتماع، معرفته باحتياجه أو إعاقته، وما يساعده على التعلم. مخرجاتها إشارات بروفايل ودعم معرفي ولا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "iep_participation_awareness",
@@ -852,7 +852,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "FAMILY_TRANSITION_ASSESSMENT_INVOLVEMENT",
     nameAr: "مشاركة الأسرة في تقييم الانتقال",
     category: "family_vision",
-    descriptionAr: "أداة منظمة لجمع مدخلات الأسرة حول المستقبل، نقاط القوة في البيت والمجتمع، واحتياج الأسرة لشرح التقييم ونتائجه وخطواته التالية. مخرجاتها رؤية وسياق ودعم معرفي فقط.",
+    descriptionAr: "أداة منظمة لجمع مدخلات الأسرة حول المستقبل، نقاط القوة في البيت والمجتمع، واحتياج الأسرة لشرح التقييم ونتائجه وخطواته التالية. مخرجاتها رؤية وسياق وإشارات بروفايل ودعم معرفي لا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "family_transition_future_domains",
@@ -886,7 +886,7 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
     id: "ADOLESCENT_AUTONOMY_CHECKLIST_REFERENCE",
     nameAr: "قائمة استقلالية المراهقين الموسعة",
     category: "transition_checklist",
-    descriptionAr: "قائمة انتقالية موسعة لتصنيف مجالات الاستقلالية إلى: خطة للانطلاق، يحتاج ممارسة، يمكنه القيام به. تغطي المنزل، الصحة، الطوارئ، المجتمع، المال، العمل والسكن. مخرجاتها دعم معرفي فقط ما لم تسجل ملاحظة أداء مستقلة في أداة أخرى.",
+    descriptionAr: "قائمة انتقالية موسعة لتصنيف مجالات الاستقلالية إلى: خطة للانطلاق، يحتاج ممارسة، يمكنه القيام به. تغطي المنزل، الصحة، الطوارئ، المجتمع، المال، العمل والسكن. مخرجاتها إشارات بروفايل ودعم معرفي، وقد تنتج مرشحات دليل عند اكتمال سياق الأداء، لكنها لا تثبت مستوى أداء وحدها.",
     questions: [
       {
         id: "autonomy_plan_to_start_domains",
@@ -1545,3 +1545,4 @@ export const INFORMATION_TOOLS: InformationToolDefinition[] = [
 export function getInformationToolDefinition(toolId: string) {
   return INFORMATION_TOOLS.find((tool) => tool.id === toolId);
 }
+

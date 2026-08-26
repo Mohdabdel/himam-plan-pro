@@ -5,6 +5,10 @@ import {
   buildCurrentPerformanceWorkspace,
   summarizeCurrentPerformanceWorkspace,
 } from "@/lib/current-performance-workspace";
+import {
+  buildInformationProcessingProfile,
+  loadInformationRecords,
+} from "@/lib/information-records";
 import { loadSourceFilePipelines } from "@/lib/source-file-pipeline";
 
 export const Route = createFileRoute("/students/$id/iep")({
@@ -82,6 +86,7 @@ function PlanPreparationHubPage() {
   const currentPerformanceSummary = summarizeCurrentPerformanceWorkspace(
     buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)),
   );
+  const informationProcessing = buildInformationProcessingProfile(loadInformationRecords(id));
   const learnerVoice = safeParse(`himam_learner_voice_${id}`);
   const familyVoice = safeParse(`himam_family_${id}`);
   const additionalSources = safeParse(`himam_additional_sources_${id}`);
@@ -96,8 +101,10 @@ function PlanPreparationHubPage() {
     {
       key: "currentLevel",
       title: "مستوى الأداء الحالي",
-      body: "عرض ملخص مصادر جمع المعلومات التي ستغذي صياغة مستوى الأداء الحالي دون اعتماد آلي.",
-      status: currentPerformanceSummary.baselineReady ? "نتيجة مفسرة مراجعة" : "ينقصه تفسير رسمي",
+      body: "عرض ملخص التقييم الرسمي وإشارات بروفايل المتعلم الناتجة من أدوات المعلومات دون اعتماد آلي.",
+      status: currentPerformanceSummary.baselineReady
+        ? `نتيجة مفسرة + ${informationProcessing.signalCount} إشارة`
+        : "ينقصه تفسير رسمي",
     },
     {
       key: "specialistVision",
@@ -203,6 +210,9 @@ function PlanPreparationHubPage() {
             <CurrentLevelSection
               assessmentCount={assessmentRecords.length}
               interpretedAssessmentCount={currentPerformanceSummary.currentPerformanceCueCount}
+              processedSignalCount={informationProcessing.signalCount}
+              evidenceCandidateCount={informationProcessing.evidenceCandidateCount}
+              goalSelectionSignalCount={informationProcessing.goalSelectionSignalCount}
               learnerVoice={Boolean(learnerVoice)}
               familyVoice={Boolean(familyVoice)}
               additionalSources={Boolean(additionalSources)}
@@ -269,6 +279,9 @@ function BasicDataSection({ student }: { student: StoredStudent | null }) {
 function CurrentLevelSection(props: {
   assessmentCount: number;
   interpretedAssessmentCount: number;
+  processedSignalCount: number;
+  evidenceCandidateCount: number;
+  goalSelectionSignalCount: number;
   learnerVoice: boolean;
   familyVoice: boolean;
   additionalSources: boolean;
@@ -276,16 +289,19 @@ function CurrentLevelSection(props: {
   const rows = [
     ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
     ["نتائج مفسرة مراجعة", props.interpretedAssessmentCount > 0 ? `${props.interpretedAssessmentCount} بطاقة قابلة للتتبع` : "غير متاحة بعد"],
-    ["صوت المتعلم", props.learnerVoice ? "متاح كمصدر داعم" : "غير موثق"],
-    ["صوت الأسرة", props.familyVoice ? "متاح كمصدر داعم" : "غير موثق"],
-    ["مصادر إضافية", props.additionalSources ? "متاحة كمصدر داعم" : "غير موثقة"],
+    ["معالجة أدوات المعلومات", props.processedSignalCount > 0 ? `${props.processedSignalCount} إشارة بروفايل معالجة` : "لا توجد إشارات بعد"],
+    ["مرشحات دليل أداء", props.evidenceCandidateCount > 0 ? `${props.evidenceCandidateCount} مرشح يحتاج تفسير مختص` : "لا يوجد مرشح بعد"],
+    ["إشارات توجيه الأهداف", props.goalSelectionSignalCount > 0 ? `${props.goalSelectionSignalCount} إشارة أولوية/دعم/احتياج` : "غير متاحة بعد"],
+    ["صوت المتعلم", props.learnerVoice ? "متاح ويدخل في معالجة البروفايل" : "غير موثق"],
+    ["صوت الأسرة", props.familyVoice ? "متاح ويدخل في معالجة البروفايل" : "غير موثق"],
+    ["مصادر إضافية", props.additionalSources ? "متاحة وتدخل في معالجة البروفايل" : "غير موثقة"],
   ];
 
   return (
     <div>
       <h3 className="text-lg font-bold text-[#0F3D3E]">مستوى الأداء الحالي</h3>
       <p className="mt-2 text-sm leading-7 text-stone-600">
-        هذا الملخص لا يحل محل صياغة المختص لمستوى الأداء الحالي، لكنه يوضح مصادر المعلومات المتاحة التي ستظهر لاحقاً في شاشة الدعم المعرفي.
+        هذا الملخص لا يحل محل صياغة المختص لمستوى الأداء الحالي، لكنه يعرض معالجة أولية/متوسطة لأدوات المعلومات، بما في ذلك إشارات القوة والاحتياج والدعم والأولوية التي توجه بناء الأهداف والخطة.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
         {rows.map(([label, value]) => (

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { advanceStage } from "../lib/journey";
 import { getItemsByDomain, type TTAPDomain } from "../data/ttap-items";
+import { getConceptNameAr } from "@/data/concepts";
 import { GoalQualityChecklist } from "@/components/goal-quality-checklist";
 import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/lib/goal-quality";
 import { GoalReferencePanel } from "@/components/goal-reference-panel";
@@ -20,13 +21,17 @@ import {
   buildGoalApprovalBundles,
   saveGoalApprovalBundles,
 } from "@/lib/goal-plan-approval";
-import { buildKnowledgeSupportItems, loadInformationRecords } from "@/lib/information-records";
+import {
+  buildInformationProcessingProfile,
+  buildKnowledgeSupportItems,
+  loadInformationRecords,
+} from "@/lib/information-records";
 import {
   loadSourceFilePipelines,
   summarizeSourceFilePipeline,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
-import type { AssessmentRecord, KnowledgeSupportItem } from "@/types/himam";
+import type { AssessmentRecord, InformationProcessingProfile, KnowledgeSupportItem } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/iep/goals")({
   component: IEPPage,
@@ -91,6 +96,7 @@ type GoalSourceId =
   | "family_voice"
   | "learner_voice"
   | "additional_sources"
+  | "processed_information_profile"
   | "reviewed_file_sources";
 type GuidanceMode = "guided" | "direct";
 
@@ -204,6 +210,7 @@ function sourceLabel(sourceId: GoalSourceId) {
   if (sourceId === "family_priorities") return "أولويات الأسرة";
   if (sourceId === "family_voice") return "صوت الأسرة";
   if (sourceId === "learner_voice") return "صوت المتعلم";
+  if (sourceId === "processed_information_profile") return "إشارات بروفايل من أدوات المعلومات";
   if (sourceId === "reviewed_file_sources") return "مصادر مرفوعة ومراجعة";
   return "أدوات ومصادر إضافية";
 }
@@ -213,6 +220,7 @@ function buildGoalSources(input: {
   family: FamilyData | null;
   learnerVoice: LearnerVoiceData | null;
   additionalSources: unknown;
+  informationProcessing: InformationProcessingProfile;
   sourcePipelines: SourceFilePipelineRecord[];
 }) {
   const sources: Array<{ id: GoalSourceId; label: string; note: string }> = [];
@@ -255,6 +263,14 @@ function buildGoalSources(input: {
       id: "additional_sources",
       label: "أدوات ومصادر إضافية",
       note: "مصدر داعم محفوظ",
+    });
+  }
+
+  if (input.informationProcessing.goalSelectionSignalCount > 0) {
+    sources.push({
+      id: "processed_information_profile",
+      label: "إشارات بروفايل من أدوات المعلومات",
+      note: `${input.informationProcessing.goalSelectionSignalCount} إشارة معالجة توجه الأهداف، منها ${input.informationProcessing.evidenceCandidateCount} مرشح دليل أداء يحتاج تفسير مختص.`,
     });
   }
 
@@ -336,6 +352,9 @@ function IEPPage() {
   const [assessmentRecords, setAssessmentRecords] = useState<AssessmentRecord[]>([]);
   const [additionalSources, setAdditionalSources] = useState<unknown>(null);
   const [knowledgeSupport, setKnowledgeSupport] = useState<KnowledgeSupportItem[]>([]);
+  const [informationProcessing, setInformationProcessing] = useState<InformationProcessingProfile>(
+    () => buildInformationProcessingProfile([]),
+  );
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
@@ -397,12 +416,14 @@ function IEPPage() {
         setAssessmentDomains(byCode);
       }
     } catch { /* noop */ }
-    setKnowledgeSupport(buildKnowledgeSupportItems(loadInformationRecords(id)));
+    const informationRecords = loadInformationRecords(id);
+    setKnowledgeSupport(buildKnowledgeSupportItems(informationRecords));
+    setInformationProcessing(buildInformationProcessingProfile(informationRecords));
 
     setLoaded(true);
   }, [id]);
 
-  const goalSources = buildGoalSources({ assessmentRecords, family, learnerVoice, additionalSources, sourcePipelines });
+  const goalSources = buildGoalSources({ assessmentRecords, family, learnerVoice, additionalSources, informationProcessing, sourcePipelines });
   const selectedGoalDomain = domains.find((domain) => domain.code === goalBuilder.domainCode);
   const selectedAssessmentItems = goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
     ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
@@ -693,7 +714,7 @@ function IEPPage() {
           <div style={cardStyle}>
             <h2 style={sectionTitle}>الإطار المعرفي الداعم</h2>
             <p style={{ color: "#64748B", fontSize: 14, lineHeight: 1.9, margin: "6px 0 0" }}>
-              تظهر هنا إشارات الدعم المعرفي المستخلصة من مصادر جمع المعلومات، دون أن تتحول وحدها إلى مستوى أداء أو اعتماد للخطة.
+              تظهر هنا إشارات الدعم المعرفي ومعالجة البروفايل المستخلصة من مصادر جمع المعلومات. هذه الإشارات توجه بناء مستوى الأداء والأهداف، لكنها تحتاج تفسير المختص قبل أن تتحول إلى ادعاء أداء أو قرار خطة.
             </p>
           </div>
         </section>
@@ -970,6 +991,7 @@ function IEPPage() {
                       learnerVoice={learnerVoice}
                     />
                     <ReviewedFileSourcesPanel pipelines={sourcePipelines} />
+                    <InformationProcessingPanel profile={informationProcessing} />
                     <KnowledgeSupportPanel items={knowledgeSupport} />
                     {goals[d.code].length === 0 && (
                       <p style={{ color: "#94A3B8", fontSize: 14, margin: "0 0 12px" }}>
@@ -1348,6 +1370,52 @@ function IEPPage() {
           </button>
         </div>
       </main>
+    </div>
+  );
+}
+
+function InformationProcessingPanel({ profile }: { profile: InformationProcessingProfile }) {
+  if (profile.signalCount === 0) {
+    return (
+      <div style={{ marginBottom: 12, background: "#F8FAFC", border: "1px dashed #CBD5E1", borderRadius: 8, padding: 10 }}>
+        <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.7 }}>
+          لم تنتج أدوات المعلومات إشارات بروفايل بعد. عند تطبيق مسح أو قائمة غير رسمية ستظهر هنا إشارات القوة والاحتياج والدعم والأولوية.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12, background: "#F4FAF9", border: "1px solid #9EC7C3", borderRadius: 8, padding: 10 }}>
+      <p style={{ margin: "0 0 8px", color: TEAL, fontSize: 12, fontWeight: 800 }}>معالجة بروفايل من أدوات المعلومات</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
+        <MiniMetric label="إشارات" value={profile.signalCount} />
+        <MiniMetric label="مرشحات دليل" value={profile.evidenceCandidateCount} />
+        <MiniMetric label="توجه الأهداف" value={profile.goalSelectionSignalCount} />
+        <MiniMetric label="مفاهيم" value={profile.conceptSummaries.length} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {profile.conceptSummaries.slice(0, 4).map((summary) => (
+          <div key={summary.conceptId} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 8 }}>
+            <p style={{ margin: 0, color: "#334155", fontSize: 12, fontWeight: 700 }}>{getConceptNameAr(summary.conceptId)}</p>
+            <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 12, lineHeight: 1.6 }}>
+              {summary.signalCount} إشارات، {summary.evidenceCandidateCount} مرشح دليل، {summary.needOrRiskCount} احتياج/خطر، {summary.supportConditionCount} شرط دعم.
+            </p>
+          </div>
+        ))}
+      </div>
+      <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
+        المعالجة الحالية متوسطة ومهنية: توجه بناء مستوى الأداء والهدف، ولا تعتمد وحدها ادعاء أداء أو تحليل سيكومتري.
+      </p>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 8 }}>
+      <p style={{ margin: 0, color: TEAL, fontSize: 16, fontWeight: 800 }}>{value}</p>
+      <p style={{ margin: "2px 0 0", color: "#64748B", fontSize: 10, fontWeight: 700 }}>{label}</p>
     </div>
   );
 }

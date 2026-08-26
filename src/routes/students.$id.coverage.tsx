@@ -11,10 +11,15 @@ import {
   coverageAreaLabelAr,
   isDevelopmentalAssessmentUnder9,
 } from "@/lib/information-source-review";
+import {
+  buildInformationProcessingProfile,
+  loadInformationRecords,
+} from "@/lib/information-records";
+import { getConceptNameAr } from "@/data/concepts";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import { loadSourceFilePipelines } from "@/lib/source-file-pipeline";
-import type { AssessmentRecord } from "@/types/himam";
+import type { AssessmentRecord, InformationProcessingProfile } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/coverage")({
   component: InformationSufficiencyPage,
@@ -225,6 +230,9 @@ function InformationSufficiencyPage() {
   const [showGateMessage, setShowGateMessage] = useState(false);
   const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
   const [currentPerformanceCards, setCurrentPerformanceCards] = useState<CurrentPerformanceCard[]>([]);
+  const [informationProcessing, setInformationProcessing] = useState<InformationProcessingProfile>(
+    () => buildInformationProcessingProfile([]),
+  );
 
   useEffect(() => {
     const loadedStudent = loadStudent(id);
@@ -232,6 +240,7 @@ function InformationSufficiencyPage() {
     setRecords(loadAssessmentRecords(id));
     setSources(loadSourceSnapshot(id));
     setCurrentPerformanceCards(buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)));
+    setInformationProcessing(buildInformationProcessingProfile(loadInformationRecords(id)));
     setComponentStatus(loadPlanComponentStatus(id));
   }, [id]);
 
@@ -321,13 +330,56 @@ function InformationSufficiencyPage() {
           <StatusCard
             title="أدوات ومصادر إضافية"
             status={sources.additionalSources ? "موثقة" : "اختيارية حالياً"}
-            body={sources.additionalSources ? "تضاف كمصدر داعم قابل للتتبع." : "يمكن استكمالها عند الحاجة لتغطية فجوات محددة."}
+            body={sources.additionalSources ? "تدخل في معالجة بروفايل المتعلم كإشارات احتياج ودعم وأولوية قابلة للمراجعة." : "يمكن استكمالها عند الحاجة لتغطية فجوات محددة."}
           />
           <StatusCard
             title="حساسية العمر"
             status={student?.ageBand === "AGE_14_PLUS" || (typeof student?.ageYears === "number" && student.ageYears >= 14) ? "تخطيط انتقال مفعل توصياً" : "مسار عام"}
             body="العمر يفعّل توصيات ونطاق مراجعة، ولا يغير مستوى المتعلم أو يمنع تنفيذ المسار وحده."
           />
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-[#D9764A]">معالجة أدوات المعلومات</p>
+              <h3 className="mt-1 text-lg font-bold text-[#0F3D3E]">إشارات بروفايل من المسوح والقوائم غير الرسمية</h3>
+            </div>
+            <span className="rounded-full bg-[#E6F2F1] px-3 py-1 text-xs font-bold text-[#0F3D3E]">
+              {informationProcessing.processingStage === "medium_profile_processing"
+                ? "معالجة متوسطة"
+                : informationProcessing.processingStage === "initial_structured_processing"
+                  ? "معالجة وصفية أولية"
+                  : "لا توجد إشارات بعد"}
+            </span>
+          </div>
+
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">
+            أدوات المسح والقوائم غير الرسمية لا تحفظ كتعليقات فقط؛ تعالج كإشارات بروفايل تساعد في فهم الاحتياجات والأولويات والدعم والسياق، ثم تُراجع مهنياً عند بناء مستوى الأداء والأهداف.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <MetricBox label="أدوات مطبقة" value={informationProcessing.recordCount} />
+            <MetricBox label="إشارات معالجة" value={informationProcessing.signalCount} />
+            <MetricBox label="مرشحات دليل أداء" value={informationProcessing.evidenceCandidateCount} />
+            <MetricBox label="إشارات توجه الأهداف" value={informationProcessing.goalSelectionSignalCount} />
+          </div>
+
+          {informationProcessing.conceptSummaries.length > 0 && (
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              {informationProcessing.conceptSummaries.slice(0, 6).map((summary) => (
+                <article key={summary.conceptId} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                  <p className="text-sm font-bold text-[#0F3D3E]">{getConceptNameAr(summary.conceptId)}</p>
+                  <p className="mt-1 text-xs leading-6 text-stone-600">
+                    {summary.signalCount} إشارات، منها {summary.evidenceCandidateCount} مرشحات دليل، {summary.priorityHintCount} أولوية، و{summary.supportConditionCount} شرط دعم.
+                  </p>
+                  <p className="mt-1 text-[11px] leading-5 text-stone-500">
+                    المصادر: {summary.sourceToolNamesAr.slice(0, 3).join("، ")}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
