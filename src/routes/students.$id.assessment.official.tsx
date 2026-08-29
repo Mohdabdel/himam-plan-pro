@@ -46,8 +46,6 @@ type StoredStudent = {
   tool?: string;
 };
 
-type EntryMode = "upload" | "platform";
-
 type DomainInput = {
   rating: AssessmentRating;
   note: string;
@@ -113,7 +111,6 @@ function OfficialAssessmentPage() {
   const [customToolName, setCustomToolName] = useState("");
   const [assessorName, setAssessorName] = useState("");
   const [assessmentDate, setAssessmentDate] = useState("");
-  const [entryMode, setEntryMode] = useState<EntryMode>("upload");
   const [domainInputs, setDomainInputs] = useState<Record<string, DomainInput>>({});
   const [upload, setUpload] = useState<File | null>(null);
   const [draftText, setDraftText] = useState("");
@@ -175,23 +172,19 @@ function OfficialAssessmentPage() {
       setError("يرجى كتابة اسم الأداة عند اختيار أخرى.");
       return false;
     }
-    if (entryMode === "upload" && !upload) {
+    if (!upload) {
       setError("يرجى رفع نتائج التقييم الرسمي أو التقرير.");
       return false;
     }
     const appliedToolStatements = selectedTool
       ? buildAppliedToolStatements(domainInputs)
       : [];
-    const reviewedStatements = entryMode === "platform"
-      ? appliedToolStatements
-      : [...splitSourceDraftText(draftText), ...appliedToolStatements];
+    const reviewedStatements = [...splitSourceDraftText(draftText), ...appliedToolStatements];
     if (reviewedStatements.length === 0) {
-      setError(entryMode === "platform"
-        ? "أدخل نتيجة مفسرة واحدة على الأقل في مجال من مجالات أداة التقييم قبل الحفظ."
-        : "راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
+      setError("راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
       return false;
     }
-    if (entryMode === "upload" && appliedToolStatements.length === 0) {
+    if (appliedToolStatements.length === 0) {
       setError("بعد رفع الملف، صنف نتيجة مفسرة واحدة على الأقل تحت مجال من مجالات الأداة حتى يمكن بناء مستوى أداء أو مرجعية مهنية عليها.");
       return false;
     }
@@ -206,8 +199,8 @@ function OfficialAssessmentPage() {
       assessorName,
       assessmentDate,
       ageBand: student?.ageBand,
-      uploadedFileName: entryMode === "upload" ? upload?.name : undefined,
-      uploadedFileType: entryMode === "upload" ? upload?.type : undefined,
+      uploadedFileName: upload.name,
+      uploadedFileType: upload.type,
     });
     const savedRecord = toolId === "OTHER_OFFICIAL_ASSESSMENT" && customToolName.trim()
       ? { ...record, toolNameAr: customToolName.trim() }
@@ -222,20 +215,11 @@ function OfficialAssessmentPage() {
           : domain;
       }),
     };
-    const readResult = entryMode === "upload" && upload
-      ? await readAllowedSourceFileDraft(upload)
-      : { statements: reviewedStatements };
-    const pipelineFile = entryMode === "upload" && upload
-      ? upload
-      : {
-          name: `تطبيق ${savedRecord.toolNameAr} داخل منصة همم.himam-assessment`,
-          type: "application/himam-assessment+json",
-          size: reviewedStatements.join("\n").length,
-        };
+    const readResult = await readAllowedSourceFileDraft(upload);
     const sourceDraftPipeline = buildSourceFileDraftPipeline({
       learnerId: id,
       sourceNameAr: `نتائج ${savedRecord.toolNameAr}`,
-      file: pipelineFile,
+      file: upload,
       purpose: "OFFICIAL_ASSESSMENT_RESULTS",
       sourceType: "INSTITUTIONAL_ASSESSMENT",
       statements: reviewedStatements,
@@ -262,9 +246,7 @@ function OfficialAssessmentPage() {
         ...completedRecord,
         processingNotesAr: [
           ...(completedRecord.processingNotesAr ?? []),
-          entryMode === "platform"
-            ? "تم تطبيق أداة من مكتبة التقييم داخل المنصة وتحويل نتائجها المفسرة إلى استجابات منظمة قبل استخدامه في بناء الأهداف."
-            : "تم إنشاء مسار قراءة ومراجعة للملف المرفوع وتحويله إلى استجابات منظمة قبل استخدامه في بناء الأهداف.",
+          "تم إنشاء مسار قراءة ومراجعة للنتائج المرفوعة وتحويلها إلى استجابات منظمة قبل استخدامها في بناء البروفايل ومستوى الأداء الحالي والأهداف.",
         ],
       },
     ];
@@ -374,46 +356,19 @@ function OfficialAssessmentPage() {
         <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold text-[#0F3D3E]">نتائج التقييم الرسمي</h3>
           <p className="mt-2 text-sm leading-7 text-stone-600">
-            قم بتحديد طريقة إدخال نتائج التقييم: رفع ملف نتائج مطبق خارج المنصة، أو تطبيق أداة من مكتبة همم وإدخال نتائجها المفسرة داخل المنصة.
+            يتم التعامل مع التقييمات الرسمية كأدوات مطبقة خارج منصة همم. ارفع ملف النتائج أو التقرير، ثم أدخل النتائج المفسرة تحت المجالات المناسبة حتى تتحول إلى مرجعية مهنية للبروفايل ومستوى الأداء الحالي.
           </p>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div
-              className="rounded-xl border p-4"
-              style={{
-                backgroundColor: entryMode === "platform" ? "#E6F2F1" : "#F8FAFC",
-                borderColor: entryMode === "platform" ? "#0F3D3E" : "#E7E5E4",
-              }}
-            >
-              <p className="text-sm font-bold text-[#0F3D3E]">التطبيق بمنصة همم</p>
-              <p className="mt-2 text-xs leading-6 text-stone-500">
-                استخدم مجالات الأداة المختارة من المكتبة، وأدخل لكل مجال نتيجة مفسرة قابلة للمراجعة.
-              </p>
-              <button
-                type="button"
-                onClick={() => setEntryMode("platform")}
-                className="mt-3 rounded-lg border border-[#0F3D3E] bg-white px-4 py-2 text-xs font-bold text-[#0F3D3E]"
-              >
-                تطبيق الأداة داخل المنصة
-              </button>
-            </div>
-
-            <div
-              className="rounded-xl border p-4"
-              style={{
-                backgroundColor: entryMode === "upload" ? "#E6F2F1" : "#FFFFFF",
-                borderColor: entryMode === "upload" ? "#0F3D3E" : "#9EC7C3",
-              }}
-            >
+          <div className="mt-5 grid grid-cols-1 gap-4">
+            <div className="rounded-xl border border-[#0F3D3E] bg-[#E6F2F1] p-4">
               <p className="text-sm font-bold text-[#0F3D3E]">رفع النتائج</p>
               <p className="mt-2 text-xs leading-6 text-stone-600">
-                ارفع ملف نتائج التقييم أو التقرير كما طبقه المختص خارج منصة همم.
+                ارفع ملف نتائج التقييم أو التقرير كما طبقه المختص خارج منصة همم. لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً؛ تعالج فقط النتيجة المفسرة التي راجعها المختص.
               </p>
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
                 onChange={(event) => {
-                  setEntryMode("upload");
                   void handleUploadChange(event.target.files?.[0] ?? null);
                 }}
                 className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
@@ -427,13 +382,11 @@ function OfficialAssessmentPage() {
             </div>
           </div>
 
-          {(entryMode === "platform" || upload) && selectedTool && (
+          {upload && selectedTool && (
             <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-white p-4">
-              <p className="text-sm font-bold text-[#0F3D3E]">
-                {entryMode === "platform" ? `تطبيق ${selectedTool.nameAr}` : `معالجة نتائج ${selectedTool.nameAr}`}
-              </p>
+              <p className="text-sm font-bold text-[#0F3D3E]">معالجة نتائج {selectedTool.nameAr}</p>
               <p className="mt-1 text-xs leading-6 text-stone-600">
-                أدخل نتيجة مفسرة لكل مجال تم تقييمه. في حالة الرفع، هذه الخطوة تحول الملف المقروء إلى مرجعية مصنفة يمكن البناء عليها في مستوى الأداء الحالي.
+                أدخل نتيجة مفسرة لكل مجال تم تقييمه. هذه الخطوة تحول الملف المقروء إلى مرجعية مصنفة يمكن البناء عليها في مستوى الأداء الحالي وفرص الأهداف.
               </p>
               <div className="mt-4 space-y-3">
                 {selectedTool.domains.map((domain) => {
@@ -525,9 +478,9 @@ function OfficialAssessmentPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-[#0F3D3E]">مكتبة أدوات التقييم المتاحة للتجربة</p>
-                <p className="mt-1 text-xs leading-6 text-stone-600">
-                  هذه مكتبة محولات مرجعية للأدوات المطبقة خارج همم. لا تطبق الأداة كاملة داخل المنصة حالياً، لكنها توضح الأداة ومجالاتها وتدعم تفسير النتائج المرفوعة يدوياً.
-                </p>
+              <p className="mt-1 text-xs leading-6 text-stone-600">
+                  هذه مكتبة محولات مرجعية للأدوات الرسمية المطبقة خارج همم. لا تطبق الأداة المقننة كاملة داخل المنصة حالياً، لكنها توضح الأداة ومجالاتها وتدعم تفسير النتائج المرفوعة يدوياً.
+              </p>
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0F3D3E]">
                 {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").length} أدوات

@@ -5,6 +5,6 @@
   "cycle": "BUILD_CYCLE_03",
   "scope": "INFORMAL_TOOLS_AND_REVIEWED_FILES_TO_PROFILE_PROCESSING",
   "requiredGateCount": 12,
-  "checkCount": 46,
+  "checkCount": 47,
   "failures": []
 }

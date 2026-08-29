@@ -75,14 +75,12 @@ requireText("official upload alone is insufficient", official, "الحد الأ�
 requireText("official draft uses reviewed statements", official, "statements: reviewedStatements");
 requireText("official assessment tool library visible", official, "مكتبة أدوات التقييم المتاحة للتجربة");
 requireText("official library selects tool", official, "onClick={() => setToolId(tool.id)}");
-requireText("official platform mode enabled", official, "type EntryMode = \"upload\" | \"platform\"");
-requireText("official platform application button", official, "تطبيق الأداة داخل المنصة");
 requireText("official domain result inputs", official, "domainInputs");
 requireText("official applied tool statements", official, "buildAppliedToolStatements");
 requireText("official upload requires domain processing", official, "بعد رفع الملف، صنف نتيجة مفسرة واحدة على الأقل");
 requireText("official upload processing panel", official, "معالجة نتائج");
-requireText("official platform source pipeline", official, "application/himam-assessment+json");
-requireText("official platform result processing note", official, "تم تطبيق أداة من مكتبة التقييم داخل المنصة");
+requireText("official assessment upload-only boundary", official, "لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً");
+requireText("official assessment processes reviewed result", official, "تعالج فقط النتيجة المفسرة التي راجعها المختص");
 requireText("learner voice platform tool application", learnerVoice, "InformationToolApplication");
 requireText("learner voice uploaded file pipeline", learnerVoice, "LEARNER_VOICE_FORM");
 requireText("learner voice descriptive response required", learnerVoice, "hasInformationRecordResponse");

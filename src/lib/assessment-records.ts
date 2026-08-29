@@ -60,7 +60,8 @@ export function createAssessmentRecord(input: {
     transitionCoverageMissingAreas: coverageReview.missingAreas,
     processingNotesAr: [
       "يحفظ هذا السجل بنية أداة التقييم الأصلية ولا يستبدلها بمفاهيم همم.",
-      "رفع الملف في هذه النسخة للتتبع فقط؛ استخراج النتائج التفصيلي مؤجل.",
+      "التقييم الرسمي يطبق خارج همم؛ المنصة تستقبل نتائجه أو تقريره وتعالج النتائج المفسرة بعد مراجعة المختص.",
+      "لا تنسخ همم بنود الاختبار المقنن ولا تصححه آلياً دون ترخيص أو عقد أداة مستقل.",
       ...coverageReview.recommendationsAr,
     ],
     status: "draft",

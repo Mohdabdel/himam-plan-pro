@@ -39,7 +39,7 @@ SourceFilePipelineRecord[]
 → CurrentPerformanceWorkspaceSummary
 ```
 
-في تطبيق الأداة داخل المنصة، تحفظ نتيجة المجالات داخل AssessmentRecord مكتمل، وينشأ مسار مصدر مراجع يحمل metadata داخلية لا ملفاً خاماً.
+في التقييم الرسمي، لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً في هذه النسخة. تحفظ نتائج التقييم أو التقرير المرفوع داخل AssessmentRecord مكتمل، وينشأ مسار مصدر مراجع يحمل ملف النتائج وStructuredResponse المفسرة التي أدخلها أو راجعها المختص.
 
 ## 5. API أو service contract
 
@@ -50,7 +50,7 @@ buildCurrentPerformanceWorkspace(records)
 summarizeCurrentPerformanceWorkspace(cards)
 ```
 
-المدخلات لا تقرأ الملف الخام بعد الحفظ، بل تقرأ فقط مسار المصدر المراجع وStructuredResponse المحفوظة. تطبيق الأداة داخل المنصة ينشئ StructuredResponse من نتائج المجالات التي فسرها المختص.
+المدخلات لا تقرأ الملف الخام بعد الحفظ، بل تقرأ فقط مسار المصدر المراجع وStructuredResponse المحفوظة. نتائج التقييم الرسمي تنشئ StructuredResponse من المجالات والنتائج التي فسرها المختص بعد رفع التقرير أو ملف النتائج.
 
 قارئ الملفات في هذه الدورة يدعم:
 
