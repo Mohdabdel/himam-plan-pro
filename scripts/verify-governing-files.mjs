@@ -76,6 +76,17 @@ for (const requiredPhrase of [
   }
 }
 
+for (const requiredPhrase of [
+  "بوابة الجاهزية الشاملة بعد المعرفة الجديدة",
+  "KNOWLEDGE_READY_FOR_CODE",
+  "KNOWLEDGE_READY_WITH_REGISTERED_LIMITS",
+  "NOT_READY_FOR_CODE",
+]) {
+  if (!checklist.includes(requiredPhrase)) {
+    failures.push(`Pre-programming checklist is missing comprehensive knowledge readiness phrase: ${requiredPhrase}`);
+  }
+}
+
 const result = {
   verification: "governing-files-organization",
   verifiedAt: "2026-08-24",
@@ -94,6 +105,7 @@ const result = {
     checklistOrderMatchesManifest: governingFiles.every((file) => checklist.includes(`${file.order}. \`${file.path.replace(/^specs\//, "")}\``)) ? "PASS" : "FAIL",
     packageScriptRegistered: packageJson.scripts?.["verify:governing-files"] ? "PASS" : "FAIL",
     progressRulePreserved: index.includes("لا انتقال مع فجوة غير مغلقة أو غير مفسرة") ? "PASS" : "FAIL",
+    knowledgeReadinessGatePreserved: checklist.includes("بوابة الجاهزية الشاملة بعد المعرفة الجديدة") ? "PASS" : "FAIL",
   },
   failures,
 };

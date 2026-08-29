@@ -15,7 +15,8 @@
     "transitionPlanOrderMatchesManifest": "PASS",
     "checklistOrderMatchesManifest": "PASS",
     "packageScriptRegistered": "PASS",
-    "progressRulePreserved": "PASS"
+    "progressRulePreserved": "PASS",
+    "knowledgeReadinessGatePreserved": "PASS"
   },
   "failures": []
 }
