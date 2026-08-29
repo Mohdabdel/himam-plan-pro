@@ -75,10 +75,11 @@ requireText("official upload alone is insufficient", official, "الحد الأ�
 requireText("official draft uses reviewed statements", official, "statements: reviewedStatements");
 requireText("official assessment tool library visible", official, "مكتبة أدوات التقييم المتاحة للتجربة");
 requireText("official library selects tool", official, "onClick={() => setToolId(tool.id)}");
-requireText("official domain result inputs", official, "domainInputs");
-requireText("official applied tool statements", official, "buildAppliedToolStatements");
-requireText("official upload requires domain processing", official, "بعد رفع الملف، صنف نتيجة مفسرة واحدة على الأقل");
-requireText("official upload processing panel", official, "معالجة نتائج");
+requireText("official accepted result extensions", official, "ACCEPTED_OFFICIAL_RESULT_EXTENSIONS");
+requireText("official accepted result labels", official, "الصيغ المقبولة");
+requireText("official no manual score input", official, "لا يدخل المختص درجات أو تقديرات يدوية هنا");
+requireText("official upload requires readable result", official, "ملف نتائج بصيغة مدعومة");
+requireText("official reference domains only", official, "تستخدم هذه المجالات كخريطة قراءة وتصنيف فقط");
 requireText("official assessment upload-only boundary", official, "لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً");
 requireText("official assessment processes reviewed result", official, "تعالج فقط النتيجة المفسرة التي راجعها المختص");
 requireText("learner voice platform tool application", learnerVoice, "InformationToolApplication");

@@ -24,7 +24,7 @@ import {
   splitSourceDraftText,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
-import type { AssessmentRecord, AssessmentRating } from "@/types/himam";
+import type { AssessmentRecord } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/assessment/official")({
   component: OfficialAssessmentPage,
@@ -46,17 +46,8 @@ type StoredStudent = {
   tool?: string;
 };
 
-type DomainInput = {
-  rating: AssessmentRating;
-  note: string;
-};
-
-const RATING_LABELS: Record<AssessmentRating, string> = {
-  pass: "متقن/ناجح",
-  emerge: "ناشئ/يحتاج دعم",
-  fail: "لم يظهر بعد",
-  not_observed: "غير ملاحظ",
-};
+const ACCEPTED_OFFICIAL_RESULT_EXTENSIONS = ".pdf,.docx,.xlsx,.csv,.txt,.json";
+const ACCEPTED_OFFICIAL_RESULT_LABEL_AR = "PDF, DOCX, XLSX, CSV, TXT, JSON";
 
 function hasInterpretedAssessmentStatements(statements: string[]) {
   return statements.some((statement) => {
@@ -67,15 +58,6 @@ function hasInterpretedAssessmentStatements(statements: string[]) {
       !normalized.startsWith("تم رفع")
     );
   });
-}
-
-function buildAppliedToolStatements(domainInputs: Record<string, DomainInput>) {
-  return Object.values(domainInputs)
-    .filter((domain) => domain.rating !== "not_observed")
-    .map((domain) => domain.note.trim())
-    .filter(Boolean)
-    .map((note) => note.length >= 20 ? note : "")
-    .filter(Boolean);
 }
 
 function loadStudent(id: string): StoredStudent | null {
@@ -111,7 +93,6 @@ function OfficialAssessmentPage() {
   const [customToolName, setCustomToolName] = useState("");
   const [assessorName, setAssessorName] = useState("");
   const [assessmentDate, setAssessmentDate] = useState("");
-  const [domainInputs, setDomainInputs] = useState<Record<string, DomainInput>>({});
   const [upload, setUpload] = useState<File | null>(null);
   const [draftText, setDraftText] = useState("");
   const [reviewerNotes, setReviewerNotes] = useState("");
@@ -140,17 +121,6 @@ function OfficialAssessmentPage() {
     selectedToolId: toolId,
   });
 
-  useEffect(() => {
-    if (!selectedTool) return;
-    setDomainInputs((current) => {
-      const next: Record<string, DomainInput> = {};
-      for (const domain of selectedTool.domains) {
-        next[domain.code] = current[domain.code] ?? { rating: "not_observed", note: "" };
-      }
-      return next;
-    });
-  }, [selectedTool]);
-
   async function handleUploadChange(file: File | null) {
     setUpload(file);
     setExtractionWarning("");
@@ -176,20 +146,13 @@ function OfficialAssessmentPage() {
       setError("يرجى رفع نتائج التقييم الرسمي أو التقرير.");
       return false;
     }
-    const appliedToolStatements = selectedTool
-      ? buildAppliedToolStatements(domainInputs)
-      : [];
-    const reviewedStatements = [...splitSourceDraftText(draftText), ...appliedToolStatements];
+    const reviewedStatements = splitSourceDraftText(draftText);
     if (reviewedStatements.length === 0) {
-      setError("راجع مسودة قراءة الملف وأدخل نتيجة تقييم رسمية مفسرة واحدة على الأقل قبل تحويلها إلى استجابات منظمة.");
-      return false;
-    }
-    if (appliedToolStatements.length === 0) {
-      setError("بعد رفع الملف، صنف نتيجة مفسرة واحدة على الأقل تحت مجال من مجالات الأداة حتى يمكن بناء مستوى أداء أو مرجعية مهنية عليها.");
+      setError(`لم ينتج الملف قراءة قابلة للمراجعة. ارفع ملف نتائج بصيغة مدعومة (${ACCEPTED_OFFICIAL_RESULT_LABEL_AR}) أو استخدم نموذج نتائج منظم قابل للقراءة.`);
       return false;
     }
     if (!hasInterpretedAssessmentStatements(reviewedStatements)) {
-      setError("الحد الأدنى ليس رفع الملف فقط؛ اكتب نتيجة مفسرة مثل الدرجة أو الملاحظة المهنية ومعناها الوظيفي قبل المتابعة.");
+      setError("الحد الأدنى ليس رفع الملف فقط؛ يجب أن يحتوي الملف أو مسودة قراءته على نتيجة تقييم رسمية مفسرة يمكن مراجعتها قبل المتابعة.");
       return false;
     }
 
@@ -208,12 +171,7 @@ function OfficialAssessmentPage() {
     const completedRecord: AssessmentRecord = {
       ...savedRecord,
       status: "completed",
-      domains: savedRecord.domains.map((domain) => {
-        const input = domainInputs[domain.domainCode];
-        return input
-          ? { ...domain, rating: input.rating, note: input.note.trim() || undefined }
-          : domain;
-      }),
+      domains: savedRecord.domains,
     };
     const readResult = await readAllowedSourceFileDraft(upload);
     const sourceDraftPipeline = buildSourceFileDraftPipeline({
@@ -257,7 +215,6 @@ function OfficialAssessmentPage() {
     setSourcePipelines(nextPipelines);
     setUpload(null);
     setDraftText("");
-    setDomainInputs({});
     setReviewerNotes("");
     setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
@@ -356,7 +313,7 @@ function OfficialAssessmentPage() {
         <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold text-[#0F3D3E]">نتائج التقييم الرسمي</h3>
           <p className="mt-2 text-sm leading-7 text-stone-600">
-            يتم التعامل مع التقييمات الرسمية كأدوات مطبقة خارج منصة همم. ارفع ملف النتائج أو التقرير، ثم أدخل النتائج المفسرة تحت المجالات المناسبة حتى تتحول إلى مرجعية مهنية للبروفايل ومستوى الأداء الحالي.
+            يتم التعامل مع التقييمات الرسمية كأدوات مطبقة خارج منصة همم. ارفع ملف النتائج أو التقرير بصيغة قابلة للقراءة، ثم راجع مسودة القراءة قبل تحويلها إلى مرجعية مهنية للبروفايل ومستوى الأداء الحالي.
           </p>
 
           <div className="mt-5 grid grid-cols-1 gap-4">
@@ -365,9 +322,12 @@ function OfficialAssessmentPage() {
               <p className="mt-2 text-xs leading-6 text-stone-600">
                 ارفع ملف نتائج التقييم أو التقرير كما طبقه المختص خارج منصة همم. لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً؛ تعالج فقط النتيجة المفسرة التي راجعها المختص.
               </p>
+              <p className="mt-2 text-xs font-bold text-[#0F3D3E]">
+                الصيغ المقبولة: {ACCEPTED_OFFICIAL_RESULT_LABEL_AR}
+              </p>
               <input
                 type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg"
+                accept={ACCEPTED_OFFICIAL_RESULT_EXTENSIONS}
                 onChange={(event) => {
                   void handleUploadChange(event.target.files?.[0] ?? null);
                 }}
@@ -376,7 +336,7 @@ function OfficialAssessmentPage() {
               {upload && <p className="mt-2 text-xs font-bold text-[#0F3D3E]">{upload.name}</p>}
               {extractionWarning && (
                 <p className="mt-2 rounded-lg border border-[#D9764A]/30 bg-[#FBE9E1] px-3 py-2 text-xs leading-6 text-stone-700">
-                  لم تُنشأ قراءة آلية قابلة للاعتماد لهذا النوع من الملفات. أدخل نتائج التقييم الرسمية المفسرة يدوياً في مسودة القراءة قبل المتابعة.
+                  لم تُنشأ قراءة آلية قابلة للمراجعة لهذا النوع من الملفات. استخدم صيغة مدعومة أو نموذج نتائج منظم قابل للقراءة قبل المتابعة.
                 </p>
               )}
             </div>
@@ -384,54 +344,19 @@ function OfficialAssessmentPage() {
 
           {upload && selectedTool && (
             <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-white p-4">
-              <p className="text-sm font-bold text-[#0F3D3E]">معالجة نتائج {selectedTool.nameAr}</p>
+              <p className="text-sm font-bold text-[#0F3D3E]">مجالات مرجعية لقراءة نتائج {selectedTool.nameAr}</p>
               <p className="mt-1 text-xs leading-6 text-stone-600">
-                أدخل نتيجة مفسرة لكل مجال تم تقييمه. هذه الخطوة تحول الملف المقروء إلى مرجعية مصنفة يمكن البناء عليها في مستوى الأداء الحالي وفرص الأهداف.
+                تستخدم هذه المجالات كخريطة قراءة وتصنيف فقط. لا يدخل المختص درجات أو تقديرات يدوية هنا، ولا تنشئ المنصة تصحيحاً بديلاً للأداة الرسمية.
               </p>
-              <div className="mt-4 space-y-3">
-                {selectedTool.domains.map((domain) => {
-                  const input = domainInputs[domain.code] ?? { rating: "not_observed", note: "" };
-                  return (
-                    <div key={domain.code} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-bold text-[#0F3D3E]">{domain.nameAr}</p>
-                          <p className="mt-1 text-[11px] leading-5 text-stone-500">
-                            المفاهيم المرتبطة: {domain.linkedConcepts.join("، ")}
-                          </p>
-                        </div>
-                        <select
-                          value={input.rating}
-                          onChange={(event) => setDomainInputs((current) => ({
-                            ...current,
-                            [domain.code]: {
-                              ...(current[domain.code] ?? { note: "" }),
-                              rating: event.target.value as AssessmentRating,
-                            },
-                          }))}
-                          className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-bold text-stone-700 outline-none focus:border-[#0F3D3E]"
-                        >
-                          {Object.entries(RATING_LABELS).map(([rating, label]) => (
-                            <option key={rating} value={rating}>{label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <textarea
-                        value={input.note}
-                        onChange={(event) => setDomainInputs((current) => ({
-                          ...current,
-                          [domain.code]: {
-                            ...(current[domain.code] ?? { rating: "not_observed" }),
-                            note: event.target.value,
-                          },
-                        }))}
-                        rows={2}
-                        className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs leading-6 text-stone-800 outline-none focus:border-[#0F3D3E]"
-                        placeholder="اكتب نتيجة مفسرة: ماذا ظهر؟ ما مستوى الدعم؟ وما المعنى الوظيفي لهذه النتيجة؟"
-                      />
-                    </div>
-                  );
-                })}
+              <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+                {selectedTool.domains.map((domain) => (
+                  <div key={domain.code} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                    <p className="text-sm font-bold text-[#0F3D3E]">{domain.nameAr}</p>
+                    <p className="mt-1 text-[11px] leading-5 text-stone-500">
+                      المفاهيم المرتبطة: {domain.linkedConcepts.join("، ")}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -444,7 +369,7 @@ function OfficialAssessmentPage() {
                 onChange={(event) => setDraftText(event.target.value)}
                 rows={5}
                 className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
-                placeholder="مثال: في مجال التواصل الوظيفي حصل المتعلم على مستوى ناشئ؛ يحتاج إلى دعم بصري للبدء والاستجابة في سياق المجموعة. اكتب كل نتيجة مفسرة في سطر مستقل."
+                placeholder="راجع النص المقروء من ملف النتائج فقط. لا تدخل درجات جديدة هنا؛ صحح القراءة أو احذف ما لا يمثل نتيجة مفسرة من التقرير."
               />
               <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
               <input

@@ -63,6 +63,7 @@ requireText("goal opportunities generated", processing, "buildGoalOpportunities"
 requireText("readiness state", processing, "profile_ready_for_goal_review");
 requireText("psychometric boundary", processing, "أي تطبيق أو تصحيح سيكومتري كامل يحتاج عقد أداة وترخيص مستقل");
 requireText("official assessment upload-only boundary", read("src/routes/students.$id.assessment.official.tsx"), "لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً");
+requireText("official assessment no manual scoring fields", read("src/routes/students.$id.assessment.official.tsx"), "لا يدخل المختص درجات أو تقديرات يدوية هنا");
 requireText("information records use signal classifier", informationRecords, "classifySignalKindsFromText");
 requireText("information records performance guard", informationRecords, "canCandidateInformPerformance");
 requireText("source pipeline classifies concepts", pipeline, "conceptIdsForStatement");
