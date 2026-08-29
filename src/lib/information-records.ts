@@ -1,5 +1,9 @@
 import { getInformationToolDefinition } from "@/data/information-tools";
 import { OFFICIAL_CONCEPTS } from "@/data/concepts";
+import {
+  canCandidateInformPerformance,
+  classifySignalKindsFromText,
+} from "@/lib/information-classification";
 import type {
   ConceptId,
   InformationProcessingProfile,
@@ -99,7 +103,7 @@ function responseValueText(value: string | string[]) {
 }
 
 function signalKindsForResponse(response: InformationRecord["responses"][number]): InformationProcessingSignalKind[] {
-  const kinds = new Set<InformationProcessingSignalKind>();
+  const kinds = new Set<InformationProcessingSignalKind>(classifySignalKindsFromText(`${response.promptAr}: ${responseValueText(response.value)}`));
   if (response.outputPolicy === "conditional_evidence_candidate") kinds.add("evidence_candidate");
   if (response.targetPortfolio.includes("strengths")) kinds.add("profile_strength");
   if (response.targetPortfolio.includes("needs")) kinds.add("profile_need");
@@ -118,7 +122,11 @@ export function buildInformationProcessingProfile(records: InformationRecord[]):
       if (!valueAr) return [];
 
       return signalKindsForResponse(response).map((kind) => {
-        const isEvidenceCandidate = kind === "evidence_candidate" || response.outputPolicy === "conditional_evidence_candidate";
+        const statement = `${response.promptAr}: ${valueAr}`;
+        const isEvidenceCandidate = (
+          kind === "evidence_candidate" ||
+          response.outputPolicy === "conditional_evidence_candidate"
+        );
         const canSupportGoalSelection = (
           isEvidenceCandidate ||
           response.operatingRoles.includes("priority_driver") ||
@@ -142,7 +150,7 @@ export function buildInformationProcessingProfile(records: InformationRecord[]):
             : canSupportGoalSelection
               ? "structured_descriptive"
               : "requires_specialist_interpretation",
-          canInformCurrentPerformance: isEvidenceCandidate,
+          canInformCurrentPerformance: isEvidenceCandidate && canCandidateInformPerformance(statement, [kind]),
           canSupportGoalSelection,
           requiresSpecialistInterpretation: true,
         } satisfies InformationProcessingSignal;

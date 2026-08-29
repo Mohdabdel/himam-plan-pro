@@ -9,6 +9,7 @@ import {
   buildInformationProcessingProfile,
   loadInformationRecords,
 } from "@/lib/information-records";
+import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import { loadSourceFilePipelines } from "@/lib/source-file-pipeline";
 
 export const Route = createFileRoute("/students/$id/iep")({
@@ -86,7 +87,14 @@ function PlanPreparationHubPage() {
   const currentPerformanceSummary = summarizeCurrentPerformanceWorkspace(
     buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)),
   );
-  const informationProcessing = buildInformationProcessingProfile(loadInformationRecords(id));
+  const informationRecords = loadInformationRecords(id);
+  const sourcePipelines = loadSourceFilePipelines(id);
+  const informationProcessing = buildInformationProcessingProfile(informationRecords);
+  const profileProcessing = buildLearnerProfileProcessingModel({
+    learnerId: id,
+    informationRecords,
+    sourcePipelines,
+  });
   const learnerVoice = safeParse(`himam_learner_voice_${id}`);
   const familyVoice = safeParse(`himam_family_${id}`);
   const additionalSources = safeParse(`himam_additional_sources_${id}`);
@@ -101,9 +109,9 @@ function PlanPreparationHubPage() {
     {
       key: "currentLevel",
       title: "مستوى الأداء الحالي",
-      body: "عرض ملخص التقييم الرسمي وإشارات بروفايل المتعلم الناتجة من أدوات المعلومات دون اعتماد آلي.",
+      body: "عرض قراءة موحدة للتقييم الرسمي والأدوات والملفات، مع مسودات مستوى أداء وفرص أهداف قابلة للمراجعة.",
       status: currentPerformanceSummary.baselineReady
-        ? `نتيجة مفسرة + ${informationProcessing.signalCount} إشارة`
+        ? `نتيجة مفسرة + ${profileProcessing.inputCount} مدخل`
         : "ينقصه تفسير رسمي",
     },
     {
@@ -213,6 +221,9 @@ function PlanPreparationHubPage() {
               processedSignalCount={informationProcessing.signalCount}
               evidenceCandidateCount={informationProcessing.evidenceCandidateCount}
               goalSelectionSignalCount={informationProcessing.goalSelectionSignalCount}
+              processedProfileInputCount={profileProcessing.inputCount}
+              goalOpportunityCount={profileProcessing.topGoalOpportunities.length}
+              profileReadiness={profileProcessing.profileReadiness}
               learnerVoice={Boolean(learnerVoice)}
               familyVoice={Boolean(familyVoice)}
               additionalSources={Boolean(additionalSources)}
@@ -282,6 +293,9 @@ function CurrentLevelSection(props: {
   processedSignalCount: number;
   evidenceCandidateCount: number;
   goalSelectionSignalCount: number;
+  processedProfileInputCount: number;
+  goalOpportunityCount: number;
+  profileReadiness: string;
   learnerVoice: boolean;
   familyVoice: boolean;
   additionalSources: boolean;
@@ -290,8 +304,10 @@ function CurrentLevelSection(props: {
     ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
     ["نتائج مفسرة مراجعة", props.interpretedAssessmentCount > 0 ? `${props.interpretedAssessmentCount} بطاقة قابلة للتتبع` : "غير متاحة بعد"],
     ["معالجة أدوات المعلومات", props.processedSignalCount > 0 ? `${props.processedSignalCount} إشارة بروفايل معالجة` : "لا توجد إشارات بعد"],
+    ["قراءة البروفايل الموحدة", props.processedProfileInputCount > 0 ? `${props.processedProfileInputCount} مدخل مصنف - ${props.profileReadiness}` : "غير متاحة بعد"],
     ["مرشحات دليل أداء", props.evidenceCandidateCount > 0 ? `${props.evidenceCandidateCount} مرشح يحتاج تفسير مختص` : "لا يوجد مرشح بعد"],
     ["إشارات توجيه الأهداف", props.goalSelectionSignalCount > 0 ? `${props.goalSelectionSignalCount} إشارة أولوية/دعم/احتياج` : "غير متاحة بعد"],
+    ["فرص أهداف مستخرجة", props.goalOpportunityCount > 0 ? `${props.goalOpportunityCount} فرصة قابلة للمراجعة` : "لا توجد فرص بعد"],
     ["صوت المتعلم", props.learnerVoice ? "متاح ويدخل في معالجة البروفايل" : "غير موثق"],
     ["صوت الأسرة", props.familyVoice ? "متاح ويدخل في معالجة البروفايل" : "غير موثق"],
     ["مصادر إضافية", props.additionalSources ? "متاحة وتدخل في معالجة البروفايل" : "غير موثقة"],
@@ -301,7 +317,7 @@ function CurrentLevelSection(props: {
     <div>
       <h3 className="text-lg font-bold text-[#0F3D3E]">مستوى الأداء الحالي</h3>
       <p className="mt-2 text-sm leading-7 text-stone-600">
-        هذا الملخص لا يحل محل صياغة المختص لمستوى الأداء الحالي، لكنه يعرض معالجة أولية/متوسطة لأدوات المعلومات، بما في ذلك إشارات القوة والاحتياج والدعم والأولوية التي توجه بناء الأهداف والخطة.
+        هذا الملخص لا يحل محل صياغة المختص لمستوى الأداء الحالي، لكنه يعرض معالجة أولية/متوسطة لأدوات المعلومات والملفات المراجعة، بما في ذلك إشارات القوة والاحتياج والدعم والأولوية وفرص الأهداف التي توجه بناء الخطة.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
         {rows.map(([label, value]) => (

@@ -11,6 +11,7 @@ import type {
   UploadedSourceFile,
   UploadedSourcePurpose,
 } from "@/domain/himam";
+import { classifyConceptIdsFromText } from "@/lib/information-classification";
 import {
   validateExtractedSourceDraft,
   validateProtectedSourceFileMetadata,
@@ -89,6 +90,10 @@ function normalizeStatements(statements: string[] | undefined) {
   return (statements ?? [])
     .map((statement) => statement.trim())
     .filter(Boolean);
+}
+
+function conceptIdsForStatement(statement: string) {
+  return classifyConceptIdsFromText(statement, [DEFAULT_CONCEPT_ID]);
 }
 
 export function splitSourceDraftText(value: string) {
@@ -295,7 +300,7 @@ export function buildSourceFileDraftPipeline(input: DraftPipelineInput): SourceF
       statement,
       locationRef: `ملف مرفوع - بند مراجعة ${index + 1}`,
       proposedOutputChannel: input.outputChannel ?? "KNOWLEDGE_SUPPORT_ITEM",
-      proposedConceptIds: [DEFAULT_CONCEPT_ID],
+      proposedConceptIds: conceptIdsForStatement(statement),
       confidence: 1,
     })),
     failureReason: failed ? input.extractionFailureReason : undefined,
@@ -344,7 +349,7 @@ function buildStructuredResponses(input: {
     responseCode: `UPLOADED_SOURCE_REVIEW_${index + 1}`,
     valueText: statement,
     selectedOptionIds: [],
-    conceptIds: [DEFAULT_CONCEPT_ID],
+    conceptIds: conceptIdsForStatement(statement),
     portfolioTargetIds: [DEFAULT_PORTFOLIO_ID],
     operationalFunction: input.record.file.purpose === "OFFICIAL_ASSESSMENT_RESULTS"
       ? "ESTABLISH_CURRENT_PERFORMANCE"
@@ -410,7 +415,7 @@ export function applySourceExtractionReview(
       statement,
       locationRef: record.draft.items[index]?.locationRef ?? `مراجعة مختص - بند ${index + 1}`,
       proposedOutputChannel: input.outputChannel ?? "KNOWLEDGE_SUPPORT_ITEM",
-      proposedConceptIds: [DEFAULT_CONCEPT_ID],
+      proposedConceptIds: conceptIdsForStatement(statement),
       confidence: 1,
     })),
   };

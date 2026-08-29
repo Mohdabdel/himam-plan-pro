@@ -165,6 +165,70 @@ export type InformationProcessingProfile = {
   limitationsAr: string[];
 };
 
+export type ProcessedProfileInputOrigin =
+  | "platform_tool_application"
+  | "reviewed_uploaded_source";
+
+export type ProcessedProfileInput = {
+  id: string;
+  learnerId: string;
+  origin: ProcessedProfileInputOrigin;
+  sourceNameAr: string;
+  sourceRecordId: string;
+  sourcePurpose?: string;
+  labelAr: string;
+  valueAr: string;
+  conceptIds: ConceptId[];
+  signalKinds: InformationProcessingSignalKind[];
+  targetPortfolio?: string;
+  provenanceLabel: string;
+  canInformCurrentPerformance: boolean;
+  canSupportGoalSelection: boolean;
+  requiresSpecialistInterpretation: boolean;
+};
+
+export type ProfileGoalOpportunity = {
+  id: string;
+  conceptId: ConceptId;
+  titleAr: string;
+  rationaleAr: string;
+  sourceInputIds: string[];
+  priority: "high" | "medium" | "low";
+  requiresBaselineReview: boolean;
+};
+
+export type ProcessedConceptProfile = {
+  conceptId: ConceptId;
+  conceptNameAr: string;
+  sourceCount: number;
+  signalCount: number;
+  strengths: ProcessedProfileInput[];
+  needs: ProcessedProfileInput[];
+  priorities: ProcessedProfileInput[];
+  supportConditions: ProcessedProfileInput[];
+  evidenceCandidates: ProcessedProfileInput[];
+  currentPerformanceDraftAr: string;
+  coverage: "limited" | "moderate" | "good";
+  confidence: "low" | "medium" | "high";
+  goalOpportunities: ProfileGoalOpportunity[];
+  gapsAr: string[];
+};
+
+export type LearnerProfileProcessingModel = {
+  learnerId: string;
+  generatedAt: string;
+  inputCount: number;
+  reviewedUploadedSourceCount: number;
+  platformToolRecordCount: number;
+  conceptProfiles: ProcessedConceptProfile[];
+  topGoalOpportunities: ProfileGoalOpportunity[];
+  profileReadiness:
+    | "no_processed_information"
+    | "processed_information_available"
+    | "profile_ready_for_goal_review";
+  limitationsAr: string[];
+};
+
 export type KnowledgeSupportItem = {
   id: string;
   sourceRecordId: string;

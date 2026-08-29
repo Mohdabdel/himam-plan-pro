@@ -15,11 +15,12 @@ import {
   buildInformationProcessingProfile,
   loadInformationRecords,
 } from "@/lib/information-records";
+import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import { getConceptNameAr } from "@/data/concepts";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
 import { loadSourceFilePipelines } from "@/lib/source-file-pipeline";
-import type { AssessmentRecord, InformationProcessingProfile } from "@/types/himam";
+import type { AssessmentRecord, InformationProcessingProfile, LearnerProfileProcessingModel } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/coverage")({
   component: InformationSufficiencyPage,
@@ -233,14 +234,24 @@ function InformationSufficiencyPage() {
   const [informationProcessing, setInformationProcessing] = useState<InformationProcessingProfile>(
     () => buildInformationProcessingProfile([]),
   );
+  const [profileProcessing, setProfileProcessing] = useState<LearnerProfileProcessingModel>(
+    () => buildLearnerProfileProcessingModel({ learnerId: id, informationRecords: [], sourcePipelines: [] }),
+  );
 
   useEffect(() => {
     const loadedStudent = loadStudent(id);
     setStudent(loadedStudent);
     setRecords(loadAssessmentRecords(id));
     setSources(loadSourceSnapshot(id));
-    setCurrentPerformanceCards(buildCurrentPerformanceWorkspace(loadSourceFilePipelines(id)));
-    setInformationProcessing(buildInformationProcessingProfile(loadInformationRecords(id)));
+    const loadedPipelines = loadSourceFilePipelines(id);
+    const loadedInformationRecords = loadInformationRecords(id);
+    setCurrentPerformanceCards(buildCurrentPerformanceWorkspace(loadedPipelines));
+    setInformationProcessing(buildInformationProcessingProfile(loadedInformationRecords));
+    setProfileProcessing(buildLearnerProfileProcessingModel({
+      learnerId: id,
+      informationRecords: loadedInformationRecords,
+      sourcePipelines: loadedPipelines,
+    }));
     setComponentStatus(loadPlanComponentStatus(id));
   }, [id]);
 
@@ -376,6 +387,54 @@ function InformationSufficiencyPage() {
                   <p className="mt-1 text-[11px] leading-5 text-stone-500">
                     المصادر: {summary.sourceToolNamesAr.slice(0, 3).join("، ")}
                   </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-[#D9764A]">بروفايل تشغيل قابل للمراجعة</p>
+              <h3 className="mt-1 text-lg font-bold text-[#0F3D3E]">قراءة موحدة من الأدوات والملفات</h3>
+            </div>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-700">
+              {profileProcessing.profileReadiness === "profile_ready_for_goal_review"
+                ? "جاهز لمراجعة الأهداف"
+                : profileProcessing.profileReadiness === "processed_information_available"
+                  ? "معلومات معالجة متاحة"
+                  : "لا توجد معالجة بعد"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <MetricBox label="مدخلات مصنفة" value={profileProcessing.inputCount} />
+            <MetricBox label="ملفات مراجعة" value={profileProcessing.reviewedUploadedSourceCount} />
+            <MetricBox label="أدوات مطبقة" value={profileProcessing.platformToolRecordCount} />
+            <MetricBox label="فرص أهداف" value={profileProcessing.topGoalOpportunities.length} />
+          </div>
+
+          {profileProcessing.conceptProfiles.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
+              لم تتكون بعد قراءة بروفايل من أدوات أو ملفات مراجعة. طبق أداة أو ارفع مصدراً ثم راجعه لتظهر مسودات مستوى الأداء وفرص الأهداف.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {profileProcessing.conceptProfiles.slice(0, 5).map((profile) => (
+                <article key={profile.conceptId} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-[#0F3D3E]">{profile.conceptNameAr}</p>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-stone-600">
+                      تغطية {profile.coverage} / ثقة {profile.confidence}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-stone-700">{profile.currentPerformanceDraftAr}</p>
+                  {profile.goalOpportunities.length > 0 && (
+                    <p className="mt-2 text-xs leading-6 text-stone-500">
+                      فرصة هدف أولى: {profile.goalOpportunities[0].rationaleAr}
+                    </p>
+                  )}
                 </article>
               ))}
             </div>

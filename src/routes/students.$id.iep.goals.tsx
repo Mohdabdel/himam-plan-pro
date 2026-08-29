@@ -26,12 +26,20 @@ import {
   buildKnowledgeSupportItems,
   loadInformationRecords,
 } from "@/lib/information-records";
+import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import {
   loadSourceFilePipelines,
   summarizeSourceFilePipeline,
   type SourceFilePipelineRecord,
 } from "@/lib/source-file-pipeline";
-import type { AssessmentRecord, InformationProcessingProfile, KnowledgeSupportItem } from "@/types/himam";
+import type {
+  AssessmentRecord,
+  ConceptId,
+  InformationProcessingProfile,
+  KnowledgeSupportItem,
+  LearnerProfileProcessingModel,
+  ProcessedConceptProfile,
+} from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/iep/goals")({
   component: IEPPage,
@@ -215,12 +223,36 @@ function sourceLabel(sourceId: GoalSourceId) {
   return "أدوات ومصادر إضافية";
 }
 
+function domainCodeToConceptIds(domainCode: DomainCode | ""): ConceptId[] {
+  const map: Record<DomainCode, ConceptId[]> = {
+    VS: ["COMMUNITY", "ACADEMIC", "SELF_DET"],
+    VB: ["COMMUNITY", "SOCIAL", "SAFETY"],
+    IF: ["SELF_CARE", "COMMUNITY"],
+    LS: ["SELF_CARE", "SOCIAL", "COMMUNITY"],
+    FC: ["COMM"],
+    IB: ["SOCIAL", "COMM"],
+    COG: ["ACADEMIC"],
+    COM: ["COMM"],
+    SOC: ["SOCIAL"],
+    ADL: ["SELF_CARE"],
+    VOC: ["COMMUNITY", "ACADEMIC"],
+    MOT: ["MOBILITY", "SELF_CARE"],
+  };
+  return domainCode ? map[domainCode] : [];
+}
+
+function profileForDomain(model: LearnerProfileProcessingModel, domainCode: DomainCode | ""): ProcessedConceptProfile | null {
+  const conceptIds = domainCodeToConceptIds(domainCode);
+  return model.conceptProfiles.find((profile) => conceptIds.includes(profile.conceptId)) ?? null;
+}
+
 function buildGoalSources(input: {
   assessmentRecords: AssessmentRecord[];
   family: FamilyData | null;
   learnerVoice: LearnerVoiceData | null;
   additionalSources: unknown;
   informationProcessing: InformationProcessingProfile;
+  profileProcessing: LearnerProfileProcessingModel;
   sourcePipelines: SourceFilePipelineRecord[];
 }) {
   const sources: Array<{ id: GoalSourceId; label: string; note: string }> = [];
@@ -266,11 +298,11 @@ function buildGoalSources(input: {
     });
   }
 
-  if (input.informationProcessing.goalSelectionSignalCount > 0) {
+  if (input.profileProcessing.topGoalOpportunities.length > 0) {
     sources.push({
       id: "processed_information_profile",
       label: "إشارات بروفايل من أدوات المعلومات",
-      note: `${input.informationProcessing.goalSelectionSignalCount} إشارة معالجة توجه الأهداف، منها ${input.informationProcessing.evidenceCandidateCount} مرشح دليل أداء يحتاج تفسير مختص.`,
+      note: `${input.profileProcessing.topGoalOpportunities.length} فرصة هدف مستخرجة من قراءة الأدوات والملفات، منها ما يحتاج مراجعة baseline قبل الاعتماد.`,
     });
   }
 
@@ -355,6 +387,9 @@ function IEPPage() {
   const [informationProcessing, setInformationProcessing] = useState<InformationProcessingProfile>(
     () => buildInformationProcessingProfile([]),
   );
+  const [profileProcessing, setProfileProcessing] = useState<LearnerProfileProcessingModel>(
+    () => buildLearnerProfileProcessingModel({ learnerId: id, informationRecords: [], sourcePipelines: [] }),
+  );
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
@@ -419,11 +454,25 @@ function IEPPage() {
     const informationRecords = loadInformationRecords(id);
     setKnowledgeSupport(buildKnowledgeSupportItems(informationRecords));
     setInformationProcessing(buildInformationProcessingProfile(informationRecords));
+    setProfileProcessing(buildLearnerProfileProcessingModel({
+      learnerId: id,
+      informationRecords,
+      sourcePipelines: loadSourceFilePipelines(id),
+    }));
 
     setLoaded(true);
   }, [id]);
 
-  const goalSources = buildGoalSources({ assessmentRecords, family, learnerVoice, additionalSources, informationProcessing, sourcePipelines });
+  const selectedProcessedConceptProfile = profileForDomain(profileProcessing, goalBuilder.domainCode);
+  const goalSources = buildGoalSources({
+    assessmentRecords,
+    family,
+    learnerVoice,
+    additionalSources,
+    informationProcessing,
+    profileProcessing,
+    sourcePipelines,
+  });
   const selectedGoalDomain = domains.find((domain) => domain.code === goalBuilder.domainCode);
   const selectedAssessmentItems = goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
     ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
@@ -493,6 +542,8 @@ function IEPPage() {
             measurementMethod: goalBuilder.measurementMethod,
             evidenceRef: sourceId === "assessment"
               ? selectedItemLabels.join("، ")
+              : sourceId === "processed_information_profile" && selectedProcessedConceptProfile?.goalOpportunities[0]
+                ? selectedProcessedConceptProfile.goalOpportunities[0].rationaleAr
               : sourceLabel(sourceId),
             lifePractice: goalBuilder.generalOutcome,
           },
@@ -780,9 +831,29 @@ function IEPPage() {
                     </label>
                   ))}
                 </div>
+              ) : goalBuilder.sourceId === "processed_information_profile" ? (
+                <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {!selectedProcessedConceptProfile ? (
+                    <p style={{ margin: 0, color: "#94A3B8", fontSize: 12, lineHeight: 1.7 }}>
+                      لا توجد قراءة بروفايل مرتبطة بهذا المجال بعد.
+                    </p>
+                  ) : (
+                    <>
+                      <p style={{ margin: 0, color: "#334155", fontSize: 12, lineHeight: 1.7 }}>
+                        {selectedProcessedConceptProfile.currentPerformanceDraftAr}
+                      </p>
+                      {selectedProcessedConceptProfile.goalOpportunities.slice(0, 2).map((opportunity) => (
+                        <div key={opportunity.id} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 7 }}>
+                          <p style={{ margin: 0, color: TEAL, fontSize: 11, fontWeight: 800 }}>{opportunity.titleAr}</p>
+                          <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.5 }}>{opportunity.rationaleAr}</p>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
               ) : (
                 <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.8 }}>
-                  عند اختيار مصدر غير التقييم، يستخدم كمعلومة داعمة للأولوية والصياغة ولا يتحول تلقائياً إلى مستوى أداء.
+                  عند اختيار مصدر غير التقييم، يستخدم كمعلومة داعمة للأولوية والصياغة، وقد يوجه الهدف إذا ظهر ضمن قراءة البروفايل، لكنه لا يتحول تلقائياً إلى اعتماد.
                 </p>
               )}
             </div>
@@ -992,6 +1063,7 @@ function IEPPage() {
                     />
                     <ReviewedFileSourcesPanel pipelines={sourcePipelines} />
                     <InformationProcessingPanel profile={informationProcessing} />
+                    <ProfileProcessingPanel model={profileProcessing} />
                     <KnowledgeSupportPanel items={knowledgeSupport} />
                     {goals[d.code].length === 0 && (
                       <p style={{ color: "#94A3B8", fontSize: 14, margin: "0 0 12px" }}>
@@ -1407,6 +1479,50 @@ function InformationProcessingPanel({ profile }: { profile: InformationProcessin
       <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
         المعالجة الحالية متوسطة ومهنية: توجه بناء مستوى الأداء والهدف، ولا تعتمد وحدها ادعاء أداء أو تحليل سيكومتري.
       </p>
+    </div>
+  );
+}
+
+function ProfileProcessingPanel({ model }: { model: LearnerProfileProcessingModel }) {
+  if (model.inputCount === 0) {
+    return (
+      <div style={{ marginBottom: 12, background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 10 }}>
+        <p style={{ margin: 0, color: "#78350F", fontSize: 12, lineHeight: 1.7 }}>
+          لم تتكون قراءة بروفايل تشغيلية بعد من الأدوات أو الملفات. طبق أداة أو راجع ملفاً مرفوعاً لتظهر فرص الأهداف حسب المفهوم.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12, background: "#FAFAF8", border: "1px solid #E7E5E4", borderRadius: 8, padding: 10 }}>
+      <p style={{ margin: "0 0 8px", color: TEAL, fontSize: 12, fontWeight: 800 }}>قراءة البروفايل الموحدة</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
+        <MiniMetric label="مدخلات" value={model.inputCount} />
+        <MiniMetric label="ملفات" value={model.reviewedUploadedSourceCount} />
+        <MiniMetric label="أدوات" value={model.platformToolRecordCount} />
+        <MiniMetric label="فرص" value={model.topGoalOpportunities.length} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {model.conceptProfiles.slice(0, 4).map((profile) => (
+          <div key={profile.conceptId} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <p style={{ margin: 0, color: "#334155", fontSize: 12, fontWeight: 700 }}>{profile.conceptNameAr}</p>
+              <span style={{ color: "#64748B", fontSize: 10, fontWeight: 700 }}>
+                {profile.coverage} / {profile.confidence}
+              </span>
+            </div>
+            <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.6 }}>
+              {profile.currentPerformanceDraftAr}
+            </p>
+          </div>
+        ))}
+      </div>
+      {model.topGoalOpportunities.length > 0 && (
+        <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
+          أعلى فرصة: {model.topGoalOpportunities[0].rationaleAr}
+        </p>
+      )}
     </div>
   );
 }
