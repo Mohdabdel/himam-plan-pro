@@ -415,6 +415,36 @@ function InformationSufficiencyPage() {
             <MetricBox label="فرص أهداف" value={profileProcessing.topGoalOpportunities.length} />
           </div>
 
+          <div className="mt-4 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-bold text-[#0F3D3E]">مصفوفة مكونات البروفايل</p>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-stone-600">
+                صحة الهدف: {profileProcessing.componentMatrix.goalValidityReady ? "قابلة للمراجعة" : "تحتاج استكمال"}
+              </span>
+            </div>
+            <p className="mt-2 text-xs leading-6 text-stone-600">
+              يفرز المحرك المدخلات إلى مكونات أساسية مثل صوت الأسرة، صوت المتعلم، الأولويات، الدعم، المخاطر، ونتائج التقييم، ثم يحدد ما يؤثر على صحة الهدف وما يحسن جودة صياغته.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+              {profileProcessing.componentMatrix.coverage.slice(0, 6).map((item) => (
+                <div key={item.componentId} className="rounded-lg border border-white bg-white px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-[#0F3D3E]">{item.componentNameAr}</p>
+                    <span className="text-[10px] font-bold text-stone-500">{item.status}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-5 text-stone-500">
+                    {item.elementCount} عناصر مصنفة {item.requiredForGoalValidity ? "- مؤثر في صحة الهدف" : "- يحسن جودة الهدف"}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {profileProcessing.componentMatrix.blockingGapsAr.length > 0 && (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
+                فجوات مؤثرة: {profileProcessing.componentMatrix.blockingGapsAr.join(" ")}
+              </p>
+            )}
+          </div>
+
           {profileProcessing.conceptProfiles.length === 0 ? (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-800">
               لم تتكون بعد قراءة بروفايل من أدوات أو ملفات مراجعة. طبق أداة أو ارفع مصدراً ثم راجعه لتظهر مسودات مستوى الأداء وفرص الأهداف.

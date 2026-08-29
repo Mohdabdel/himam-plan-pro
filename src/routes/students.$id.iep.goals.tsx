@@ -38,6 +38,7 @@ import type {
   InformationProcessingProfile,
   KnowledgeSupportItem,
   LearnerProfileProcessingModel,
+  ProfileComponentElement,
   ProcessedConceptProfile,
 } from "@/types/himam";
 
@@ -246,6 +247,22 @@ function profileForDomain(model: LearnerProfileProcessingModel, domainCode: Doma
   return model.conceptProfiles.find((profile) => conceptIds.includes(profile.conceptId)) ?? null;
 }
 
+function componentElementsForDomain(model: LearnerProfileProcessingModel, domainCode: DomainCode | ""): ProfileComponentElement[] {
+  const conceptIds = domainCodeToConceptIds(domainCode);
+  if (conceptIds.length === 0) return [];
+  return model.componentMatrix.elements
+    .filter((element) => element.conceptIds.some((conceptId) => conceptIds.includes(conceptId)))
+    .sort((a, b) => {
+      const order = {
+        critical_for_goal_validity: 0,
+        important_for_goal_quality: 1,
+        supporting_context: 2,
+      };
+      return order[a.importance] - order[b.importance];
+    })
+    .slice(0, 6);
+}
+
 function buildGoalSources(input: {
   assessmentRecords: AssessmentRecord[];
   family: FamilyData | null;
@@ -302,7 +319,7 @@ function buildGoalSources(input: {
     sources.push({
       id: "processed_information_profile",
       label: "إشارات بروفايل من أدوات المعلومات",
-      note: `${input.profileProcessing.topGoalOpportunities.length} فرصة هدف مستخرجة من قراءة الأدوات والملفات، منها ما يحتاج مراجعة baseline قبل الاعتماد.`,
+      note: `${input.profileProcessing.topGoalOpportunities.length} فرصة هدف مستخرجة من مصفوفة مكونات البروفايل. صحة الهدف: ${input.profileProcessing.componentMatrix.goalValidityReady ? "قابلة للمراجعة" : "تحتاج استكمال مكونات حرجة"}.`,
     });
   }
 
@@ -464,6 +481,7 @@ function IEPPage() {
   }, [id]);
 
   const selectedProcessedConceptProfile = profileForDomain(profileProcessing, goalBuilder.domainCode);
+  const selectedProfileComponentElements = componentElementsForDomain(profileProcessing, goalBuilder.domainCode);
   const goalSources = buildGoalSources({
     assessmentRecords,
     family,
@@ -833,16 +851,27 @@ function IEPPage() {
                 </div>
               ) : goalBuilder.sourceId === "processed_information_profile" ? (
                 <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-                  {!selectedProcessedConceptProfile ? (
+                  {!selectedProcessedConceptProfile && selectedProfileComponentElements.length === 0 ? (
                     <p style={{ margin: 0, color: "#94A3B8", fontSize: 12, lineHeight: 1.7 }}>
                       لا توجد قراءة بروفايل مرتبطة بهذا المجال بعد.
                     </p>
                   ) : (
                     <>
-                      <p style={{ margin: 0, color: "#334155", fontSize: 12, lineHeight: 1.7 }}>
-                        {selectedProcessedConceptProfile.currentPerformanceDraftAr}
-                      </p>
-                      {selectedProcessedConceptProfile.goalOpportunities.slice(0, 2).map((opportunity) => (
+                      {selectedProcessedConceptProfile && (
+                        <p style={{ margin: 0, color: "#334155", fontSize: 12, lineHeight: 1.7 }}>
+                          {selectedProcessedConceptProfile.currentPerformanceDraftAr}
+                        </p>
+                      )}
+                      {selectedProfileComponentElements.map((element) => (
+                        <div key={element.id} style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 6, padding: 7 }}>
+                          <p style={{ margin: 0, color: TEAL, fontSize: 11, fontWeight: 800 }}>{element.componentNameAr} - {element.elementNameAr}</p>
+                          <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.5 }}>{element.summaryAr}</p>
+                          <p style={{ margin: "3px 0 0", color: "#92400E", fontSize: 10, lineHeight: 1.5 }}>
+                            الأثر: {profileImpactLabel(element.goalImpact)} - {element.reviewActionAr}
+                          </p>
+                        </div>
+                      ))}
+                      {selectedProcessedConceptProfile?.goalOpportunities.slice(0, 2).map((opportunity) => (
                         <div key={opportunity.id} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 7 }}>
                           <p style={{ margin: 0, color: TEAL, fontSize: 11, fontWeight: 800 }}>{opportunity.titleAr}</p>
                           <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.5 }}>{opportunity.rationaleAr}</p>
@@ -1063,6 +1092,7 @@ function IEPPage() {
                     />
                     <ReviewedFileSourcesPanel pipelines={sourcePipelines} />
                     <InformationProcessingPanel profile={informationProcessing} />
+                    <ProfileComponentMatrixPanel model={profileProcessing} />
                     <ProfileProcessingPanel model={profileProcessing} />
                     <KnowledgeSupportPanel items={knowledgeSupport} />
                     {goals[d.code].length === 0 && (
@@ -1479,6 +1509,61 @@ function InformationProcessingPanel({ profile }: { profile: InformationProcessin
       <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
         المعالجة الحالية متوسطة ومهنية: توجه بناء مستوى الأداء والهدف، ولا تعتمد وحدها ادعاء أداء أو تحليل سيكومتري.
       </p>
+    </div>
+  );
+}
+
+function profileImpactLabel(value: ProfileComponentElement["goalImpact"]) {
+  if (value === "blocks_or_weakens_goal_validity") return "يؤثر على صحة الهدف";
+  if (value === "improves_goal_relevance") return "يحسن ملاءمة الهدف";
+  if (value === "improves_goal_personalization") return "يحسن تخصيص الهدف";
+  if (value === "improves_goal_measurement") return "يحسن القياس والدعم";
+  return "سياق داعم";
+}
+
+function ProfileComponentMatrixPanel({ model }: { model: LearnerProfileProcessingModel }) {
+  const covered = model.componentMatrix.coveredComponentCount;
+  const total = model.componentMatrix.componentCount;
+
+  return (
+    <div style={{ marginBottom: 12, background: "#F4FAF9", border: "1px solid #9EC7C3", borderRadius: 8, padding: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+        <p style={{ margin: 0, color: TEAL, fontSize: 12, fontWeight: 800 }}>محرك مكونات البروفايل</p>
+        <span style={{ color: "#64748B", fontSize: 10, fontWeight: 800 }}>
+          {covered}/{total} مكونات
+        </span>
+      </div>
+      <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.7 }}>
+        يفرز كل إدخال إلى مكون بروفايل وعنصر داخلي، ثم يحدد هل يؤثر على صحة الهدف أو يحسن جودة صياغته عند الاستدعاء.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginTop: 8 }}>
+        <MiniMetric label="عناصر" value={model.componentMatrix.elements.length} />
+        <MiniMetric label="فجوات صحة" value={model.componentMatrix.criticalMissingComponentCount} />
+        <MiniMetric label="تلميحات" value={model.componentMatrix.goalRetrievalHintsAr.length} />
+      </div>
+      {model.componentMatrix.elements.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+          {model.componentMatrix.elements.slice(0, 4).map((element) => (
+            <div key={element.id} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 8 }}>
+              <p style={{ margin: 0, color: "#334155", fontSize: 12, fontWeight: 700 }}>
+                {element.componentNameAr} - {element.elementNameAr}
+              </p>
+              <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.6 }}>
+                {profileImpactLabel(element.goalImpact)}: {element.summaryAr}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
+          لم تصل مدخلات كافية لتكوين مصفوفة مكونات بعد.
+        </p>
+      )}
+      {model.componentMatrix.blockingGapsAr.length > 0 && (
+        <p style={{ margin: "8px 0 0", color: "#92400E", fontSize: 11, lineHeight: 1.6 }}>
+          فجوات مؤثرة على صحة الهدف: {model.componentMatrix.blockingGapsAr.join(" ")}
+        </p>
+      )}
     </div>
   );
 }

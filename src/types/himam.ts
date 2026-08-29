@@ -197,6 +197,74 @@ export type ProfileGoalOpportunity = {
   requiresBaselineReview: boolean;
 };
 
+export type ProfileComponentId =
+  | "formal_assessment_results"
+  | "current_performance"
+  | "family_voice"
+  | "learner_voice"
+  | "priority"
+  | "support_context"
+  | "risk_safety"
+  | "interest_preference"
+  | "career_inclination"
+  | "environment_context"
+  | "additional_information";
+
+export type ProfileComponentImportance =
+  | "critical_for_goal_validity"
+  | "important_for_goal_quality"
+  | "supporting_context";
+
+export type ProfileGoalImpact =
+  | "blocks_or_weakens_goal_validity"
+  | "improves_goal_relevance"
+  | "improves_goal_personalization"
+  | "improves_goal_measurement"
+  | "adds_context_only";
+
+export type ProfileComponentElement = {
+  id: string;
+  componentId: ProfileComponentId;
+  componentNameAr: string;
+  elementKey: string;
+  elementNameAr: string;
+  importance: ProfileComponentImportance;
+  goalImpact: ProfileGoalImpact;
+  conceptIds: ConceptId[];
+  sourceInputIds: string[];
+  sourceLabelsAr: string[];
+  summaryAr: string;
+  retrievalHintAr: string;
+  reviewActionAr: string;
+  canSupportCurrentLevel: boolean;
+  canSupportGoalValidity: boolean;
+  canImproveGoalQuality: boolean;
+};
+
+export type ProfileComponentCoverage = {
+  componentId: ProfileComponentId;
+  componentNameAr: string;
+  requiredForGoalValidity: boolean;
+  status: "missing" | "partial" | "covered";
+  elementCount: number;
+  criticalElementCount: number;
+  qualityElementCount: number;
+  gapAr?: string;
+};
+
+export type LearnerProfileComponentMatrix = {
+  componentCount: number;
+  coveredComponentCount: number;
+  criticalMissingComponentCount: number;
+  goalValidityReady: boolean;
+  goalQualityReadiness: "limited" | "moderate" | "strong";
+  elements: ProfileComponentElement[];
+  coverage: ProfileComponentCoverage[];
+  goalRetrievalHintsAr: string[];
+  blockingGapsAr: string[];
+  qualityGapsAr: string[];
+};
+
 export type ProcessedConceptProfile = {
   conceptId: ConceptId;
   conceptNameAr: string;
@@ -220,6 +288,7 @@ export type LearnerProfileProcessingModel = {
   inputCount: number;
   reviewedUploadedSourceCount: number;
   platformToolRecordCount: number;
+  componentMatrix: LearnerProfileComponentMatrix;
   conceptProfiles: ProcessedConceptProfile[];
   topGoalOpportunities: ProfileGoalOpportunity[];
   profileReadiness:
