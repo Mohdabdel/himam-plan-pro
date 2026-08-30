@@ -71,6 +71,9 @@ requireText("cycle05 findings severity", plan, "QualityFindingSeverity");
 requireText("cycle05 plan unit review", plan, "الخطة كوحدة متكاملة");
 
 requireText("existing goal quality function", goalQuality, "computeGoalQuality");
+requireText("implemented plan quality contract", goalQuality, "evaluateGoalPlanQuality");
+requireText("implemented finding severity type", goalQuality, "QualityFindingSeverity");
+requireText("implemented review support boundary", goalQuality, "decisionBoundary: \"review_support_only\"");
 requireText("existing hard stop guard", goalQuality, "hasHardStopViolation");
 requireText("plan quality criteria", planQualityReferences, "PLAN_QUALITY_CRITERIA");
 requireText("plan quality source count", planQualityReferences, "IEP_GOAL_QUALITY_RUBRIC_2023");

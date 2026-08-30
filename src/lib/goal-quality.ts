@@ -7,6 +7,13 @@
 // non-blocking by nature (e.g. linked life practice) or the upstream data it
 // would check against doesn't exist yet for this student.
 
+import {
+  getQualityReferenceIdsForCriterion,
+  type QualityCriterionId,
+  type QualityReferenceSourceId,
+} from "@/domain/himam/plan-quality-references";
+import type { LearnerProfileProcessingModel } from "@/types/himam";
+
 export type QualityState = "done" | "needs" | "advisory";
 
 export type QualityItem = {
@@ -29,6 +36,8 @@ export type GoalOverride = {
 
 export type GoalQualityInput = {
   goalText: string;
+  goalTrigger?: string;
+  performanceAnchor?: string;
   context: string;
   criterion: string;
   measurementMethod: string;
@@ -49,6 +58,37 @@ export type GoalQualityInput = {
     q_good?: string;
   } | null;
   override?: GoalOverride | null;
+};
+
+export type QualityFindingSeverity = "blocking" | "warning" | "advisory";
+export type QualityFindingScope = "goal" | "plan" | "transition";
+export type QualityFindingSource =
+  | "evidence"
+  | "profile_component"
+  | "goal_text"
+  | "measurement"
+  | "plan_coherence"
+  | "transition_reference";
+
+export type GoalPlanQualityFinding = {
+  id: string;
+  severity: QualityFindingSeverity;
+  scope: QualityFindingScope;
+  source: QualityFindingSource;
+  messageAr: string;
+  criterionIds: QualityCriterionId[];
+  sourceReferences: QualityReferenceSourceId[];
+};
+
+export type GoalPlanQualityRubricResult = {
+  blockingFindings: GoalPlanQualityFinding[];
+  warnings: GoalPlanQualityFinding[];
+  advisories: GoalPlanQualityFinding[];
+  sourceReferences: QualityReferenceSourceId[];
+  reviewSummaryAr: string;
+  decisionBoundary: "review_support_only";
+  producesApproval: false;
+  producesNumericScore: false;
 };
 
 function normalizeWords(text: string): Set<string> {
@@ -72,7 +112,7 @@ export function computeGoalQuality(input: GoalQualityInput): QualityItem[] {
   const goalText = input.goalText.trim();
   const hasCriterion = input.criterion.trim().length > 0;
   const hasMeasurement = input.measurementMethod.trim().length > 0;
-  const hasEvidence = input.evidenceRef.trim().length > 0;
+  const hasEvidence = input.evidenceRef.trim().length > 0 || !!input.performanceAnchor?.trim();
 
   // احتياج/أولوية: مبني على مجالات التغطية المتعثرة/الناشئة (تقييم حقيقي)
   // أو تطابق كلمة مع أولويات الأسرة المسجّلة فعليًا.
@@ -208,4 +248,134 @@ export function summarizeQuality(items: QualityItem[]): { done: number; needs: n
 export function hasHardStopViolation(goalText: string, items: QualityItem[]): boolean {
   if (!goalText.trim()) return false;
   return items.some((item) => item.hardStop && item.state === "needs" && !item.overridden);
+}
+
+function referencesFor(criterionIds: QualityCriterionId[]) {
+  return Array.from(new Set(criterionIds.flatMap(getQualityReferenceIdsForCriterion)));
+}
+
+function finding(input: Omit<GoalPlanQualityFinding, "sourceReferences">): GoalPlanQualityFinding {
+  return {
+    ...input,
+    sourceReferences: referencesFor(input.criterionIds),
+  };
+}
+
+function looksLikeContextOnlySource(anchor: string) {
+  return /KSI|دعم معرفي|صوت الأسرة|صوت المتعلم|أولويات الأسرة|رؤية الأسرة/i.test(anchor);
+}
+
+export function evaluateGoalPlanQuality(input: GoalQualityInput & {
+  learnerAgeYears?: number | null;
+  profileProcessing?: LearnerProfileProcessingModel | null;
+}): GoalPlanQualityRubricResult {
+  const qualityItems = computeGoalQuality(input);
+  const goalText = input.goalText.trim();
+  const trigger = input.goalTrigger?.trim() ?? "";
+  const anchor = input.performanceAnchor?.trim() || input.evidenceRef.trim();
+  const blockingFindings: GoalPlanQualityFinding[] = [];
+  const warnings: GoalPlanQualityFinding[] = [];
+  const advisories: GoalPlanQualityFinding[] = [];
+
+  if (goalText && !anchor) {
+    blockingFindings.push(finding({
+      id: "goal-performance-anchor-missing",
+      severity: "blocking",
+      scope: "goal",
+      source: "evidence",
+      messageAr: "لا يمكن اعتبار الهدف جاهزاً لأن مرتكز الأداء / الخط القاعدي غير محدد أو غير قابل للتتبع.",
+      criterionIds: ["GOAL_BASELINE_PRESENT", "GOAL_NEED_ALIGNMENT"],
+    }));
+  }
+
+  if (goalText && anchor && looksLikeContextOnlySource(anchor)) {
+    blockingFindings.push(finding({
+      id: "goal-performance-anchor-context-only",
+      severity: "blocking",
+      scope: "goal",
+      source: "evidence",
+      messageAr: "مرتكز الأداء يبدو مصدراً سياقياً مثل صوت الأسرة أو الدعم المعرفي؛ يلزم دليل أداء أو نتيجة مراجعة لاستخدامه كخط أساس.",
+      criterionIds: ["GOAL_BASELINE_PRESENT", "PLAN_PARENT_INPUT_INTEGRATED"],
+    }));
+  }
+
+  if (goalText && !trigger) {
+    warnings.push(finding({
+      id: "goal-trigger-missing",
+      severity: "warning",
+      scope: "goal",
+      source: "profile_component",
+      messageAr: "باعث الهدف غير محدد؛ يفضل توثيق سبب اختيار الهدف من صوت الأسرة أو المتعلم أو ملاحظة الفريق أو متطلبات الانتقال.",
+      criterionIds: ["GOAL_NEED_ALIGNMENT", "PLAN_PARENT_INPUT_INTEGRATED"],
+    }));
+  }
+
+  for (const item of qualityItems) {
+    if (item.hardStop && item.state === "needs" && !item.overridden) {
+      blockingFindings.push(finding({
+        id: `goal-quality-${item.label}`,
+        severity: "blocking",
+        scope: "goal",
+        source: item.label.includes("قياس") || item.label.includes("إتقان") ? "measurement" : "goal_text",
+        messageAr: item.note ?? item.label,
+        criterionIds: item.label.includes("قياس") || item.label.includes("إتقان")
+          ? ["GOAL_MEASURABLE_ANNUAL", "GOAL_ACTION_CONDITION_CRITERION"]
+          : ["GOAL_SPECIFIC_SKILL"],
+      }));
+    }
+  }
+
+  if (input.profileProcessing && !input.profileProcessing.componentMatrix.goalValidityReady) {
+    warnings.push(finding({
+      id: "profile-component-validity-gaps",
+      severity: "warning",
+      scope: "plan",
+      source: "profile_component",
+      messageAr: `توجد فجوات في مكونات البروفايل المؤثرة على صحة الأهداف: ${input.profileProcessing.componentMatrix.blockingGapsAr.join(" ")}`,
+      criterionIds: ["PLAN_PLAAFP_MULTI_SOURCE", "PLAN_SOURCE_ATTRIBUTION_AND_INTERPRETATION"],
+    }));
+  }
+
+  if ((input.learnerAgeYears ?? 0) >= 14 && !input.lifePractice.trim() && !goalText.includes("انتقال")) {
+    advisories.push(finding({
+      id: "age-14-transition-link-advisory",
+      severity: "advisory",
+      scope: "transition",
+      source: "transition_reference",
+      messageAr: "عمر المتعلم 14 فأعلى؛ راجع ارتباط الهدف بمفهوم انتقال أو ممارسة حياتية عند انطباق ذلك.",
+      criterionIds: ["PLAN_TRANSITION_ASSESSMENT_AGE_14_PLUS", "PLAN_ANNUAL_GOALS_LINK_TO_TRANSITION"],
+    }));
+  }
+
+  if (trigger && anchor) {
+    advisories.push(finding({
+      id: "goal-trigger-anchor-separated",
+      severity: "advisory",
+      scope: "goal",
+      source: "evidence",
+      messageAr: "تم فصل باعث الهدف عن مرتكز الأداء؛ راجع أن الصياغة النهائية تستفيد من الاثنين دون خلط بين الأولوية والخط القاعدي.",
+      criterionIds: ["GOAL_NEED_ALIGNMENT", "GOAL_BASELINE_PRESENT"],
+    }));
+  }
+
+  const sourceReferences = Array.from(new Set([
+    ...blockingFindings,
+    ...warnings,
+    ...advisories,
+  ].flatMap((item) => item.sourceReferences)));
+
+  return {
+    blockingFindings,
+    warnings,
+    advisories,
+    sourceReferences,
+    reviewSummaryAr: blockingFindings.length > 0
+      ? `توجد ${blockingFindings.length} موانع جودة قبل اعتماد الهدف أو الخطة.`
+      : warnings.length > 0
+        ? `لا توجد موانع اعتماد آلية، لكن توجد ${warnings.length} تنبيهات جودة تحتاج مراجعة.`
+        : "لا توجد موانع ظاهرة في مراجعة الجودة الحالية؛ القرار النهائي يبقى للمختص.",
+    decisionBoundary: "review_support_only",
+    producesApproval: false,
+    producesNumericScore: false,
+  };
 }

@@ -12,7 +12,13 @@ import { advanceStage } from "../lib/journey";
 import { getItemsByDomain, type TTAPDomain } from "../data/ttap-items";
 import { getConceptNameAr } from "@/data/concepts";
 import { GoalQualityChecklist } from "@/components/goal-quality-checklist";
-import { computeGoalQuality, hasHardStopViolation, type GoalOverride } from "@/lib/goal-quality";
+import {
+  computeGoalQuality,
+  evaluateGoalPlanQuality,
+  hasHardStopViolation,
+  type GoalOverride,
+  type GoalPlanQualityRubricResult,
+} from "@/lib/goal-quality";
 import { GoalReferencePanel } from "@/components/goal-reference-panel";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
 import {
@@ -74,6 +80,8 @@ type Goal = {
   criterion?: string;
   measurementMethod?: string;
   evidenceRef?: string;
+  goalTrigger?: string;
+  performanceAnchor?: string;
   lifePractice?: string;
   override?: GoalOverride;
 };
@@ -112,6 +120,7 @@ type GuidanceMode = "guided" | "direct";
 type GoalBuilderState = {
   domainCode: DomainCode | "";
   sourceId: GoalSourceId | "";
+  performanceAnchor: string;
   selectedItemIds: string[];
   mode: GuidanceMode | "";
   finalSkill: string;
@@ -128,6 +137,7 @@ type GoalBuilderState = {
 const EMPTY_GOAL_BUILDER: GoalBuilderState = {
   domainCode: "",
   sourceId: "",
+  performanceAnchor: "",
   selectedItemIds: [],
   mode: "",
   finalSkill: "",
@@ -147,7 +157,7 @@ type MissingField = "criterion" | "measurementMethod" | "evidenceRef" | null;
 function firstMissingField(g: Goal): MissingField {
   if (!g.criterion?.trim()) return "criterion";
   if (!g.measurementMethod?.trim()) return "measurementMethod";
-  if (!g.evidenceRef?.trim()) return "evidenceRef";
+  if (!g.evidenceRef?.trim() && !g.performanceAnchor?.trim()) return "evidenceRef";
   return null;
 }
 
@@ -342,6 +352,23 @@ function hasVagueLanguage(text: string) {
   return VAGUE_GOAL_WORDS.find((word) => text.includes(word));
 }
 
+function ageYearsFromBirthDate(birthDate?: string) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDelta = now.getMonth() - birth.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age;
+}
+
+function performanceAnchorFromBuilder(builder: GoalBuilderState, selectedItems: string[]) {
+  if (builder.performanceAnchor.trim()) return builder.performanceAnchor.trim();
+  if (builder.sourceId === "assessment" && selectedItems.length > 0) return selectedItems.join("، ");
+  return "";
+}
+
 function buildGoalDraft(input: {
   studentName: string;
   startDate: string;
@@ -368,6 +395,8 @@ function buildGoalDraft(input: {
     elements: [
       ["الطالب + الإطار الزمني", `${datePart} - ${studentName || "الطالب"}`],
       ["بيان المعطيات/الشرط", condition],
+      ["باعث الهدف", builder.sourceId ? sourceLabel(builder.sourceId as GoalSourceId) : "غير محدد"],
+      ["مرتكز الأداء / الخط القاعدي", performanceAnchorFromBuilder(builder, selectedItems) || "غير محدد"],
       ["سلوك ملحوظ", behavior || "غير مكتمل بعد"],
       ["توضيح التفاصيل", details || "غير محدد"],
       ["مستوى/معيار الأداء", criterion],
@@ -410,6 +439,7 @@ function IEPPage() {
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
+  const [knowledgeSupportOpen, setKnowledgeSupportOpen] = useState(false);
 
   // Draft state for the "professional override" mini-form, keyed by goal id.
   const [overrideFormFor, setOverrideFormFor] = useState<string | null>(null);
@@ -498,11 +528,31 @@ function IEPPage() {
   const selectedItemLabels = selectedAssessmentItems
     .filter((item) => goalBuilder.selectedItemIds.includes(String(item.id)))
     .map((item) => `بند ${item.id} - ${item.name}`);
+  const selectedPerformanceAnchor = performanceAnchorFromBuilder(goalBuilder, selectedItemLabels);
+  const selectedGoalTrigger = goalBuilder.sourceId ? sourceLabel(goalBuilder.sourceId as GoalSourceId) : "";
+  const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
   const generatedGoalDraft = buildGoalDraft({
     studentName: student?.name ?? "الطالب",
     startDate,
     builder: goalBuilder,
     selectedItems: selectedItemLabels,
+  });
+  const builderRubric = evaluateGoalPlanQuality({
+    goalText: generatedGoalDraft.text,
+    goalTrigger: selectedGoalTrigger,
+    performanceAnchor: selectedPerformanceAnchor,
+    context: goalBuilder.condition,
+    criterion: goalBuilder.criterion,
+    measurementMethod: goalBuilder.measurementMethod,
+    evidenceRef: selectedPerformanceAnchor,
+    lifePractice: goalBuilder.generalOutcome,
+    domainCode: goalBuilder.domainCode || "",
+    coverage,
+    family,
+    learnerVoice,
+    override: null,
+    learnerAgeYears,
+    profileProcessing,
   });
   const vagueWord = hasVagueLanguage(generatedGoalDraft.text);
 
@@ -516,8 +566,14 @@ function IEPPage() {
       if (field === "sourceId" && value !== "assessment") {
         next.selectedItemIds = [];
       }
+      if (field === "sourceId") {
+        next.performanceAnchor = "";
+      }
       return next;
     });
+    if (field === "mode") {
+      setKnowledgeSupportOpen(value === "direct");
+    }
   }
 
   function toggleBuilderItem(itemId: string) {
@@ -543,6 +599,10 @@ function IEPPage() {
       setBuilderMessage("اختر بنداً واحداً على الأقل من بنود أداة التقييم في المجال المحدد.");
       return;
     }
+    if (!selectedPerformanceAnchor) {
+      setBuilderMessage("حدد مرتكز الأداء / الخط القاعدي قبل إضافة المسودة.");
+      return;
+    }
     if (!generatedGoalDraft.text.includes("[السلوك المستهدف]") && generatedGoalDraft.text.trim()) {
       const domainCode = goalBuilder.domainCode;
       const sourceId = goalBuilder.sourceId as GoalSourceId;
@@ -558,11 +618,9 @@ function IEPPage() {
             context: goalBuilder.condition,
             criterion: goalBuilder.criterion,
             measurementMethod: goalBuilder.measurementMethod,
-            evidenceRef: sourceId === "assessment"
-              ? selectedItemLabels.join("، ")
-              : sourceId === "processed_information_profile" && selectedProcessedConceptProfile?.goalOpportunities[0]
-                ? selectedProcessedConceptProfile.goalOpportunities[0].rationaleAr
-              : sourceLabel(sourceId),
+            goalTrigger: sourceLabel(sourceId),
+            performanceAnchor: selectedPerformanceAnchor,
+            evidenceRef: selectedPerformanceAnchor,
             lifePractice: goalBuilder.generalOutcome,
           },
         ],
@@ -580,7 +638,7 @@ function IEPPage() {
       ...g,
       [code]: [...g[code], {
         id: crypto.randomUUID(), text: "", category: "",
-        context: "", criterion: "", measurementMethod: "", evidenceRef: "", lifePractice: "",
+        context: "", criterion: "", measurementMethod: "", evidenceRef: "", goalTrigger: "", performanceAnchor: "", lifePractice: "",
       }],
     }));
   }
@@ -649,6 +707,7 @@ function IEPPage() {
       const quality = computeGoalQuality({
         goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
         measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
+        goalTrigger: g.goalTrigger ?? "", performanceAnchor: g.performanceAnchor ?? "",
         lifePractice: g.lifePractice ?? "", domainCode: d.code,
         coverage, family, learnerVoice, override: g.override ?? null,
       });
@@ -686,7 +745,7 @@ function IEPPage() {
           context: goal.context,
           criterion: goal.criterion,
           measurementMethod: goal.measurementMethod,
-          evidenceRef: goal.evidenceRef,
+          evidenceRef: goal.performanceAnchor || goal.evidenceRef,
         })),
       });
       saveGoalApprovalBundles(id, approvalBundles);
@@ -791,7 +850,7 @@ function IEPPage() {
         <section style={cardStyle}>
           <h2 style={sectionTitle}>منشئ الهدف التفاعلي</h2>
           <p style={{ color: "#64748B", fontSize: 13, marginTop: 4, marginBottom: 0, lineHeight: 1.8 }}>
-            يمر المختص عبر مجال التقييم، ثم مصدر الهدف، ثم البنود أو الأدلة الداعمة، ثم يختار بين أسئلة توجيهية أو إضافة مباشرة. المسودة الناتجة لا تعد هدفاً معتمداً حتى تمر بمراجعة الجودة البشرية.
+            يمر المختص عبر مجال التقييم، ثم باعث الهدف، ثم مرتكز الأداء / الخط القاعدي، ثم يختار بين أسئلة توجيهية أو إضافة مباشرة. المسودة الناتجة لا تعد هدفاً معتمداً حتى تمر بمراجعة الجودة البشرية.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
@@ -810,7 +869,7 @@ function IEPPage() {
             </div>
 
             <div style={builderStepStyle}>
-              <div style={builderStepTitle}>2. مصدر الهدف</div>
+              <div style={builderStepTitle}>2. باعث الهدف</div>
               <select
                 value={goalBuilder.sourceId}
                 onChange={(event) => updateGoalBuilder("sourceId", event.target.value as GoalSourceId | "")}
@@ -830,7 +889,7 @@ function IEPPage() {
             </div>
 
             <div style={builderStepStyle}>
-              <div style={builderStepTitle}>3. بنود المصدر</div>
+              <div style={builderStepTitle}>3. مرتكز الأداء / الخط القاعدي</div>
               {goalBuilder.sourceId === "assessment" ? (
                 <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
                   {selectedAssessmentItems.length === 0 ? (
@@ -882,9 +941,18 @@ function IEPPage() {
                 </div>
               ) : (
                 <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.8 }}>
-                  عند اختيار مصدر غير التقييم، يستخدم كمعلومة داعمة للأولوية والصياغة، وقد يوجه الهدف إذا ظهر ضمن قراءة البروفايل، لكنه لا يتحول تلقائياً إلى اعتماد.
+                  عند اختيار باعث غير التقييم، يجب تحديد مرتكز أداء منفصل: نتيجة مراجعة، قائمة مسح، ملاحظة أداء منظمة، أو عينة عمل.
                 </p>
               )}
+              <textarea
+                value={goalBuilder.performanceAnchor}
+                onChange={(event) => updateGoalBuilder("performanceAnchor", event.target.value)}
+                rows={2}
+                placeholder={goalBuilder.sourceId === "assessment" && selectedItemLabels.length > 0
+                  ? "يمكن تركه فارغاً لاستخدام البنود المحددة كمرتكز أداء، أو اكتب تفسيراً مراجعاً لها..."
+                  : "اكتب مرتكز الأداء أو الخط القاعدي المراجع..."}
+                style={{ ...textAreaStyle, minHeight: 64, marginTop: 8, fontSize: 12 }}
+              />
             </div>
 
             <div style={builderStepStyle}>
@@ -932,6 +1000,28 @@ function IEPPage() {
                 style={textAreaStyle}
               />
             </label>
+          )}
+
+          {goalBuilder.mode && (
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.7 }}>
+                الدعم المعرفي يبقى في الخلفية في مسار الأسئلة، ويمكن عرضه موازياً عند الكتابة المستقلة.
+              </p>
+              <button
+                type="button"
+                onClick={() => setKnowledgeSupportOpen((openValue) => !openValue)}
+                style={{ background: "white", color: TEAL, border: "1px solid #9EC7C3", borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontFamily: "inherit", fontWeight: 800, fontSize: 12 }}
+              >
+                {knowledgeSupportOpen ? "إخفاء الدعم المعرفي" : "فتح الدعم المعرفي"}
+              </button>
+            </div>
+          )}
+
+          {goalBuilder.mode && knowledgeSupportOpen && (
+            <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: goalBuilder.mode === "direct" ? "1fr 1fr" : "1fr", gap: 12 }}>
+              <KnowledgeSupportPanel items={knowledgeSupport} />
+              {goalBuilder.mode === "direct" && <ProfileComponentMatrixPanel model={profileProcessing} />}
+            </div>
           )}
 
           {goalBuilder.mode && (
@@ -1010,6 +1100,7 @@ function IEPPage() {
                   </p>
                 )}
               </div>
+              <GoalPlanQualitySummary result={builderRubric} />
             </div>
           )}
 
@@ -1105,6 +1196,23 @@ function IEPPage() {
                         const isTtapDomain = TTAP_DOMAINS.some((td) => td.code === d.code);
                         const evidenceItems = isTtapDomain ? getItemsByDomain(d.code as TTAPDomain) : [];
                         const expanded = expandedGoals.has(g.id);
+                        const rubric = evaluateGoalPlanQuality({
+                          goalText: g.text,
+                          goalTrigger: g.goalTrigger ?? "",
+                          performanceAnchor: g.performanceAnchor ?? g.evidenceRef ?? "",
+                          context: g.context ?? "",
+                          criterion: g.criterion ?? "",
+                          measurementMethod: g.measurementMethod ?? "",
+                          evidenceRef: g.evidenceRef ?? "",
+                          lifePractice: g.lifePractice ?? "",
+                          domainCode: d.code,
+                          coverage,
+                          family,
+                          learnerVoice,
+                          override: g.override ?? null,
+                          learnerAgeYears,
+                          profileProcessing,
+                        });
                         return (
                         <div
                           key={g.id}
@@ -1221,16 +1329,53 @@ function IEPPage() {
                                 )}
                               </div>
 
-                              <div>
-                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>الدليل المرتبط</label>
-                                {isTtapDomain ? (
-                                  <select
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                                <div>
+                                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>باعث الهدف</label>
+                                  <input
+                                    type="text"
+                                    value={g.goalTrigger ?? ""}
+                                    onChange={(e) => updateGoalField(d.code, g.id, "goalTrigger", e.target.value)}
+                                    placeholder="صوت الأسرة، صوت المتعلم، ملاحظة الفريق، متطلبات الانتقال..."
+                                    style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 6, fontSize: 13, fontFamily: "inherit" }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>مرتكز الأداء / الخط القاعدي</label>
+                                  <input
                                     id={`goal-field-evidenceRef-${g.id}`}
-                                    value={g.evidenceRef ?? ""}
-                                    onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
+                                    type="text"
+                                    value={g.performanceAnchor ?? g.evidenceRef ?? ""}
+                                    onChange={(e) => {
+                                      updateGoalField(d.code, g.id, "performanceAnchor", e.target.value);
+                                      updateGoalField(d.code, g.id, "evidenceRef", e.target.value);
+                                    }}
+                                    placeholder="نتيجة تقييم مفسرة، قائمة مسح، ملاحظة أداء منظمة..."
                                     style={{
                                       width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
-                                      border: `1px solid ${!g.evidenceRef && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                      border: `1px solid ${!g.evidenceRef && !g.performanceAnchor && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                    }}
+                                  />
+                                  {!g.evidenceRef && !g.performanceAnchor && g.text.trim() && (
+                                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#B91C1C", fontWeight: 600 }}>
+                                      لا يمكن اعتماد الهدف دون مرتكز أداء أو خط قاعدي مراجع.
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div>
+                                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#64748B", marginBottom: 4 }}>اختيار سريع لمرتكز الأداء من بنود التقييم</label>
+                                {isTtapDomain ? (
+                                  <select
+                                    value={g.evidenceRef ?? ""}
+                                    onChange={(e) => {
+                                      updateGoalField(d.code, g.id, "evidenceRef", e.target.value);
+                                      updateGoalField(d.code, g.id, "performanceAnchor", e.target.value);
+                                    }}
+                                    style={{
+                                      width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
+                                      border: "1px solid #E5E7EB",
                                     }}
                                   >
                                     <option value="">— لم يتم الربط بعد —</option>
@@ -1242,21 +1387,18 @@ function IEPPage() {
                                   </select>
                                 ) : (
                                   <input
-                                    id={`goal-field-evidenceRef-${g.id}`}
                                     type="text"
                                     value={g.evidenceRef ?? ""}
-                                    onChange={(e) => updateGoalField(d.code, g.id, "evidenceRef", e.target.value)}
+                                    onChange={(e) => {
+                                      updateGoalField(d.code, g.id, "evidenceRef", e.target.value);
+                                      updateGoalField(d.code, g.id, "performanceAnchor", e.target.value);
+                                    }}
                                     placeholder="صف مصدر الدليل الداعم لهذا الهدف"
                                     style={{
                                       width: "100%", padding: "8px 10px", borderRadius: 6, fontSize: 13, fontFamily: "inherit",
-                                      border: `1px solid ${!g.evidenceRef && g.text.trim() ? "#DC2626" : "#E5E7EB"}`,
+                                      border: "1px solid #E5E7EB",
                                     }}
                                   />
-                                )}
-                                {!g.evidenceRef && g.text.trim() && (
-                                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#B91C1C", fontWeight: 600 }}>
-                                    لا يمكن اعتماد الهدف دون ربطه بدليل أو مصدر داعم.
-                                  </p>
                                 )}
                               </div>
 
@@ -1275,6 +1417,8 @@ function IEPPage() {
 
                               <GoalQualityChecklist
                                 goalText={g.text}
+                                goalTrigger={g.goalTrigger ?? ""}
+                                performanceAnchor={g.performanceAnchor ?? g.evidenceRef ?? ""}
                                 context={g.context ?? ""}
                                 criterion={g.criterion ?? ""}
                                 measurementMethod={g.measurementMethod ?? ""}
@@ -1286,6 +1430,7 @@ function IEPPage() {
                                 learnerVoice={learnerVoice}
                                 override={g.override ?? null}
                               />
+                              <GoalPlanQualitySummary result={rubric} />
 
                               {g.text.trim() && (
                                 g.override ? (
@@ -1334,7 +1479,9 @@ function IEPPage() {
                                     </div>
                                   </div>
                                 ) : hasHardStopViolation(g.text, computeGoalQuality({
-                                    goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
+                                    goalText: g.text, goalTrigger: g.goalTrigger ?? "",
+                                    performanceAnchor: g.performanceAnchor ?? g.evidenceRef ?? "",
+                                    context: g.context ?? "", criterion: g.criterion ?? "",
                                     measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
                                     lifePractice: g.lifePractice ?? "", domainCode: d.code,
                                     coverage, family, learnerVoice, override: null,
@@ -1472,6 +1619,51 @@ function IEPPage() {
           </button>
         </div>
       </main>
+    </div>
+  );
+}
+
+function GoalPlanQualitySummary({ result }: { result: GoalPlanQualityRubricResult }) {
+  const firstFindings = [
+    ...result.blockingFindings,
+    ...result.warnings,
+    ...result.advisories,
+  ].slice(0, 4);
+  const border = result.blockingFindings.length > 0
+    ? "#FCA5A5"
+    : result.warnings.length > 0
+      ? "#FCD34D"
+      : "#9EC7C3";
+  const background = result.blockingFindings.length > 0
+    ? "#FEF2F2"
+    : result.warnings.length > 0
+      ? "#FFFBEB"
+      : "#F4FAF9";
+  const color = result.blockingFindings.length > 0
+    ? "#7A1F1F"
+    : result.warnings.length > 0
+      ? "#78350F"
+      : TEAL;
+
+  return (
+    <div style={{ border: `1px solid ${border}`, borderRadius: 10, padding: 12, background }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <h3 style={{ margin: 0, color, fontSize: 14, fontWeight: 800 }}>Rubric جودة الهدف والخطة</h3>
+        <span style={{ color, fontSize: 11, fontWeight: 800 }}>
+          مانع {result.blockingFindings.length} / تنبيه {result.warnings.length} / إرشاد {result.advisories.length}
+        </span>
+      </div>
+      <p style={{ margin: "7px 0 0", color, fontSize: 12, lineHeight: 1.7 }}>{result.reviewSummaryAr}</p>
+      {firstFindings.length > 0 && (
+        <ul style={{ margin: "8px 0 0", paddingInlineStart: 18, color, fontSize: 11, lineHeight: 1.7 }}>
+          {firstFindings.map((item) => (
+            <li key={item.id}>{item.messageAr}</li>
+          ))}
+        </ul>
+      )}
+      <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 10, lineHeight: 1.6 }}>
+        هذا الفحص دعم مراجعة فقط: لا ينتج اعتماداً، ولا درجة رقمية، ولا يستبدل قرار المختص.
+      </p>
     </div>
   );
 }
