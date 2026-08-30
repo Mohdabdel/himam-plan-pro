@@ -139,6 +139,14 @@
     {
       "path": "specs/himam_external_transition_skill_alignment_matrix.md",
       "role": "supporting-transition-skill-alignment-matrix"
+    },
+    {
+      "path": "specs/himam_external_screen_flow_concept_01_2026-08-30.md",
+      "role": "supporting-external-screen-flow-concept-01"
+    },
+    {
+      "path": "specs/himam_goal_studio_and_plan_flow_visual_concept_2026-08-30.md",
+      "role": "supporting-goal-studio-plan-flow-visual-concept"
     }
   ],
   "verification": {
