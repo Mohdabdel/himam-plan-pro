@@ -1,5 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
 
 const root = process.cwd();
 const read = (path) => readFileSync(resolve(root, path), "utf8");
@@ -10,6 +13,14 @@ const failures = [];
 function requireText(label, content, expected) {
   if (!content.includes(expected)) {
     failures.push(`${label} missing ${expected}`);
+    return;
+  }
+  checks.push(label);
+}
+
+function requireBehavior(label, condition) {
+  if (!condition) {
+    failures.push(`${label} failed`);
     return;
   }
   checks.push(label);
@@ -96,6 +107,106 @@ requireText("adopted goal approval boundary", adoptedScreenFlow, "GOAL_APPROVAL_
 
 requireText("package script", packageJson, "\"verify:build-cycle-05\"");
 requireText("ci runs cycle05", ci, "npm run verify:build-cycle-05");
+
+const runtimeDir = mkdtempSync(resolve(tmpdir(), "himam-build-cycle-05-"));
+
+function transpileRuntimeSource(sourcePath, outputFile, transform = (content) => content) {
+  const { outputText } = transpileModule(read(sourcePath), {
+    compilerOptions: {
+      module: ModuleKind.ES2022,
+      target: ScriptTarget.ES2022,
+      esModuleInterop: true,
+      moduleResolution: 2,
+    },
+  });
+
+  writeFileSync(resolve(runtimeDir, outputFile), transform(outputText), "utf8");
+}
+
+function sampleGoal(overrides = {}) {
+  return {
+    goalText: "سيصنف المتعلم أدوات العمل المهنية المناسبة للمهمة باستقلالية.",
+    goalTrigger: "أولوية الأسرة في تنمية الاستقلالية المهنية.",
+    performanceAnchor: "نتيجة TTAP مفسرة: يحتاج المتعلم دعماً في تصنيف أدوات العمل.",
+    context: "ورشة التدريب المهني داخل المركز.",
+    criterion: "80% من المحاولات الصحيحة عبر 3 جلسات متتالية.",
+    measurementMethod: "ملاحظة مباشرة بقائمة رصد.",
+    evidenceRef: "نتيجة TTAP مفسرة مرتبطة بمجال المهارات المهنية.",
+    lifePractice: "استقلالية مهنية",
+    domainCode: "VS",
+    coverage: {
+      filledDomains: ["VS"],
+      failedDomains: ["VS"],
+      emergingDomains: [],
+    },
+    family: {
+      priorities: ["الاستقلالية", "العمل"],
+      vision5y: "أن يعمل المتعلم في بيئة مهنية مدعومة.",
+    },
+    learnerVoice: {
+      q_love: "يحب ترتيب أدوات العمل",
+      q_good: "يجيد التصنيف عند وجود نموذج بصري",
+    },
+    override: null,
+    learnerAgeYears: 15,
+    ...overrides,
+  };
+}
+
+try {
+  transpileRuntimeSource("src/domain/himam/plan-quality-references.ts", "plan-quality-references.js");
+  transpileRuntimeSource("src/lib/goal-quality.ts", "goal-quality.js", (content) =>
+    content.replaceAll("@/domain/himam/plan-quality-references", "./plan-quality-references.js"),
+  );
+
+  const { evaluateGoalPlanQuality, evaluatePlanQuality } = await import(
+    pathToFileURL(resolve(runtimeDir, "goal-quality.js")).href
+  );
+
+  const missingAnchor = evaluateGoalPlanQuality(sampleGoal({ performanceAnchor: "", evidenceRef: "" }));
+  requireBehavior(
+    "behavior goal missing performance anchor blocks",
+    missingAnchor.blockingFindings.some((finding) => finding.id === "goal-performance-anchor-missing"),
+  );
+
+  const contextOnlyAnchor = evaluateGoalPlanQuality(sampleGoal({ performanceAnchor: "صوت الأسرة: الاستقلالية" }));
+  requireBehavior(
+    "behavior goal context-only anchor blocks",
+    contextOnlyAnchor.blockingFindings.some((finding) => finding.id === "goal-performance-anchor-context-only"),
+  );
+
+  const completeGoal = evaluateGoalPlanQuality(sampleGoal());
+  requireBehavior(
+    "behavior goal rubric stays review support",
+    completeGoal.decisionBoundary === "review_support_only" &&
+      completeGoal.producesApproval === false &&
+      completeGoal.producesNumericScore === false,
+  );
+
+  const noApprovedPlan = evaluatePlanQuality({
+    goals: [sampleGoal({ goalId: "goal-1", selectedActivityCount: 1 })],
+    approvedGoalCount: 0,
+    learnerAgeYears: 15,
+    profileProcessing: null,
+  });
+  requireBehavior(
+    "behavior plan without approved goals blocks",
+    noApprovedPlan.blockingFindings.some((finding) => finding.id === "plan-no-approved-goals"),
+  );
+
+  const planWithoutActivities = evaluatePlanQuality({
+    goals: [sampleGoal({ goalId: "goal-1", selectedActivityCount: 0, approvedForPlan: true })],
+    approvedGoalCount: 1,
+    learnerAgeYears: 15,
+    profileProcessing: null,
+  });
+  requireBehavior(
+    "behavior plan goals without activities warn",
+    planWithoutActivities.warnings.some((finding) => finding.id === "plan-goals-without-activities"),
+  );
+} finally {
+  rmSync(runtimeDir, { recursive: true, force: true });
+}
 
 const result = {
   verification: "build-cycle-05",
