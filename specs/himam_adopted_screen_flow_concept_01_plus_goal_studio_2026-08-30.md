@@ -13,7 +13,7 @@ ADOPTED_SEQUENCE_BASE = SCREEN_FLOW_CONCEPT_01
 ADOPTED_WITH_GOVERNING_IMPROVEMENTS = YES
 FORMAL_ASSESSMENT_MODE = UPLOADED_REVIEWED_RESULTS_ONLY
 GOAL_SOURCE_SPLIT = GOAL_TRIGGER + PERFORMANCE_ANCHOR
-KNOWLEDGE_SUPPORT_MODE = CONTEXTUAL_DRAWER_IN_GOAL_STUDIO
+KNOWLEDGE_SUPPORT_MODE = BACKGROUND_ON_DEMAND_OR_PARALLEL_FOR_INDEPENDENT_AUTHORING
 GOAL_APPROVAL_BOUNDARY = GoalDraft != GoalApprovalRecord != PlanApprovalRecord
 ```
 
@@ -76,7 +76,11 @@ GOAL_APPROVAL_BOUNDARY = GoalDraft != GoalApprovalRecord != PlanApprovalRecord
 
 ### 3.4 شاشة دعم المعرفة
 
-لا تعتمد شاشة دعم المعرفة كمساحة منفصلة تقطع إعداد الهدف. تعتمد كلوحة جانبية أو Drawer داخل Goal Studio، وتعرض:
+لا تعتمد شاشة دعم المعرفة كمساحة منفصلة تقطع إعداد الهدف. تعتمد كلوحة خلفية قابلة للاستدعاء عند الطلب أو كلوحة جانبية موازية فقط عندما يختار المختص مسار إعداد الهدف المستقل دون الأسئلة الموجهة.
+
+في مسار الأسئلة الموجهة لا تظهر لوحة الدعم المعرفي مفتوحة افتراضياً حتى لا يحدث ازدحام أو سيولة معلومات تربك المختص. تظهر بدلاً من ذلك كمؤشر مختصر أو زر "دعم معرفي" يمكن فتحه عند الحاجة ثم إغلاقه دون فقدان إجابات الأسئلة.
+
+تعرض لوحة الدعم عند فتحها:
 
 - فلاشات من البروفايل.
 - مصادر الهدف الممكنة.
@@ -85,7 +89,7 @@ GOAL_APPROVAL_BOUNDARY = GoalDraft != GoalApprovalRecord != PlanApprovalRecord
 - موجهات السياق الوظيفي والانتقال لعمر 14 فأعلى.
 - بطاقات قابلة للتثبيت في خطوة محددة من الهدف.
 
-الدعم المعرفي يقترح ويرشد فقط، ولا يملأ هدفاً أو يعتمد قراراً دون اختيار المختص.
+الدعم المعرفي يقترح ويرشد فقط، ولا يملأ هدفاً أو يعتمد قراراً دون اختيار المختص. يجب أن يبقى تنظيم الشاشة واضحاً: منطقة إعداد الهدف في المركز، الأسئلة أو الكتابة المستقلة في مسار واحد، والدعم المعرفي في الخلفية أو على الطرف حسب اختيار المختص.
 
 ### 3.5 مصفوفة الجاهزية
 
@@ -164,4 +168,3 @@ GoalDraft -> GoalQualityCheck -> GoalApprovalRecord -> PlanDraft -> PlanQualityR
 - تحديث دورة البناء 05 بمفاهيم باعث الهدف ومرتكز الأداء.
 - نجاح `npm run verify:governing-files`.
 - نجاح `npm run verify:build-cycle-05`.
-

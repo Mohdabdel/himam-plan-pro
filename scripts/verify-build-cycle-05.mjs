@@ -81,6 +81,8 @@ requireText("profile component matrix", profileProcessing, "buildProfileComponen
 requireText("adopted screen flow status", adoptedScreenFlow, "ADOPTED_SEQUENCE_BASE = SCREEN_FLOW_CONCEPT_01");
 requireText("adopted goal source split", adoptedScreenFlow, "GOAL_SOURCE_SPLIT = GOAL_TRIGGER + PERFORMANCE_ANCHOR");
 requireText("adopted formal assessment boundary", adoptedScreenFlow, "FORMAL_ASSESSMENT_MODE = UPLOADED_REVIEWED_RESULTS_ONLY");
+requireText("adopted knowledge support display", adoptedScreenFlow, "KNOWLEDGE_SUPPORT_MODE = BACKGROUND_ON_DEMAND_OR_PARALLEL_FOR_INDEPENDENT_AUTHORING");
+requireText("cycle05 guided questions no clutter", plan, "لا تزاحمه لوحة الدعم المعرفي المفتوحة افتراضياً");
 requireText("adopted goal approval boundary", adoptedScreenFlow, "GOAL_APPROVAL_BOUNDARY = GoalDraft != GoalApprovalRecord != PlanApprovalRecord");
 
 requireText("package script", packageJson, "\"verify:build-cycle-05\"");
