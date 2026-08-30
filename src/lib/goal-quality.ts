@@ -91,6 +91,19 @@ export type GoalPlanQualityRubricResult = {
   producesNumericScore: false;
 };
 
+export type PlanQualityGoalInput = GoalQualityInput & {
+  goalId: string;
+  selectedActivityCount?: number;
+  approvedForPlan?: boolean;
+};
+
+export type PlanQualityInput = {
+  goals: PlanQualityGoalInput[];
+  approvedGoalCount: number;
+  learnerAgeYears?: number | null;
+  profileProcessing?: LearnerProfileProcessingModel | null;
+};
+
 function normalizeWords(text: string): Set<string> {
   return new Set(
     text
@@ -374,6 +387,131 @@ export function evaluateGoalPlanQuality(input: GoalQualityInput & {
       : warnings.length > 0
         ? `لا توجد موانع اعتماد آلية، لكن توجد ${warnings.length} تنبيهات جودة تحتاج مراجعة.`
         : "لا توجد موانع ظاهرة في مراجعة الجودة الحالية؛ القرار النهائي يبقى للمختص.",
+    decisionBoundary: "review_support_only",
+    producesApproval: false,
+    producesNumericScore: false,
+  };
+}
+
+export function evaluatePlanQuality(input: PlanQualityInput): GoalPlanQualityRubricResult {
+  const goalResults = input.goals.map((goal) => evaluateGoalPlanQuality({
+    ...goal,
+    learnerAgeYears: input.learnerAgeYears,
+    profileProcessing: input.profileProcessing,
+  }));
+  const blockingFindings: GoalPlanQualityFinding[] = [];
+  const warnings: GoalPlanQualityFinding[] = [];
+  const advisories: GoalPlanQualityFinding[] = [];
+
+  if (input.goals.length === 0) {
+    blockingFindings.push(finding({
+      id: "plan-no-goals",
+      severity: "blocking",
+      scope: "plan",
+      source: "plan_coherence",
+      messageAr: "لا يمكن مراجعة الخطة كوحدة دون وجود هدف واحد على الأقل.",
+      criterionIds: ["PLAN_REQUIRED_COMPONENTS_COMPLETE"],
+    }));
+  }
+
+  if (input.approvedGoalCount === 0 && input.goals.length > 0) {
+    blockingFindings.push(finding({
+      id: "plan-no-approved-goals",
+      severity: "blocking",
+      scope: "plan",
+      source: "plan_coherence",
+      messageAr: "لا يمكن تجهيز الخطة للاعتماد دون أهداف معتمدة للإدراج.",
+      criterionIds: ["PLAN_REQUIRED_COMPONENTS_COMPLETE", "PLAN_NEED_STATEMENTS_TRACEABLE"],
+    }));
+  }
+
+  const goalsWithoutActivities = input.goals.filter((goal) => (goal.selectedActivityCount ?? 0) === 0);
+  if (goalsWithoutActivities.length > 0 && input.goals.length > 0) {
+    warnings.push(finding({
+      id: "plan-goals-without-activities",
+      severity: "warning",
+      scope: "plan",
+      source: "plan_coherence",
+      messageAr: `${goalsWithoutActivities.length} هدفاً لا يتضمن أنشطة تنفيذية محددة بعد.`,
+      criterionIds: ["PLAN_TRANSITION_SERVICES_ACTIVITIES", "PLAN_ADAPTATIONS_SERVICES_ALIGNMENT"],
+    }));
+  }
+
+  const goalBlockingCount = goalResults.reduce((sum, result) => sum + result.blockingFindings.length, 0);
+  const goalWarningCount = goalResults.reduce((sum, result) => sum + result.warnings.length, 0);
+  if (goalBlockingCount > 0) {
+    blockingFindings.push(finding({
+      id: "plan-goal-level-blockers",
+      severity: "blocking",
+      scope: "plan",
+      source: "plan_coherence",
+      messageAr: `توجد ${goalBlockingCount} موانع جودة على مستوى الأهداف يجب مراجعتها قبل اعتماد الخطة كوحدة.`,
+      criterionIds: ["PLAN_NEED_STATEMENTS_TRACEABLE", "PLAN_SOURCE_ATTRIBUTION_AND_INTERPRETATION"],
+    }));
+  }
+
+  if (goalWarningCount > 0) {
+    warnings.push(finding({
+      id: "plan-goal-level-warnings",
+      severity: "warning",
+      scope: "plan",
+      source: "plan_coherence",
+      messageAr: `توجد ${goalWarningCount} تنبيهات جودة على مستوى الأهداف قد تؤثر على اتساق الخطة العامة.`,
+      criterionIds: ["PLAN_INDIVIDUALIZED_NON_GENERIC", "PLAN_PROGRESS_REPORTING_SUFFICIENCY"],
+    }));
+  }
+
+  if ((input.learnerAgeYears ?? 0) >= 14) {
+    const transitionLinkedGoals = input.goals.filter((goal) => (
+      goal.lifePractice.trim() ||
+      goal.goalText.includes("انتقال") ||
+      goal.goalText.includes("مهني") ||
+      goal.goalText.includes("استقلال")
+    ));
+    if (transitionLinkedGoals.length === 0) {
+      advisories.push(finding({
+        id: "plan-age-14-no-transition-linked-goals",
+        severity: "advisory",
+        scope: "transition",
+        source: "transition_reference",
+        messageAr: "عمر المتعلم 14 فأعلى ولا تظهر أهداف مرتبطة بوضوح بالتخطيط الانتقالي أو ممارسة حياتية.",
+        criterionIds: ["PLAN_TRANSITION_ASSESSMENT_AGE_14_PLUS", "PLAN_ANNUAL_GOALS_LINK_TO_TRANSITION"],
+      }));
+    }
+  }
+
+  if (input.profileProcessing && input.profileProcessing.componentMatrix.qualityGapsAr.length > 0) {
+    advisories.push(finding({
+      id: "plan-profile-quality-gaps",
+      severity: "advisory",
+      scope: "plan",
+      source: "profile_component",
+      messageAr: `فجوات جودة تخصيص الخطة: ${input.profileProcessing.componentMatrix.qualityGapsAr.join(" ")}`,
+      criterionIds: ["PLAN_STRENGTHS_SUPPORTS_BARRIERS", "PLAN_PARENT_INPUT_INTEGRATED"],
+    }));
+  }
+
+  const allFindings = [
+    ...blockingFindings,
+    ...warnings,
+    ...advisories,
+    ...goalResults.flatMap((result) => [
+      ...result.blockingFindings,
+      ...result.warnings,
+      ...result.advisories,
+    ]),
+  ];
+
+  return {
+    blockingFindings,
+    warnings,
+    advisories,
+    sourceReferences: Array.from(new Set(allFindings.flatMap((item) => item.sourceReferences))),
+    reviewSummaryAr: blockingFindings.length > 0
+      ? `توجد ${blockingFindings.length} موانع قبل اعتماد الخطة كوحدة.`
+      : warnings.length > 0
+        ? `الخطة قابلة للمراجعة مع ${warnings.length} تنبيهات جودة.`
+        : "لا توجد موانع ظاهرة في مراجعة الخطة كوحدة؛ القرار النهائي للمختص الأعلى.",
     decisionBoundary: "review_support_only",
     producesApproval: false,
     producesNumericScore: false,

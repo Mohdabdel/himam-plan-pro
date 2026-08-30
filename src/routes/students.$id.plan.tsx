@@ -20,6 +20,10 @@ import {
 import type { PlanApprovalRecord } from "@/domain/himam";
 import { calibrateMvpProfile } from "@/lib/mvp-calibration";
 import { loadLearnerProfile, saveLearnerProfile } from "@/lib/profile-repository";
+import {
+  evaluatePlanQuality,
+  type GoalPlanQualityRubricResult,
+} from "@/lib/goal-quality";
 
 export const Route = createFileRoute("/students/$id/plan")({
   component: PlanPage,
@@ -52,7 +56,7 @@ const CONCEPT_NAMES: Record<string, string> = {
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type StoredStudent = { id: string; name: string; center: string; tool: string; status: string };
+type StoredStudent = { id: string; name: string; center: string; tool: string; status: string; birthDate?: string };
 
 // IEP goals may arrive in two shapes — normalised below
 type RawGoalOverride = { reason: string; note?: string; at: string };
@@ -61,6 +65,7 @@ type RawGoal = {
   // Structured fields added by the IEP goal-quality workspace — optional so
   // goals saved before that feature still normalise fine.
   context?: string; criterion?: string; measurementMethod?: string;
+  goalTrigger?: string; performanceAnchor?: string;
   evidenceRef?: string; lifePractice?: string; override?: RawGoalOverride;
 };
 type RawIEP  = {
@@ -102,6 +107,8 @@ type GoalEntry = {
   // Read-only, carried over from the IEP goal-quality workspace.
   iepCriterion?:          string;
   iepMeasurementMethod?:  string;
+  iepGoalTrigger?:        string;
+  iepPerformanceAnchor?:  string;
   iepEvidenceRef?:        string;
   iepLifePractice?:       string;
   iepOverride?:           RawGoalOverride;
@@ -125,6 +132,17 @@ const HOME_KEYWORDS = ["البيت", "المنزل", "مجلس", "حديقة"];
 function safeParse<T>(key: string): T | null {
   try { return JSON.parse(localStorage.getItem(key) || "null"); }
   catch { return null; }
+}
+
+function ageYearsFromBirthDate(birthDate?: string) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDelta = now.getMonth() - birth.getMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age;
 }
 
 type FlatGoal = { goalId: string; domainCode: string; goalText: string; raw: RawGoal };
@@ -220,6 +238,8 @@ function buildEntry(
     specialistNote:     "",
     iepCriterion:          raw.criterion || undefined,
     iepMeasurementMethod:  raw.measurementMethod || undefined,
+    iepGoalTrigger:        raw.goalTrigger || undefined,
+    iepPerformanceAnchor:  raw.performanceAnchor || raw.evidenceRef || undefined,
     iepEvidenceRef:        raw.evidenceRef || undefined,
     iepLifePractice:       raw.lifePractice || undefined,
     iepOverride:           raw.override,
@@ -525,6 +545,29 @@ function PlanPage() {
 
   // ── No goals fallback ────────────────────────────────────────────────────────
   const showEmptyState = loaded && !hasGoals;
+  const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
+  const planQuality = evaluatePlanQuality({
+    approvedGoalCount,
+    learnerAgeYears,
+    goals: goalEntries.map((entry) => ({
+      goalId: entry.goalId,
+      goalText: entry.goalText,
+      goalTrigger: entry.iepGoalTrigger ?? "",
+      performanceAnchor: entry.iepPerformanceAnchor ?? entry.iepEvidenceRef ?? "",
+      context: entry.context,
+      criterion: entry.iepCriterion ?? "",
+      measurementMethod: entry.iepMeasurementMethod ?? "",
+      evidenceRef: entry.iepEvidenceRef ?? "",
+      lifePractice: entry.iepLifePractice ?? "",
+      domainCode: entry.domainCode,
+      coverage: null,
+      family: { priorities: familyPriorities },
+      learnerVoice: { q_love: learnedLove },
+      override: entry.iepOverride ?? null,
+      selectedActivityCount: entry.selectedActivities.length,
+      approvedForPlan: approvedGoalCount > 0,
+    })),
+  });
 
   // ── Main render ──────────────────────────────────────────────────────────────
   return (
@@ -622,6 +665,8 @@ function PlanPage() {
           </div>
         )}
 
+        {loaded && hasGoals && <PlanQualitySummary result={planQuality} />}
+
         {/* No goals empty state */}
         {showEmptyState && (
           <div style={{ marginTop: 40, textAlign: "center", padding: 40, background: "white", borderRadius: 12, border: "1px solid #E5E7EB" }}>
@@ -664,12 +709,14 @@ function PlanPage() {
             <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
 
               {/* IEP structured details — read-only, carried from the goal-quality workspace */}
-              {(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride) && (
+              {(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepGoalTrigger || entry.iepPerformanceAnchor || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride) && (
                 <div style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 4 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", margin: "0 0 2px" }}>من الخطة التربوية</p>
+                  {entry.iepGoalTrigger && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>باعث الهدف:</strong> {entry.iepGoalTrigger}</p>}
+                  {entry.iepPerformanceAnchor && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>مرتكز الأداء / الخط القاعدي:</strong> {entry.iepPerformanceAnchor}</p>}
                   {entry.iepCriterion && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>المعيار:</strong> {entry.iepCriterion}</p>}
                   {entry.iepMeasurementMethod && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>طريقة القياس:</strong> {entry.iepMeasurementMethod}</p>}
-                  {entry.iepEvidenceRef && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>الدليل المرتبط:</strong> {entry.iepEvidenceRef}</p>}
+                  {entry.iepEvidenceRef && entry.iepEvidenceRef !== entry.iepPerformanceAnchor && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>الدليل المرتبط:</strong> {entry.iepEvidenceRef}</p>}
                   {entry.iepLifePractice && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>ممارسة حياتية مرتبطة:</strong> {entry.iepLifePractice}</p>}
                   {entry.iepOverride && (
                     <p style={{ fontSize: 12, margin: "4px 0 0", color: "#92400E", fontWeight: 700 }}>
@@ -871,5 +918,50 @@ function PlanPage() {
       )}
       </main>
     </div>
+  );
+}
+
+function PlanQualitySummary({ result }: { result: GoalPlanQualityRubricResult }) {
+  const firstFindings = [
+    ...result.blockingFindings,
+    ...result.warnings,
+    ...result.advisories,
+  ].slice(0, 5);
+  const border = result.blockingFindings.length > 0
+    ? "#FCA5A5"
+    : result.warnings.length > 0
+      ? "#FCD34D"
+      : "#9EC7C3";
+  const background = result.blockingFindings.length > 0
+    ? "#FEF2F2"
+    : result.warnings.length > 0
+      ? "#FFFBEB"
+      : "#F4FAF9";
+  const color = result.blockingFindings.length > 0
+    ? "#7A1F1F"
+    : result.warnings.length > 0
+      ? "#78350F"
+      : TEAL;
+
+  return (
+    <section style={{ marginTop: 14, background, border: `1px solid ${border}`, borderRadius: 10, padding: "14px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <p style={{ margin: 0, color, fontSize: 15, fontWeight: 800 }}>Rubric مراجعة الخطة كوحدة</p>
+        <span style={{ color, fontSize: 12, fontWeight: 800 }}>
+          مانع {result.blockingFindings.length} / تنبيه {result.warnings.length} / إرشاد {result.advisories.length}
+        </span>
+      </div>
+      <p style={{ margin: "7px 0 0", color, fontSize: 13, lineHeight: 1.7 }}>{result.reviewSummaryAr}</p>
+      {firstFindings.length > 0 && (
+        <ul style={{ margin: "8px 0 0", paddingRight: 18, color, fontSize: 12, lineHeight: 1.8 }}>
+          {firstFindings.map((item) => (
+            <li key={item.id}>{item.messageAr}</li>
+          ))}
+        </ul>
+      )}
+      <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
+        هذا الملخص لا يعتمد الخطة ولا يمنح درجة رقمية؛ يستخدمه المختص الأعلى لمراجعة الاتساق قبل قرار الاعتماد.
+      </p>
+    </section>
   );
 }

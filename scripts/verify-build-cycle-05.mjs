@@ -21,6 +21,7 @@ const glossary = read("specs/himam_domain_glossary.md");
 const workflows = read("specs/himam_workflow_maps.md");
 const preProgramming = read("specs/himam_pre_programming_governance_checklist_2026-08-24.md");
 const goalQuality = read("src/lib/goal-quality.ts");
+const planRoute = read("src/routes/students.$id.plan.tsx");
 const planQualityReferences = read("src/domain/himam/plan-quality-references.ts");
 const transitionReferences = read("src/domain/himam/transition-assessment-references.ts");
 const profileProcessing = read("src/lib/learner-profile-processing.ts");
@@ -72,9 +73,14 @@ requireText("cycle05 plan unit review", plan, "الخطة كوحدة متكام�
 
 requireText("existing goal quality function", goalQuality, "computeGoalQuality");
 requireText("implemented plan quality contract", goalQuality, "evaluateGoalPlanQuality");
+requireText("implemented plan unit quality contract", goalQuality, "evaluatePlanQuality");
 requireText("implemented finding severity type", goalQuality, "QualityFindingSeverity");
 requireText("implemented review support boundary", goalQuality, "decisionBoundary: \"review_support_only\"");
 requireText("existing hard stop guard", goalQuality, "hasHardStopViolation");
+requireText("plan route shows unit rubric", planRoute, "Rubric مراجعة الخطة كوحدة");
+requireText("plan route uses plan quality evaluator", planRoute, "evaluatePlanQuality");
+requireText("plan route carries goal trigger", planRoute, "iepGoalTrigger");
+requireText("plan route carries performance anchor", planRoute, "iepPerformanceAnchor");
 requireText("plan quality criteria", planQualityReferences, "PLAN_QUALITY_CRITERIA");
 requireText("plan quality source count", planQualityReferences, "IEP_GOAL_QUALITY_RUBRIC_2023");
 requireText("transition principles", transitionReferences, "TRANSITION_ASSESSMENT_PRINCIPLES");
