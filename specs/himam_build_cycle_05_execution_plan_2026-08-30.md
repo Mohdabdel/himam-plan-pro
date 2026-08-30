@@ -11,6 +11,7 @@
 - الهدف وحدة قابلة للمراجعة قبل إدراجها في الخطة.
 - الخطة وحدة متكاملة تحتاج مراجعة أعلى من مجرد جمع أهداف جيدة منفردة.
 - جودة الهدف تعتمد على مصدر، خط أساس، حاجة، أولوية، صياغة قابلة للقياس، طريقة قياس، وسياق تنفيذ.
+- في شاشة الهدف يفصل مصدر الهدف إلى `باعث الهدف` و`مرتكز الأداء / الخط القاعدي`؛ الأول يفسر لماذا نختار الهدف، والثاني يثبت الأداء الحالي الذي لا يعتمد الهدف بدونه.
 - جودة الخطة تعتمد على اتساق الأهداف مع مستوى الأداء الحالي، مصادر المعلومات، الفجوات، الخدمات، والتخطيط الانتقالي عند عمر 14 فأعلى.
 - صوت الأسرة والمتعلم يحسن الأولوية والمعنى والتخصيص، لكنه لا يصبح baseline أو criterion دون دليل أداء مراجع.
 
@@ -25,12 +26,14 @@
 - `src/domain/himam/transition-assessment-references.ts`
 - `specs/himam_external_iep_quality_architecture_framework.md`
 - `specs/himam_external_transition_skill_alignment_matrix.md`
+- `specs/himam_adopted_screen_flow_concept_01_plus_goal_studio_2026-08-30.md`
 
 ## 2. سيناريو مستخدم محدد
 
 كمختص، بعد أن يختار مجالاً أو فرصة هدف، يرى فحص جودة لا يكتفي بسؤال "هل الهدف SMART؟"، بل يوضح:
 
 - هل توجد مصادر وأدلة أو بروفايل مراجع يدعم الهدف؟
+- هل باعث الهدف منفصل عن مرتكز الأداء؟
 - هل خط الأساس واضح وقابل للتتبع؟
 - هل الحاجة والأولوية مثبتتان أو مفسرتان؟
 - هل المعيار وطريقة القياس مناسبان؟
@@ -95,6 +98,8 @@ evaluateGoalPlanQuality(input) → GoalPlanQualityRubricResult
 المدخلات:
 
 - بيانات الهدف أو الخطة.
+- باعث الهدف.
+- مرتكز الأداء / الخط القاعدي.
 - نموذج معالجة البروفايل.
 - عناصر مصفوفة المكونات ذات الصلة.
 - مراجع جودة الخطة.
@@ -121,6 +126,7 @@ evaluateGoalPlanQuality(input) → GoalPlanQualityRubricResult
 تظهر نتائج Rubric في:
 
 - شاشة إعداد الأهداف هدفاً بهدف.
+- شاشة Goal Studio وفق التصور 1 المعتمد مع تحسينات الفصل بين باعث الهدف ومرتكز الأداء.
 - شاشة مراجعة الخطة العامة.
 - شاشة اعتماد المختص الأعلى عند عرض الخطة كوحدة.
 
@@ -139,6 +145,7 @@ evaluateGoalPlanQuality(input) → GoalPlanQualityRubricResult
 ما لا يجوز للنظام تخمينه:
 
 - baseline.
+- باعث الهدف.
 - criterion.
 - أولوية الأسرة.
 - رغبة المتعلم.
@@ -198,9 +205,10 @@ evaluateGoalPlanQuality(input) → GoalPlanQualityRubricResult
 2. لديه صوت أسرة وصوت متعلم محفوظان.
 3. تظهر مصفوفة مكونات البروفايل في كفاية المعلومات.
 4. يفتح المختص إعداد هدف في مجال له تغطية.
-5. تظهر Rubric الهدف مع بنود مانعة أو تنبيهات أو تحسينات.
-6. عند مراجعة الخطة تظهر Rubric الخطة كوحدة.
-7. لا يظهر أي اعتماد إلا عبر مسارات الاعتماد الحالية.
+5. يحدد باعث الهدف ثم مرتكز الأداء / الخط القاعدي.
+6. تظهر Rubric الهدف مع بنود مانعة أو تنبيهات أو تحسينات.
+7. عند مراجعة الخطة تظهر Rubric الخطة كوحدة.
+8. لا يظهر أي اعتماد إلا عبر مسارات الاعتماد الحالية.
 
 ## 12. تحديث سجل القرارات والوثائق
 
@@ -218,6 +226,7 @@ DATA_MIGRATION = NO
 AI_OR_FILE_READING_CHANGE = NO
 APPROVAL_AUTHORITY_CHANGE = NO
 RUBRIC_DECISION_BOUNDARY = REVIEW_SUPPORT_ONLY
+ADOPTED_SCREEN_FLOW = SCREEN_FLOW_CONCEPT_01_PLUS_GOAL_STUDIO_SAFEGUARDS
 READY_FOR_CODE_WHEN = verify:build-cycle-05 + verify:plan-quality + verify:transition-assessment + verify:build-cycle-04 + governing-files PASS
 ```
 

@@ -44,6 +44,7 @@
 - `himam_external_transition_skill_alignment_matrix.md`
 - `himam_external_screen_flow_concept_01_2026-08-30.md`
 - `himam_goal_studio_and_plan_flow_visual_concept_2026-08-30.md`
+- `himam_adopted_screen_flow_concept_01_plus_goal_studio_2026-08-30.md`
 
 ## قاعدة استخدام المسودات الخارجية
 

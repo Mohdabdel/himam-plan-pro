@@ -24,6 +24,7 @@ const goalQuality = read("src/lib/goal-quality.ts");
 const planQualityReferences = read("src/domain/himam/plan-quality-references.ts");
 const transitionReferences = read("src/domain/himam/transition-assessment-references.ts");
 const profileProcessing = read("src/lib/learner-profile-processing.ts");
+const adoptedScreenFlow = read("specs/himam_adopted_screen_flow_concept_01_plus_goal_studio_2026-08-30.md");
 const packageJson = read("package.json");
 const ci = read(".github/workflows/quality-gates.yml");
 
@@ -61,6 +62,9 @@ requireText("cycle05 no cut scores", plan, "لا توجد cut scores");
 requireText("cycle05 no auto approval", plan, "لا يوجد اعتماد آلي");
 requireText("cycle05 KSI guard", plan, "لا يستخدم كمستوى أداء أو criterion");
 requireText("cycle05 formal baseline guard", plan, "baseline");
+requireText("cycle05 goal trigger term", plan, "باعث الهدف");
+requireText("cycle05 performance anchor term", plan, "مرتكز الأداء / الخط القاعدي");
+requireText("cycle05 adopted screen flow", plan, "ADOPTED_SCREEN_FLOW");
 requireText("cycle05 transition age guard", plan, "عمر 14 فأعلى");
 requireText("cycle05 service contract", plan, "evaluateGoalPlanQuality(input)");
 requireText("cycle05 findings severity", plan, "QualityFindingSeverity");
@@ -74,6 +78,10 @@ requireText("transition principles", transitionReferences, "TRANSITION_ASSESSMEN
 requireText("age 14 plan quality criterion", planQualityReferences, "PLAN_TRANSITION_ASSESSMENT_AGE_14_PLUS");
 requireText("age 14 transition principle", transitionReferences, "Age 14 plus");
 requireText("profile component matrix", profileProcessing, "buildProfileComponentMatrix");
+requireText("adopted screen flow status", adoptedScreenFlow, "ADOPTED_SEQUENCE_BASE = SCREEN_FLOW_CONCEPT_01");
+requireText("adopted goal source split", adoptedScreenFlow, "GOAL_SOURCE_SPLIT = GOAL_TRIGGER + PERFORMANCE_ANCHOR");
+requireText("adopted formal assessment boundary", adoptedScreenFlow, "FORMAL_ASSESSMENT_MODE = UPLOADED_REVIEWED_RESULTS_ONLY");
+requireText("adopted goal approval boundary", adoptedScreenFlow, "GOAL_APPROVAL_BOUNDARY = GoalDraft != GoalApprovalRecord != PlanApprovalRecord");
 
 requireText("package script", packageJson, "\"verify:build-cycle-05\"");
 requireText("ci runs cycle05", ci, "npm run verify:build-cycle-05");

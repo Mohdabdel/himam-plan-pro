@@ -147,6 +147,10 @@
     {
       "path": "specs/himam_goal_studio_and_plan_flow_visual_concept_2026-08-30.md",
       "role": "supporting-goal-studio-plan-flow-visual-concept"
+    },
+    {
+      "path": "specs/himam_adopted_screen_flow_concept_01_plus_goal_studio_2026-08-30.md",
+      "role": "supporting-adopted-screen-flow-concept-01-plus-goal-studio"
     }
   ],
   "verification": {
