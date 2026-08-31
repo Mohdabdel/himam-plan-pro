@@ -442,6 +442,7 @@ function IEPPage() {
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
   const [knowledgeSupportOpen, setKnowledgeSupportOpen] = useState(false);
+  const [draftBlockerDetailsOpen, setDraftBlockerDetailsOpen] = useState(false);
 
   // Draft state for the "professional override" mini-form, keyed by goal id.
   const [overrideFormFor, setOverrideFormFor] = useState<string | null>(null);
@@ -735,10 +736,24 @@ function IEPPage() {
   }
   const canSaveDraft = startedGoals.length > 0;
   const canSubmitForApproval = blockingGoals.length === 0 && startedGoals.length > 0;
+  const draftProgressTag = !canSaveDraft
+    ? null
+    : canSubmitForApproval
+      ? {
+          code: "continuable",
+          label: "المسودة قابلة للاستكمال",
+          note: "يمكن حفظها كمسودة أو إقرار الأهداف ورفعها لمسار الخطة.",
+        }
+      : {
+          code: "blocked_until_progress_findings_resolved",
+          label: "المسودة غير قابلة للتقدم قبل استيفاء موانع التقدم",
+          note: "يمكن حفظها فقط كمسودة، وتظهر تفاصيل الموانع عند طلبها.",
+        };
 
   function persistIepDraft(input: {
     goalApprovalIds: string[];
     reviewStatus: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
+    draftProgressTag: "continuable" | "blocked_until_progress_findings_resolved" | "ready_for_plan_review";
   }) {
     localStorage.setItem(
       `himam_iep_${id}`,
@@ -749,6 +764,7 @@ function IEPPage() {
         startDate,
         goalApprovalIds: input.goalApprovalIds,
         reviewStatus: input.reviewStatus,
+        draftProgressTag: input.draftProgressTag,
         blockingGoalReviews: blockingGoals.map((goal) => ({
           goalId: goal.goalId,
           domainCode: goal.domainCode,
@@ -781,6 +797,7 @@ function IEPPage() {
       persistIepDraft({
         goalApprovalIds: [],
         reviewStatus: blockingGoals.length > 0 ? "draft_with_blocking_findings" : "draft_only",
+        draftProgressTag: blockingGoals.length > 0 ? "blocked_until_progress_findings_resolved" : "continuable",
       });
       toast.success(
         blockingGoals.length > 0
@@ -840,6 +857,7 @@ function IEPPage() {
       persistIepDraft({
         goalApprovalIds: approvalBundles.map((bundle) => bundle.approval.approvalId),
         reviewStatus: "ready_for_plan_review",
+        draftProgressTag: "ready_for_plan_review",
       });
       const raw = localStorage.getItem("himam_students");
       if (raw) {
@@ -1647,6 +1665,24 @@ function IEPPage() {
           </span>
         </div>
 
+        {draftProgressTag && (
+          <div
+            style={{
+              marginTop: 12,
+              background: draftProgressTag.code === "continuable" ? "#ECFDF5" : "#FFFBEB",
+              border: `1px solid ${draftProgressTag.code === "continuable" ? "#A7F3D0" : "#FCD34D"}`,
+              borderRadius: 8,
+              padding: 12,
+              color: draftProgressTag.code === "continuable" ? "#065F46" : "#78350F",
+              fontSize: 13,
+              lineHeight: 1.7,
+            }}
+          >
+            <strong>{draftProgressTag.label}</strong>
+            <p style={{ margin: "4px 0 0" }}>{draftProgressTag.note}</p>
+          </div>
+        )}
+
         {/* Hard-stop warning */}
         {!canSubmitForApproval && startedGoals.length === 0 && (
           <div
@@ -1667,11 +1703,31 @@ function IEPPage() {
             }}
           >
             <strong>يمكن حفظ العمل كمسودة، لكن لا يمكن رفعه لمسار الخطة حتى استكمال {blockingGoals.length} هدفًا:</strong>
-            <ul style={{ margin: "6px 0 0", paddingRight: 18 }}>
-              {blockingGoals.map((b, i) => (
-                <li key={i}>{b.domainName} — {b.text}: {b.messages[0]}</li>
-              ))}
-            </ul>
+            <button
+              type="button"
+              onClick={() => setDraftBlockerDetailsOpen((open) => !open)}
+              style={{
+                marginTop: 8,
+                background: "white",
+                color: "#7A1F1F",
+                border: "1px solid #FCA5A5",
+                borderRadius: 6,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {draftBlockerDetailsOpen ? "إخفاء التفاصيل" : "عرض تفاصيل الموانع"}
+            </button>
+            {draftBlockerDetailsOpen && (
+              <ul style={{ margin: "8px 0 0", paddingRight: 18 }}>
+                {blockingGoals.map((b, i) => (
+                  <li key={i}>{b.domainName} — {b.text}: {b.messages[0]}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 

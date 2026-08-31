@@ -76,6 +76,8 @@ requireText("cycle05 KSI guard", plan, "لا يستخدم كمستوى أداء 
 requireText("cycle05 formal baseline guard", plan, "baseline");
 requireText("cycle05 draft save boundary", plan, "حفظ الهدف كمسودة لا يساوي إقرار المختص");
 requireText("cycle05 draft does not create approval", plan, "يحفظ كمسودة فقط ولا ينشئ `GoalApprovalRecord`");
+requireText("cycle05 draft progress tag", plan, "`قابلة للاستكمال` أو `غير قابلة للتقدم قبل استيفاء موانع التقدم`");
+requireText("cycle05 blocker details on demand", plan, "تفاصيل الموانع لا تعرض افتراضياً");
 requireText("cycle05 goal trigger term", plan, "باعث الهدف");
 requireText("cycle05 performance anchor term", plan, "مرتكز الأداء / الخط القاعدي");
 requireText("cycle05 adopted screen flow", plan, "ADOPTED_SCREEN_FLOW");
@@ -96,6 +98,10 @@ requireText("goals route rubric blocks submission", read("src/routes/students.$i
 requireText("goals route clears stale approval handoff", read("src/routes/students.$id.iep.goals.tsx"), "clearPlanHandoffArtifacts");
 requireText("goals route clears stale plan review", read("src/routes/students.$id.iep.goals.tsx"), "clearPlanReviewArtifacts");
 requireText("goals route draft status with blockers", read("src/routes/students.$id.iep.goals.tsx"), "draft_with_blocking_findings");
+requireText("goals route draft progress tag", read("src/routes/students.$id.iep.goals.tsx"), "draftProgressTag");
+requireText("goals route blocked progress tag", read("src/routes/students.$id.iep.goals.tsx"), "blocked_until_progress_findings_resolved");
+requireText("goals route blocker details toggle", read("src/routes/students.$id.iep.goals.tsx"), "draftBlockerDetailsOpen");
+requireText("goals route blocker details button", read("src/routes/students.$id.iep.goals.tsx"), "عرض تفاصيل الموانع");
 requireText("plan route shows unit rubric", planRoute, "Rubric مراجعة الخطة كوحدة");
 requireText("plan route uses plan quality evaluator", planRoute, "evaluatePlanQuality");
 requireText("plan route carries goal trigger", planRoute, "iepGoalTrigger");
