@@ -25,6 +25,8 @@ import {
   appendApprovalAuditEvent,
   buildApprovalAuditEvent,
   buildGoalApprovalBundles,
+  planApprovalKey,
+  planGovernanceKey,
   saveGoalApprovalBundles,
 } from "@/lib/goal-plan-approval";
 import {
@@ -445,7 +447,7 @@ function IEPPage() {
   const [overrideFormFor, setOverrideFormFor] = useState<string | null>(null);
   const [overrideDraft, setOverrideDraft] = useState<Record<string, { reason: string; note: string }>>({});
 
-  // Set by handleSave when a hard-stop blocks saving — once the domain/goal
+  // Set when a hard-stop blocks submission — once the domain/goal
   // panels it triggers have rendered, this effect scrolls to and focuses
   // the first unresolved field so the specialist doesn't have to hunt for it.
   const [scrollTarget, setScrollTarget] = useState<{ goalId: string; field: MissingField } | null>(null);
@@ -699,31 +701,104 @@ function IEPPage() {
 
   // Only goals the specialist actually started (non-empty text) can block —
   // an empty, not-yet-written goal is never a blocker.
-  const blockingGoals: { domainCode: DomainCode; domainName: string; goalId: string; text: string; missingField: MissingField }[] = [];
+  const blockingGoals: {
+    domainCode: DomainCode;
+    domainName: string;
+    goalId: string;
+    text: string;
+    missingField: MissingField;
+    messages: string[];
+  }[] = [];
   const startedGoals: Array<Goal & { domainCode: DomainCode }> = [];
   for (const d of domains) {
     for (const g of goals[d.code] ?? []) {
       if (g.text.trim()) startedGoals.push({ ...g, domainCode: d.code });
-      const quality = computeGoalQuality({
+      const rubric = evaluateGoalPlanQuality({
         goalText: g.text, context: g.context ?? "", criterion: g.criterion ?? "",
         measurementMethod: g.measurementMethod ?? "", evidenceRef: g.evidenceRef ?? "",
         goalTrigger: g.goalTrigger ?? "", performanceAnchor: g.performanceAnchor ?? "",
         lifePractice: g.lifePractice ?? "", domainCode: d.code,
         coverage, family, learnerVoice, override: g.override ?? null,
+        learnerAgeYears, profileProcessing,
       });
-      if (hasHardStopViolation(g.text, quality)) {
-        blockingGoals.push({ domainCode: d.code, domainName: d.name, goalId: g.id, text: g.text, missingField: firstMissingField(g) });
+      if (g.text.trim() && rubric.blockingFindings.length > 0) {
+        blockingGoals.push({
+          domainCode: d.code,
+          domainName: d.name,
+          goalId: g.id,
+          text: g.text,
+          missingField: firstMissingField(g),
+          messages: rubric.blockingFindings.map((finding) => finding.messageAr),
+        });
       }
     }
   }
-  const canSave = blockingGoals.length === 0 && startedGoals.length > 0;
+  const canSaveDraft = startedGoals.length > 0;
+  const canSubmitForApproval = blockingGoals.length === 0 && startedGoals.length > 0;
 
-  function handleSave() {
+  function persistIepDraft(input: {
+    goalApprovalIds: string[];
+    reviewStatus: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
+  }) {
+    localStorage.setItem(
+      `himam_iep_${id}`,
+      JSON.stringify({
+        vision,
+        goals,
+        services,
+        startDate,
+        goalApprovalIds: input.goalApprovalIds,
+        reviewStatus: input.reviewStatus,
+        blockingGoalReviews: blockingGoals.map((goal) => ({
+          goalId: goal.goalId,
+          domainCode: goal.domainCode,
+          domainName: goal.domainName,
+          messages: goal.messages,
+        })),
+        savedAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  function clearPlanReviewArtifacts() {
+    localStorage.removeItem(planGovernanceKey(id));
+    localStorage.removeItem(planApprovalKey(id));
+  }
+
+  function clearPlanHandoffArtifacts() {
+    saveGoalApprovalBundles(id, []);
+    clearPlanReviewArtifacts();
+  }
+
+  function handleSaveDraftOnly() {
+    if (!canSaveDraft) {
+      toast.error("أضف هدفاً واحداً على الأقل قبل حفظ المسودة.");
+      return;
+    }
+
+    try {
+      clearPlanHandoffArtifacts();
+      persistIepDraft({
+        goalApprovalIds: [],
+        reviewStatus: blockingGoals.length > 0 ? "draft_with_blocking_findings" : "draft_only",
+      });
+      toast.success(
+        blockingGoals.length > 0
+          ? "تم حفظ مسودة الأهداف مع الملاحظات المانعة دون رفعها للاعتماد."
+          : "تم حفظ مسودة الأهداف فقط دون رفعها للاعتماد.",
+      );
+    } catch (error) {
+      console.warn("Unable to save IEP draft", error);
+      toast.error("تعذر حفظ مسودة الأهداف.");
+    }
+  }
+
+  function handleSubmitForApproval() {
     if (startedGoals.length === 0) {
       toast.error("أضف هدفاً واحداً على الأقل قبل الانتقال إلى الخطة.");
       return;
     }
-    if (!canSave) {
+    if (!canSubmitForApproval) {
       const first = blockingGoals[0];
       setOpen((o) => ({ ...o, [first.domainCode]: true }));
       setExpandedGoals((prev) => {
@@ -732,6 +807,7 @@ function IEPPage() {
         return next;
       });
       setScrollTarget({ goalId: first.goalId, field: first.missingField });
+      toast.error("لا يمكن رفع الهدف لمسار الخطة قبل استيفاء الملاحظات المانعة. يمكنك حفظه كمسودة فقط.");
       return;
     }
 
@@ -749,6 +825,7 @@ function IEPPage() {
         })),
       });
       saveGoalApprovalBundles(id, approvalBundles);
+      clearPlanReviewArtifacts();
       approvalBundles.forEach((bundle) => {
         appendApprovalAuditEvent(buildApprovalAuditEvent({
           learnerId: id,
@@ -760,17 +837,10 @@ function IEPPage() {
           decisionRationale: bundle.approval.decisionRationale,
         }));
       });
-      localStorage.setItem(
-        `himam_iep_${id}`,
-        JSON.stringify({
-          vision,
-          goals,
-          services,
-          startDate,
-          goalApprovalIds: approvalBundles.map((bundle) => bundle.approval.approvalId),
-          savedAt: new Date().toISOString(),
-        }),
-      );
+      persistIepDraft({
+        goalApprovalIds: approvalBundles.map((bundle) => bundle.approval.approvalId),
+        reviewStatus: "ready_for_plan_review",
+      });
       const raw = localStorage.getItem("himam_students");
       if (raw) {
         const list: StoredStudent[] = JSON.parse(raw);
@@ -779,8 +849,10 @@ function IEPPage() {
       }
     } catch (error) {
       console.warn("Unable to save IEP draft", error);
+      toast.error("تعذر رفع الأهداف لمسار الخطة.");
+      return;
     }
-    toast.success("تم حفظ الخطة بنجاح ✓");
+    toast.success("تم إقرار الأهداف ورفعها لمسار الخطة ✓");
     navigate({ to: "/students/$id/plan", params: { id } });
   }
 
@@ -1571,12 +1643,12 @@ function IEPPage() {
         >
           <span style={{ fontSize: 18, lineHeight: 1.4 }}>ℹ️</span>
           <span>
-            بعد حفظ الخطة، ستنتقل لاختيار الأنشطة التشاركية لكل هدف، ثم إنشاء التقرير النهائي الذي يجمع التقييم وصوت الأسرة والمتعلم والخطة التربوية.
+            حفظ المسودة يبقي الهدف داخل مساحة العمل للمراجعة. إقرار الأهداف فقط يرفعها لمسار الخطة واختيار الأنشطة، ولا يتم ذلك عند وجود ملاحظات مانعة.
           </span>
         </div>
 
         {/* Hard-stop warning */}
-        {!canSave && startedGoals.length === 0 && (
+        {!canSubmitForApproval && startedGoals.length === 0 && (
           <div
             style={{
               marginTop: 20, background: "#FFFBEB", border: "1px solid #FCD34D",
@@ -1587,35 +1659,49 @@ function IEPPage() {
           </div>
         )}
 
-        {!canSave && startedGoals.length > 0 && (
+        {!canSubmitForApproval && startedGoals.length > 0 && (
           <div
             style={{
               marginTop: 20, background: "#FEF2F2", border: "1px solid #FCA5A5",
               borderRadius: 8, padding: 12, color: "#7A1F1F", fontSize: 13, lineHeight: 1.7,
             }}
           >
-            <strong>لا يمكن حفظ الخطة والمتابعة حتى استكمال {blockingGoals.length} هدفًا:</strong>
+            <strong>يمكن حفظ العمل كمسودة، لكن لا يمكن رفعه لمسار الخطة حتى استكمال {blockingGoals.length} هدفًا:</strong>
             <ul style={{ margin: "6px 0 0", paddingRight: 18 }}>
               {blockingGoals.map((b, i) => (
-                <li key={i}>{b.domainName} — {b.text}</li>
+                <li key={i}>{b.domainName} — {b.text}: {b.messages[0]}</li>
               ))}
             </ul>
           </div>
         )}
 
         {/* Bottom button */}
-        <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
           <button
             type="button"
-            onClick={handleSave}
-            title={canSave ? undefined : "يوجد نقص يمنع الحفظ والانتقال إلى الخطة"}
+            onClick={handleSaveDraftOnly}
+            disabled={!canSaveDraft}
+            title={canSaveDraft ? undefined : "أضف هدفاً واحداً على الأقل قبل حفظ المسودة"}
             style={{
-              width: "100%", background: canSave ? TEAL : "#D1D5DB", color: "white", border: "none",
+              width: "100%", background: canSaveDraft ? "white" : "#F3F4F6", color: canSaveDraft ? TEAL : "#9CA3AF", border: `1px solid ${canSaveDraft ? TEAL : "#D1D5DB"}`,
               padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,
-              cursor: canSave ? "pointer" : "not-allowed", fontFamily: "inherit",
+              cursor: canSaveDraft ? "pointer" : "not-allowed", fontFamily: "inherit",
             }}
           >
-            حفظ الخطة واختيار الأنشطة ←
+            حفظ كمسودة فقط
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmitForApproval}
+            disabled={!canSubmitForApproval}
+            title={canSubmitForApproval ? undefined : "توجد ملاحظات مانعة تمنع رفع الهدف لمسار الخطة"}
+            style={{
+              width: "100%", background: canSubmitForApproval ? TEAL : "#D1D5DB", color: "white", border: "none",
+              padding: "14px 18px", borderRadius: 10, fontWeight: 700, fontSize: 16,
+              cursor: canSubmitForApproval ? "pointer" : "not-allowed", fontFamily: "inherit",
+            }}
+          >
+            إقرار الأهداف ورفعها لمسار الخطة ←
           </button>
         </div>
       </main>
