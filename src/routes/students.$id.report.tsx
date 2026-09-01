@@ -5,13 +5,15 @@ import { JourneyStepper } from "@/components/journey-stepper";
 import { MVP_CONCEPT_IDS, getConceptNameAr } from "@/data/concepts";
 import { calibrateMvpProfile } from "@/lib/mvp-calibration";
 import { loadLearnerProfile, saveLearnerProfile } from "@/lib/profile-repository";
+import { loadPlanApprovalRecord } from "@/lib/goal-plan-approval";
 import type { ConceptProfile } from "@/types/himam";
+import type { PlanApprovalRecord } from "@/domain/himam";
 
 export const Route = createFileRoute("/students/$id/report")({
   component: ReportPage,
   head: () => ({
     meta: [
-      { title: "التقرير النهائي — همم" },
+      { title: "التقرير — همم" },
       { name: "description", content: "التقرير الشامل لخطة انتقال المتعلم." },
     ],
   }),
@@ -102,6 +104,10 @@ type RawIEP = {
     | RawGoal[];                  // flat array with domainCode field
   services?:  string[];
   startDate?: string;
+  goalApprovalIds?: string[];
+  reviewStatus?: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
+  draftProgressTag?: "continuable" | "blocked_until_progress_findings_resolved" | "ready_for_plan_review";
+  blockingGoalReviews?: Array<{ goalId: string; domainCode: string; domainName: string; messages: string[] }>;
 };
 
 // ── IEP goals normalisation ───────────────────────────────────────────────────
@@ -141,6 +147,19 @@ type LearnerData = { method: string; q_love: string; q_good: string; q_future: s
 type CoverageData = { completionPercent: number; passedDomains: string[]; emergingDomains: string[]; failedDomains: string[]; filledDomains: string[] };
 type PlanGoal = { goalId: string; domainCode: string; goalText: string; selectedActivities: string[]; context: string; specialistNote: string; priority: string };
 type PlanData  = { learnerId: string; generatedAt?: string; goals: PlanGoal[]; status?: "activities_selected" | "no_activities" };
+type ReportReadinessResult = {
+  status:
+    | "blocked_goal_draft"
+    | "goals_not_submitted"
+    | "plan_missing"
+    | "activities_missing"
+    | "plan_not_approved"
+    | "final_report_ready";
+  labelAr: string;
+  messageAr: string;
+  nextActionAr: string;
+  finalReportReady: boolean;
+};
 type TrainingSession = {
   id: string;
   goalId: string;
@@ -252,6 +271,73 @@ function statusLabel(s: string | undefined): string {
   return map[s] ?? s;
 }
 
+function evaluateReportReadiness(
+  iep: IEPData | null,
+  plan: PlanData | null,
+  planApproval: PlanApprovalRecord | null,
+): ReportReadinessResult {
+  if (
+    iep?.draftProgressTag === "blocked_until_progress_findings_resolved" ||
+    iep?.reviewStatus === "draft_with_blocking_findings"
+  ) {
+    return {
+      status: "blocked_goal_draft",
+      labelAr: "مسودة تقرير غير قابلة للتقدم",
+      messageAr: "توجد أهداف محفوظة كمسودة عليها موانع تقدم؛ لا يمكن إصدار تقرير نهائي قبل استيفائها.",
+      nextActionAr: "ارجع إلى شاشة الأهداف واستكمل الموانع قبل رفع الأهداف لمسار الخطة.",
+      finalReportReady: false,
+    };
+  }
+
+  if (!iep?.goalApprovalIds?.length) {
+    return {
+      status: "goals_not_submitted",
+      labelAr: "مسودة تقرير بانتظار إقرار الأهداف",
+      messageAr: "لم تُرفع الأهداف لمسار الخطة بعد، لذلك يبقى هذا العرض مسودة مراجعة.",
+      nextActionAr: "ارجع إلى شاشة الأهداف وأقر الأهداف الجاهزة بعد مراجعة الجودة.",
+      finalReportReady: false,
+    };
+  }
+
+  if (!plan?.goals?.length) {
+    return {
+      status: "plan_missing",
+      labelAr: "مسودة تقرير بانتظار الخطة التنفيذية",
+      messageAr: "لا توجد خطة تنفيذية محفوظة مبنية على الأهداف المعتمدة كوحدات.",
+      nextActionAr: "انتقل إلى شاشة الخطة واختر الأنشطة المناسبة للأهداف.",
+      finalReportReady: false,
+    };
+  }
+
+  if (plan.status !== "activities_selected") {
+    return {
+      status: "activities_missing",
+      labelAr: "مسودة تقرير بانتظار الأنشطة",
+      messageAr: "الخطة محفوظة، لكن لم تُحدد أنشطة تنفيذية كافية بعد.",
+      nextActionAr: "استكمل اختيار الأنشطة في شاشة الخطة قبل إصدار التقرير النهائي.",
+      finalReportReady: false,
+    };
+  }
+
+  if (planApproval?.decision !== "approved") {
+    return {
+      status: "plan_not_approved",
+      labelAr: "مسودة تقرير بانتظار اعتماد الخطة",
+      messageAr: "الخطة جاهزة للمراجعة، لكنها لم تحصل بعد على قرار اعتماد المختص الأعلى.",
+      nextActionAr: "احفظ قرار اعتماد الخطة من شاشة الخطة قبل الطباعة النهائية.",
+      finalReportReady: false,
+    };
+  }
+
+  return {
+    status: "final_report_ready",
+    labelAr: "التقرير النهائي جاهز",
+    messageAr: "استوفت الخطة شروط التقرير النهائي: أهداف معتمدة، أنشطة مختارة، واعتماد خطة محفوظ.",
+    nextActionAr: "يمكن مراجعة التقرير وطباعته.",
+    finalReportReady: true,
+  };
+}
+
 function statusLabelAr(status: ConceptProfile["calibrationStatus"]): string {
   if (status === "final") return "نهائي";
   if (status === "provisional") return "مبدئي";
@@ -303,20 +389,28 @@ function ReportPage() {
   const [learner,  setLearner]  = useState<LearnerData | null>(null);
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
   const [plan,     setPlan]     = useState<PlanData | null>(null);
+  const [planApproval, setPlanApproval] = useState<PlanApprovalRecord | null>(null);
   const [training, setTraining] = useState<TrainingSession[]>([]);
   const [conceptProfiles, setConceptProfiles] = useState<ConceptProfile[]>([]);
 
   useEffect(() => {
     const list = safeParse<StoredStudent[]>("himam_students") ?? [];
-    const updated = list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "report_generated") } : s));
+    const nextIep = safeParse<IEPData>(`himam_iep_${id}`);
+    const nextPlan = safeParse<PlanData>(`himam_plan_${id}`);
+    const nextPlanApproval = loadPlanApprovalRecord(id);
+    const readiness = evaluateReportReadiness(nextIep, nextPlan, nextPlanApproval);
+    const updated = readiness.finalReportReady
+      ? list.map((s) => (s.id === id ? { ...s, status: advanceStage(s.status, "report_generated") } : s))
+      : list;
     try { localStorage.setItem("himam_students", JSON.stringify(updated)); } catch { /* noop */ }
     setStudent(updated.find((s) => s.id === id) ?? null);
     setAssess(safeParse<AssessmentData>(`himam_assessment_${id}`));
-    setIep(safeParse<IEPData>(`himam_iep_${id}`));
+    setIep(nextIep);
     setFamily(safeParse<FamilyData>(`himam_family_${id}`));
     setLearner(safeParse<LearnerData>(`himam_learner_voice_${id}`));
     setCoverage(safeParse<CoverageData>(`himam_coverage_${id}`));
-    setPlan(safeParse<PlanData>(`himam_plan_${id}`));
+    setPlan(nextPlan);
+    setPlanApproval(nextPlanApproval);
     setTraining(safeParse<TrainingSession[]>(`himam_training_${id}`) ?? []);
     const profile = loadLearnerProfile(id);
     if (profile) {
@@ -344,6 +438,19 @@ function ReportPage() {
     : null;
 
   const normIEPGoals = normaliseIEPGoals(iep);
+  const reportReadiness = evaluateReportReadiness(iep, plan, planApproval);
+  const finalReportReady = reportReadiness.finalReportReady;
+  const printButtonStyle = {
+    background: finalReportReady ? ORANGE : "#D1D5DB",
+    color: "white",
+    border: "none",
+    cursor: finalReportReady ? "pointer" : "not-allowed",
+    fontFamily: "inherit",
+  };
+  function handlePrint() {
+    if (!finalReportReady) return;
+    window.print();
+  }
 
   // ── Recommendation logic ──────────────────────────────────────────────────
   function mainRec(avg: number | null) {
@@ -391,10 +498,12 @@ function ReportPage() {
           </button>
           <button
             type="button"
-            onClick={() => window.print()}
-            style={{ background: ORANGE, color: "white", border: "none", padding: "9px 18px", borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+            onClick={handlePrint}
+            disabled={!finalReportReady}
+            title={finalReportReady ? undefined : "لا تتاح الطباعة النهائية قبل اعتماد الخطة"}
+            style={{ ...printButtonStyle, padding: "9px 18px", borderRadius: 8, fontWeight: 700, fontSize: 14 }}
           >
-            🖨️ طباعة التقرير
+            {finalReportReady ? "🖨️ طباعة التقرير" : "الطباعة بعد اعتماد الخطة"}
           </button>
           <button
             type="button"
@@ -427,7 +536,7 @@ function ReportPage() {
         {/* Report header */}
         <div style={{ marginBottom: 28, borderBottom: "3px solid " + TEAL, paddingBottom: 18, pageBreakInside: "avoid" }}>
           <h1 style={{ fontSize: 26, fontWeight: 900, color: TEAL, margin: "0 0 16px", textAlign: "center" }}>
-            التقرير الشامل لخطة الانتقال
+            {finalReportReady ? "التقرير الشامل لخطة الانتقال" : "مسودة مراجعة التقرير"}
           </h1>
           <div style={{ display: "flex", gap: 24, justifyContent: "space-between", flexWrap: "wrap", alignItems: "flex-start" }}>
             {/* Primary identity */}
@@ -466,6 +575,28 @@ function ReportPage() {
               <div style={{ marginTop: 4, fontSize: 12, color: "#94A3B8" }}>منصة همم</div>
             </div>
           </div>
+        </div>
+
+        <div className="no-print">
+          <Card>
+            <SectionTitle num="✓" title="بوابة جاهزية التقرير" />
+            <div style={{
+              padding: "12px 16px",
+              background: finalReportReady ? "#ECFDF5" : "#FFFBEB",
+              borderRadius: 10,
+              borderRight: `4px solid ${finalReportReady ? GREEN : YELLOW}`,
+            }}>
+              <p style={{ margin: 0, color: finalReportReady ? "#065F46" : "#78350F", fontSize: 14, fontWeight: 800 }}>
+                {reportReadiness.labelAr}
+              </p>
+              <p style={{ margin: "6px 0 0", color: finalReportReady ? "#047857" : "#78350F", fontSize: 13, lineHeight: 1.7 }}>
+                {reportReadiness.messageAr}
+              </p>
+              <p style={{ margin: "6px 0 0", color: "#374151", fontSize: 13, lineHeight: 1.7 }}>
+                {reportReadiness.nextActionAr}
+              </p>
+            </div>
+          </Card>
         </div>
 
         {/* ── Snapshot card (لمحة عامة) ──────────────────────────────────── */}
@@ -994,10 +1125,12 @@ function ReportPage() {
           </button>
           <button
             type="button"
-            onClick={() => window.print()}
-            style={{ flex: 1, background: ORANGE, color: "white", border: "none", padding: "14px", borderRadius: 10, fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "inherit" }}
+            onClick={handlePrint}
+            disabled={!finalReportReady}
+            title={finalReportReady ? undefined : "لا تتاح الطباعة النهائية قبل اعتماد الخطة"}
+            style={{ flex: 1, ...printButtonStyle, padding: "14px", borderRadius: 10, fontWeight: 700, fontSize: 16 }}
           >
-            🖨️ طباعة التقرير
+            {finalReportReady ? "🖨️ طباعة التقرير" : "الطباعة بعد اعتماد الخطة"}
           </button>
           <button
             type="button"
