@@ -25,6 +25,7 @@
     "verify:build-cycle-05": "node scripts/verify-build-cycle-05.mjs",
     "verify:build-cycle-06": "node scripts/verify-build-cycle-06.mjs",
     "verify:build-cycle-07": "node scripts/verify-build-cycle-07.mjs",
+    "verify:build-cycle-08": "node scripts/verify-build-cycle-08.mjs",
     "verify:plan-quality": "node scripts/verify-plan-quality-references.mjs",
     "verify:transition-assessment": "node scripts/verify-transition-assessment-references.mjs",
     "verify:information-sources": "node scripts/verify-information-sources.mjs",

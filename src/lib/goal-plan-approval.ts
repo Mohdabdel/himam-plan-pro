@@ -148,6 +148,18 @@ export function savePlanApprovalRecord(learnerId: string, approval: PlanApproval
   return approval;
 }
 
+export function clearPlanApprovalRecord(learnerId: string) {
+  localStorage.removeItem(planApprovalKey(learnerId));
+  const governance = loadPlanGovernanceBundle(learnerId);
+  if (governance?.planApproval) {
+    const draftGovernance: PlanGovernanceBundle = {
+      planDraft: governance.planDraft,
+      qualityReview: governance.qualityReview,
+    };
+    savePlanGovernanceBundle(learnerId, draftGovernance);
+  }
+}
+
 export function loadApprovalAuditEvents(learnerId: string): ApprovalAuditEvent[] {
   try {
     return JSON.parse(localStorage.getItem(approvalAuditKey(learnerId)) || "[]") as ApprovalAuditEvent[];

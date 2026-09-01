@@ -8,6 +8,7 @@ import {
   buildApprovalAuditEvent,
   buildPlanApprovalRecord,
   buildPlanGovernanceBundle,
+  clearPlanApprovalRecord,
   loadGoalApprovalBundles,
   loadPlanApprovalRecord,
   loadPlanGovernanceBundle,
@@ -72,6 +73,9 @@ type RawIEP  = {
   goals?:
     | Record<string, RawGoal[]>   // grouped by domain code (existing format)
     | RawGoal[];                  // flat array with domainCode field
+  reviewStatus?: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
+  draftProgressTag?: "continuable" | "blocked_until_progress_findings_resolved" | "ready_for_plan_review";
+  goalApprovalIds?: string[];
 };
 
 type CoverageData = {
@@ -257,6 +261,7 @@ function PlanPage() {
   const [student,          setStudent]          = useState<StoredStudent | null>(null);
   const [goalEntries,      setGoalEntries]      = useState<GoalEntry[]>([]);
   const [hasGoals,         setHasGoals]         = useState(true); // optimistic; set false if IEP is empty
+  const [planInputIssue,   setPlanInputIssue]   = useState<"" | "no_goals" | "no_approved_goals" | "blocked_goal_draft">("");
   const [saved,            setSaved]            = useState(false);
   const [governanceError,  setGovernanceError]  = useState("");
   const [approvedGoalCount,setApprovedGoalCount]= useState(0);
@@ -287,9 +292,11 @@ function PlanPage() {
       const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
       const learnerV  = safeParse<LearnerVoiceData>(`himam_learner_voice_${id}`) ?? {};
       const goalApprovalBundles = loadGoalApprovalBundles(id);
-      setApprovedGoalCount(goalApprovalBundles.filter((bundle) => bundle.approval.decision === "approved_for_plan_inclusion").length);
+      const approvedGoalBundles = goalApprovalBundles.filter((bundle) => bundle.approval.decision === "approved_for_plan_inclusion");
+      setApprovedGoalCount(approvedGoalBundles.length);
       setPlanGovernance(loadPlanGovernanceBundle(id));
       setPlanApproval(loadPlanApprovalRecord(id));
+      setPlanInputIssue("");
       const profile = s ? loadLearnerProfile(s.id) : null;
       const calibratedProfile = profile ? saveLearnerProfile(calibrateMvpProfile(profile)) : null;
       const conceptLevels = Object.fromEntries(
@@ -325,12 +332,32 @@ function PlanPage() {
       const flatGoals = normalizeGoals(rawIEP);
       if (flatGoals.length === 0) {
         setHasGoals(false);
+        setPlanInputIssue("no_goals");
+        setGoalEntries([]);
+        setLoaded(true);
+        return;
+      }
+
+      if (rawIEP?.draftProgressTag === "blocked_until_progress_findings_resolved") {
+        setHasGoals(false);
+        setPlanInputIssue("blocked_goal_draft");
+        setGoalEntries([]);
+        setLoaded(true);
+        return;
+      }
+
+      const approvedLocalGoalIds = new Set(approvedGoalBundles.map((bundle) => bundle.localGoalId));
+      const approvedFlatGoals = flatGoals.filter((goal) => approvedLocalGoalIds.has(goal.goalId));
+      if (approvedFlatGoals.length === 0) {
+        setHasGoals(false);
+        setPlanInputIssue("no_approved_goals");
+        setGoalEntries([]);
         setLoaded(true);
         return;
       }
 
       // 5. Build goal entries
-      const entries = flatGoals.map((g) => buildEntry(g, coverage, defaultContext, conceptLevels, recommendCurriculumActivities));
+      const entries = approvedFlatGoals.map((g) => buildEntry(g, coverage, defaultContext, conceptLevels, recommendCurriculumActivities));
 
       // 6. Restore saved plan selections
       const saved = safeParse<{ goals: GoalEntry[] }>(`himam_plan_${id}`);
@@ -420,6 +447,7 @@ function PlanPage() {
         ],
       });
       savePlanGovernanceBundle(id, governanceBundle);
+      clearPlanApprovalRecord(id);
       appendApprovalAuditEvent(buildApprovalAuditEvent({
         learnerId: id,
         actorRole: "SPECIALIST",
@@ -439,6 +467,7 @@ function PlanPage() {
         decisionRationale: governanceBundle.qualityReview.findings.join(" | "),
       }));
       setPlanGovernance(governanceBundle);
+      setPlanApproval(null);
       setApprovedGoalCount(goalApprovalBundles.length);
       localStorage.setItem(`himam_plan_${id}`, JSON.stringify({
         learnerId:   id,
@@ -544,7 +573,24 @@ function PlanPage() {
   }
 
   // ── No goals fallback ────────────────────────────────────────────────────────
-  const showEmptyState = loaded && !hasGoals;
+  const showPlanInputGate = loaded && !hasGoals;
+  const planInputGateContent = planInputIssue === "blocked_goal_draft"
+    ? {
+        title: "مسودة الأهداف غير قابلة للتقدم",
+        message: "توجد موانع جودة في مسودة الأهداف. لا يمكن بناء مسودة الخطة أو إصدار تقرير توصيات نهائي قبل استيفاء الموانع.",
+        action: "مراجعة موانع الأهداف",
+      }
+    : planInputIssue === "no_approved_goals"
+      ? {
+          title: "لا توجد أهداف معتمدة للإدراج",
+          message: "توجد أهداف أو مسودات، لكنها لم تنتقل بعد عبر إقرار المختص كأهداف صالحة للإدراج في الخطة.",
+          action: "إقرار الأهداف للإدراج",
+        }
+      : {
+          title: "لم تُدخَل أهداف بعد",
+          message: "يجب إدخال الأهداف التربوية أولاً لتتمكن من بناء مسودة الخطة.",
+          action: "إدخال الأهداف",
+        };
   const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
   const planQuality = evaluatePlanQuality({
     approvedGoalCount,
@@ -667,19 +713,19 @@ function PlanPage() {
 
         {loaded && hasGoals && <PlanQualitySummary result={planQuality} />}
 
-        {/* No goals empty state */}
-        {showEmptyState && (
+        {/* Plan input readiness gate */}
+        {showPlanInputGate && (
           <div style={{ marginTop: 40, textAlign: "center", padding: 40, background: "white", borderRadius: 12, border: "1px solid #E5E7EB" }}>
-            <p style={{ fontSize: 16, fontWeight: 600, color: "#374151", margin: 0 }}>لم تُدخَل أهداف بعد</p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: "#374151", margin: 0 }}>{planInputGateContent.title}</p>
             <p style={{ fontSize: 14, marginTop: 8, color: "#9CA3AF" }}>
-              يجب إدخال الأهداف التربوية أولاً لتتمكن من بناء الخطة النهائية.
+              {planInputGateContent.message}
             </p>
             <Link
-              to="/students/$id/iep"
+              to="/students/$id/iep/goals"
               params={{ id }}
               style={{ display: "inline-block", marginTop: 20, background: TEAL, color: "white", textDecoration: "none", padding: "10px 24px", borderRadius: 8, fontWeight: 700 }}
             >
-              → إدخال الأهداف في الخطة التربوية
+              → {planInputGateContent.action}
             </Link>
           </div>
         )}
