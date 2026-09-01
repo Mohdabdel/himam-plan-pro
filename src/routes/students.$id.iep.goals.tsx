@@ -42,12 +42,10 @@ import {
 } from "@/lib/source-file-pipeline";
 import type {
   AssessmentRecord,
-  ConceptId,
   InformationProcessingProfile,
   KnowledgeSupportItem,
   LearnerProfileProcessingModel,
   ProfileComponentElement,
-  ProcessedConceptProfile,
 } from "@/types/himam";
 
 export const Route = createFileRoute("/students/$id/iep/goals")({
@@ -117,11 +115,16 @@ type GoalSourceId =
   | "additional_sources"
   | "processed_information_profile"
   | "reviewed_file_sources";
+type BaselineSourceId =
+  | "formal_assessment"
+  | "informal_assessment"
+  | "reviewed_file_sources";
 type GuidanceMode = "guided" | "direct";
 
 type GoalBuilderState = {
   domainCode: DomainCode | "";
   sourceId: GoalSourceId | "";
+  baselineSourceId: BaselineSourceId | "";
   performanceAnchor: string;
   selectedItemIds: string[];
   mode: GuidanceMode | "";
@@ -139,6 +142,7 @@ type GoalBuilderState = {
 const EMPTY_GOAL_BUILDER: GoalBuilderState = {
   domainCode: "",
   sourceId: "",
+  baselineSourceId: "",
   performanceAnchor: "",
   selectedItemIds: [],
   mode: "",
@@ -219,6 +223,24 @@ const GUIDANCE_QUESTIONS = [
 
 const VAGUE_GOAL_WORDS = ["يفهم", "يعرف", "يقدر", "يحسن", "يتحسن", "يدرك", "يتعلم"];
 
+const BASELINE_SOURCES: Array<{ id: BaselineSourceId; label: string; note: string }> = [
+  {
+    id: "formal_assessment",
+    label: "أداة تقييم رسمية",
+    note: "الأولوية الأولى عندما تتوفر نتائج أداة رسمية مفسرة وبنودها صالحة كخط قاعدي.",
+  },
+  {
+    id: "informal_assessment",
+    label: "أداة أو قائمة مسح غير رسمية",
+    note: "تستخدم عندما يكون مستوى الأداء موثقاً من تطبيق أداة وصفية أو قائمة مسح.",
+  },
+  {
+    id: "reviewed_file_sources",
+    label: "ملف أو نموذج مرفوع ومراجع",
+    note: "تستخدم عندما يصل الخط القاعدي من ملف مرفوع جرى تصنيفه ومراجعته.",
+  },
+];
+
 function emptyGoalMap(domains: { code: DomainCode }[]): Record<DomainCode, Goal[]> {
   return Object.fromEntries(domains.map((d): [DomainCode, Goal[]] => [d.code, []])) as Record<DomainCode, Goal[]>;
 }
@@ -236,43 +258,8 @@ function sourceLabel(sourceId: GoalSourceId) {
   return "أدوات ومصادر إضافية";
 }
 
-function domainCodeToConceptIds(domainCode: DomainCode | ""): ConceptId[] {
-  const map: Record<DomainCode, ConceptId[]> = {
-    VS: ["COMMUNITY", "ACADEMIC", "SELF_DET"],
-    VB: ["COMMUNITY", "SOCIAL", "SAFETY"],
-    IF: ["SELF_CARE", "COMMUNITY"],
-    LS: ["SELF_CARE", "SOCIAL", "COMMUNITY"],
-    FC: ["COMM"],
-    IB: ["SOCIAL", "COMM"],
-    COG: ["ACADEMIC"],
-    COM: ["COMM"],
-    SOC: ["SOCIAL"],
-    ADL: ["SELF_CARE"],
-    VOC: ["COMMUNITY", "ACADEMIC"],
-    MOT: ["MOBILITY", "SELF_CARE"],
-  };
-  return domainCode ? map[domainCode] : [];
-}
-
-function profileForDomain(model: LearnerProfileProcessingModel, domainCode: DomainCode | ""): ProcessedConceptProfile | null {
-  const conceptIds = domainCodeToConceptIds(domainCode);
-  return model.conceptProfiles.find((profile) => conceptIds.includes(profile.conceptId)) ?? null;
-}
-
-function componentElementsForDomain(model: LearnerProfileProcessingModel, domainCode: DomainCode | ""): ProfileComponentElement[] {
-  const conceptIds = domainCodeToConceptIds(domainCode);
-  if (conceptIds.length === 0) return [];
-  return model.componentMatrix.elements
-    .filter((element) => element.conceptIds.some((conceptId) => conceptIds.includes(conceptId)))
-    .sort((a, b) => {
-      const order = {
-        critical_for_goal_validity: 0,
-        important_for_goal_quality: 1,
-        supporting_context: 2,
-      };
-      return order[a.importance] - order[b.importance];
-    })
-    .slice(0, 6);
+function baselineSourceLabel(sourceId: BaselineSourceId | "") {
+  return BASELINE_SOURCES.find((source) => source.id === sourceId)?.label ?? "غير محدد";
 }
 
 function buildGoalSources(input: {
@@ -366,8 +353,11 @@ function ageYearsFromBirthDate(birthDate?: string) {
 }
 
 function performanceAnchorFromBuilder(builder: GoalBuilderState, selectedItems: string[]) {
-  if (builder.performanceAnchor.trim()) return builder.performanceAnchor.trim();
-  if (builder.sourceId === "assessment" && selectedItems.length > 0) return selectedItems.join("، ");
+  const source = baselineSourceLabel(builder.baselineSourceId);
+  if (builder.performanceAnchor.trim()) return `${source}: ${builder.performanceAnchor.trim()}`;
+  if (builder.baselineSourceId === "formal_assessment" && selectedItems.length > 0) {
+    return `${source}: ${selectedItems.join("، ")}`;
+  }
   return "";
 }
 
@@ -398,6 +388,7 @@ function buildGoalDraft(input: {
       ["الطالب + الإطار الزمني", `${datePart} - ${studentName || "الطالب"}`],
       ["بيان المعطيات/الشرط", condition],
       ["باعث الهدف", builder.sourceId ? sourceLabel(builder.sourceId as GoalSourceId) : "غير محدد"],
+      ["مرجعية الخط القاعدي", baselineSourceLabel(builder.baselineSourceId)],
       ["مرتكز الأداء / الخط القاعدي", performanceAnchorFromBuilder(builder, selectedItems) || "غير محدد"],
       ["سلوك ملحوظ", behavior || "غير مكتمل بعد"],
       ["توضيح التفاصيل", details || "غير محدد"],
@@ -442,6 +433,9 @@ function IEPPage() {
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
   const [knowledgeSupportOpen, setKnowledgeSupportOpen] = useState(false);
+  const [sourceDetailsOpen, setSourceDetailsOpen] = useState(false);
+  const [processingDetailsOpen, setProcessingDetailsOpen] = useState(false);
+  const [profileDetailsOpen, setProfileDetailsOpen] = useState(false);
   const [draftBlockerDetailsOpen, setDraftBlockerDetailsOpen] = useState(false);
 
   // Draft state for the "professional override" mini-form, keyed by goal id.
@@ -513,8 +507,6 @@ function IEPPage() {
     setLoaded(true);
   }, [id]);
 
-  const selectedProcessedConceptProfile = profileForDomain(profileProcessing, goalBuilder.domainCode);
-  const selectedProfileComponentElements = componentElementsForDomain(profileProcessing, goalBuilder.domainCode);
   const goalSources = buildGoalSources({
     assessmentRecords,
     family,
@@ -525,7 +517,7 @@ function IEPPage() {
     sourcePipelines,
   });
   const selectedGoalDomain = domains.find((domain) => domain.code === goalBuilder.domainCode);
-  const selectedAssessmentItems = goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
+  const selectedAssessmentItems = goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
     ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
     : [];
   const selectedItemLabels = selectedAssessmentItems
@@ -565,11 +557,10 @@ function IEPPage() {
       const next = { ...current, [field]: value };
       if (field === "domainCode") {
         next.selectedItemIds = [];
+        next.performanceAnchor = "";
       }
-      if (field === "sourceId" && value !== "assessment") {
+      if (field === "baselineSourceId") {
         next.selectedItemIds = [];
-      }
-      if (field === "sourceId") {
         next.performanceAnchor = "";
       }
       return next;
@@ -598,8 +589,12 @@ function IEPPage() {
       setBuilderMessage("اختر مصدر الهدف قبل إضافة المسودة.");
       return;
     }
-    if (goalBuilder.sourceId === "assessment" && goalBuilder.selectedItemIds.length === 0) {
-      setBuilderMessage("اختر بنداً واحداً على الأقل من بنود أداة التقييم في المجال المحدد.");
+    if (!goalBuilder.baselineSourceId) {
+      setBuilderMessage("اختر مرجعية الخط القاعدي قبل إضافة المسودة.");
+      return;
+    }
+    if (goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.selectedItemIds.length === 0) {
+      setBuilderMessage("اختر بنداً واحداً على الأقل من بنود أداة التقييم الرسمية في المجال المحدد.");
       return;
     }
     if (!selectedPerformanceAnchor) {
@@ -940,10 +935,34 @@ function IEPPage() {
         <section style={cardStyle}>
           <h2 style={sectionTitle}>منشئ الهدف التفاعلي</h2>
           <p style={{ color: "#64748B", fontSize: 13, marginTop: 4, marginBottom: 0, lineHeight: 1.8 }}>
-            يمر المختص عبر مجال التقييم، ثم باعث الهدف، ثم مرتكز الأداء / الخط القاعدي، ثم يختار بين أسئلة توجيهية أو إضافة مباشرة. المسودة الناتجة لا تعد هدفاً معتمداً حتى تمر بمراجعة الجودة البشرية.
+            ابدأ بمنشئ الهدف التفاعلي عند الحاجة إلى دعم منظم، أو أدخل الهدف مباشرة عندما تكون الصياغة جاهزة. في الحالتين يجب ربط الهدف بمرجعية خط قاعدي مفسرة.
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
+            <button
+              type="button"
+              onClick={() => updateGoalBuilder("mode", "guided")}
+              style={modeButtonStyle(goalBuilder.mode === "guided")}
+            >
+              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>منشئ الهدف التفاعلي</span>
+              <span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.7, color: goalBuilder.mode === "guided" ? "white" : "#64748B" }}>
+                أسئلة قصيرة تساعد على توليد مسودة الهدف من المصدر والخط القاعدي.
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateGoalBuilder("mode", "direct")}
+              style={modeButtonStyle(goalBuilder.mode === "direct")}
+            >
+              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>إدراج هدف مباشرة</span>
+              <span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.7, color: goalBuilder.mode === "direct" ? "white" : "#64748B" }}>
+                كتابة مستقلة مع إبقاء الدعم المعرفي متاحاً عند الطلب.
+              </span>
+            </button>
+          </div>
+
+          {goalBuilder.mode && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
             <div style={builderStepStyle}>
               <div style={builderStepTitle}>1. مجال أداة التقييم</div>
               <select
@@ -979,12 +998,28 @@ function IEPPage() {
             </div>
 
             <div style={builderStepStyle}>
-              <div style={builderStepTitle}>3. مرتكز الأداء / الخط القاعدي</div>
-              {goalBuilder.sourceId === "assessment" ? (
+              <div style={builderStepTitle}>3. مرجعية الخط القاعدي</div>
+              <select
+                value={goalBuilder.baselineSourceId}
+                onChange={(event) => updateGoalBuilder("baselineSourceId", event.target.value as BaselineSourceId | "")}
+                style={selectStyle}
+                disabled={!goalBuilder.sourceId}
+              >
+                <option value="">اختر المرجعية</option>
+                {BASELINE_SOURCES.map((source) => (
+                  <option key={source.id} value={source.id}>{source.label}</option>
+                ))}
+              </select>
+              {goalBuilder.baselineSourceId && (
+                <p style={{ margin: "6px 0 8px", color: "#64748B", fontSize: 11, lineHeight: 1.6 }}>
+                  {BASELINE_SOURCES.find((source) => source.id === goalBuilder.baselineSourceId)?.note}
+                </p>
+              )}
+              {goalBuilder.baselineSourceId === "formal_assessment" ? (
                 <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
                   {selectedAssessmentItems.length === 0 ? (
                     <p style={{ margin: 0, color: "#94A3B8", fontSize: 12, lineHeight: 1.7 }}>
-                      اختر مجالاً من أداة TTAP لعرض البنود المتاحة.
+                      اختر مجالاً من أداة TTAP لعرض البنود المتاحة، ثم اختر بند الخط القاعدي.
                     </p>
                   ) : selectedAssessmentItems.map((item) => (
                     <label key={item.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
@@ -998,67 +1033,23 @@ function IEPPage() {
                     </label>
                   ))}
                 </div>
-              ) : goalBuilder.sourceId === "processed_information_profile" ? (
-                <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-                  {!selectedProcessedConceptProfile && selectedProfileComponentElements.length === 0 ? (
-                    <p style={{ margin: 0, color: "#94A3B8", fontSize: 12, lineHeight: 1.7 }}>
-                      لا توجد قراءة بروفايل مرتبطة بهذا المجال بعد.
-                    </p>
-                  ) : (
-                    <>
-                      {selectedProcessedConceptProfile && (
-                        <p style={{ margin: 0, color: "#334155", fontSize: 12, lineHeight: 1.7 }}>
-                          {selectedProcessedConceptProfile.currentPerformanceDraftAr}
-                        </p>
-                      )}
-                      {selectedProfileComponentElements.map((element) => (
-                        <div key={element.id} style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 6, padding: 7 }}>
-                          <p style={{ margin: 0, color: TEAL, fontSize: 11, fontWeight: 800 }}>{element.componentNameAr} - {element.elementNameAr}</p>
-                          <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.5 }}>{element.summaryAr}</p>
-                          <p style={{ margin: "3px 0 0", color: "#92400E", fontSize: 10, lineHeight: 1.5 }}>
-                            الأثر: {profileImpactLabel(element.goalImpact)} - {element.reviewActionAr}
-                          </p>
-                        </div>
-                      ))}
-                      {selectedProcessedConceptProfile?.goalOpportunities.slice(0, 2).map((opportunity) => (
-                        <div key={opportunity.id} style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 7 }}>
-                          <p style={{ margin: 0, color: TEAL, fontSize: 11, fontWeight: 800 }}>{opportunity.titleAr}</p>
-                          <p style={{ margin: "3px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.5 }}>{opportunity.rationaleAr}</p>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
               ) : (
                 <p style={{ margin: 0, color: "#64748B", fontSize: 12, lineHeight: 1.8 }}>
-                  عند اختيار باعث غير التقييم، يجب تحديد مرتكز أداء منفصل: نتيجة مراجعة، قائمة مسح، ملاحظة أداء منظمة، أو عينة عمل.
+                  اكتب اسم الأداة أو الملف، والبند أو النتيجة التي تمثل مستوى الأداء الحالي.
                 </p>
               )}
               <textarea
                 value={goalBuilder.performanceAnchor}
                 onChange={(event) => updateGoalBuilder("performanceAnchor", event.target.value)}
                 rows={2}
-                placeholder={goalBuilder.sourceId === "assessment" && selectedItemLabels.length > 0
+                placeholder={goalBuilder.baselineSourceId === "formal_assessment" && selectedItemLabels.length > 0
                   ? "يمكن تركه فارغاً لاستخدام البنود المحددة كمرتكز أداء، أو اكتب تفسيراً مراجعاً لها..."
-                  : "اكتب مرتكز الأداء أو الخط القاعدي المراجع..."}
+                  : "اكتب مرتكز الأداء أو الخط القاعدي المراجع: الأداة/البند/النتيجة/التفسير..."}
                 style={{ ...textAreaStyle, minHeight: 64, marginTop: 8, fontSize: 12 }}
               />
             </div>
-
-            <div style={builderStepStyle}>
-              <div style={builderStepTitle}>4. طريقة الصياغة</div>
-              <select
-                value={goalBuilder.mode}
-                onChange={(event) => updateGoalBuilder("mode", event.target.value as GuidanceMode | "")}
-                style={selectStyle}
-                disabled={!goalBuilder.sourceId}
-              >
-                <option value="">اختر الطريقة</option>
-                <option value="guided">الاستعانة بأسئلة توجيهية</option>
-                <option value="direct">إضافة الهدف مباشرة</option>
-              </select>
-            </div>
           </div>
+          )}
 
           {goalBuilder.mode === "guided" && (
             <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1271,11 +1262,25 @@ function IEPPage() {
                       family={family}
                       learnerVoice={learnerVoice}
                     />
-                    <ReviewedFileSourcesPanel pipelines={sourcePipelines} />
-                    <InformationProcessingPanel profile={informationProcessing} />
-                    <ProfileComponentMatrixPanel model={profileProcessing} />
-                    <ProfileProcessingPanel model={profileProcessing} />
-                    <KnowledgeSupportPanel items={knowledgeSupport} />
+                    <GoalPreparationExtracts
+                      informationProcessing={informationProcessing}
+                      profileProcessing={profileProcessing}
+                      sourcePipelines={sourcePipelines}
+                      sourceDetailsOpen={sourceDetailsOpen}
+                      processingDetailsOpen={processingDetailsOpen}
+                      profileDetailsOpen={profileDetailsOpen}
+                      onToggleSourceDetails={() => setSourceDetailsOpen((openValue) => !openValue)}
+                      onToggleProcessingDetails={() => setProcessingDetailsOpen((openValue) => !openValue)}
+                      onToggleProfileDetails={() => setProfileDetailsOpen((openValue) => !openValue)}
+                    />
+                    {sourceDetailsOpen && <ReviewedFileSourcesPanel pipelines={sourcePipelines} />}
+                    {processingDetailsOpen && <InformationProcessingPanel profile={informationProcessing} />}
+                    {profileDetailsOpen && (
+                      <>
+                        <ProfileComponentMatrixPanel model={profileProcessing} />
+                        <ProfileProcessingPanel model={profileProcessing} />
+                      </>
+                    )}
                     {goals[d.code].length === 0 && (
                       <p style={{ color: "#94A3B8", fontSize: 14, margin: "0 0 12px" }}>
                         لا توجد أهداف بعد.
@@ -1810,6 +1815,81 @@ function GoalPlanQualitySummary({ result }: { result: GoalPlanQualityRubricResul
   );
 }
 
+function GoalPreparationExtracts({
+  informationProcessing,
+  profileProcessing,
+  sourcePipelines,
+  sourceDetailsOpen,
+  processingDetailsOpen,
+  profileDetailsOpen,
+  onToggleSourceDetails,
+  onToggleProcessingDetails,
+  onToggleProfileDetails,
+}: {
+  informationProcessing: InformationProcessingProfile;
+  profileProcessing: LearnerProfileProcessingModel;
+  sourcePipelines: SourceFilePipelineRecord[];
+  sourceDetailsOpen: boolean;
+  processingDetailsOpen: boolean;
+  profileDetailsOpen: boolean;
+  onToggleSourceDetails: () => void;
+  onToggleProcessingDetails: () => void;
+  onToggleProfileDetails: () => void;
+}) {
+  const reviewedSourceCount = sourcePipelines.filter((pipeline) => (
+    pipeline.review?.decision === "approved_for_structured_response" &&
+    pipeline.structuredResponses.length > 0
+  )).length;
+  const leadingOpportunity = profileProcessing.topGoalOpportunities[0]?.rationaleAr;
+
+  return (
+    <div style={{ marginBottom: 12, background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <p style={{ margin: 0, color: TEAL, fontSize: 12, fontWeight: 800 }}>مستخلصات داعمة لإعداد الهدف</p>
+        <span style={{ color: "#64748B", fontSize: 10, fontWeight: 800 }}>
+          التفاصيل تظهر عند الطلب
+        </span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginTop: 8 }}>
+        <MiniMetric label="ملفات مراجعة" value={reviewedSourceCount} />
+        <MiniMetric label="إشارات" value={informationProcessing.signalCount} />
+        <MiniMetric label="فرص أهداف" value={profileProcessing.topGoalOpportunities.length} />
+        <MiniMetric label="فجوات صحة" value={profileProcessing.componentMatrix.criticalMissingComponentCount} />
+      </div>
+      <p style={{ margin: "8px 0 0", color: "#475569", fontSize: 11, lineHeight: 1.7 }}>
+        {leadingOpportunity ?? "لا توجد فرصة هدف مستخلصة بعد. عند تطبيق الأدوات أو مراجعة الملفات ستظهر هنا إشارات مختصرة فقط."}
+      </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+        <DetailsToggleButton open={sourceDetailsOpen} label="مصادر الملفات" onClick={onToggleSourceDetails} />
+        <DetailsToggleButton open={processingDetailsOpen} label="معالجة المعلومات" onClick={onToggleProcessingDetails} />
+        <DetailsToggleButton open={profileDetailsOpen} label="البروفايل المتكامل" onClick={onToggleProfileDetails} />
+      </div>
+    </div>
+  );
+}
+
+function DetailsToggleButton({ open, label, onClick }: { open: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: open ? TEAL : "white",
+        color: open ? "white" : TEAL,
+        border: open ? `1px solid ${TEAL}` : "1px solid #9EC7C3",
+        borderRadius: 8,
+        padding: "7px 10px",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        fontWeight: 800,
+        fontSize: 11,
+      }}
+    >
+      {open ? `إخفاء ${label}` : `عرض ${label}`}
+    </button>
+  );
+}
+
 function InformationProcessingPanel({ profile }: { profile: InformationProcessingProfile }) {
   if (profile.signalCount === 0) {
     return (
@@ -2037,6 +2117,19 @@ const builderStepTitle: React.CSSProperties = {
   fontWeight: 800,
   marginBottom: 8,
 };
+function modeButtonStyle(active: boolean): React.CSSProperties {
+  return {
+    textAlign: "right",
+    background: active ? TEAL : "white",
+    color: active ? "white" : TEAL,
+    border: active ? `1px solid ${TEAL}` : "1px solid #CBD5E1",
+    borderRadius: 10,
+    padding: 12,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    minHeight: 78,
+  };
+}
 const selectStyle: React.CSSProperties = {
   width: "100%",
   padding: "8px 10px",

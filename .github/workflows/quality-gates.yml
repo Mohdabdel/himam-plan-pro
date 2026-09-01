@@ -43,6 +43,9 @@ jobs:
       - name: Verify build cycle 06
         run: npm run verify:build-cycle-06
 
+      - name: Verify build cycle 07
+        run: npm run verify:build-cycle-07
+
       - name: Typecheck
         run: npm run typecheck
 
