@@ -146,7 +146,14 @@ type FamilyData = { method: string; sessionDate: string; attendees: string; prio
 type LearnerData = { method: string; q_love: string; q_good: string; q_future: string; q_happy: string; q_hard: string; environments: string[]; quality: string };
 type CoverageData = { completionPercent: number; passedDomains: string[]; emergingDomains: string[]; failedDomains: string[]; filledDomains: string[] };
 type PlanGoal = { goalId: string; domainCode: string; goalText: string; selectedActivities: string[]; context: string; specialistNote: string; priority: string };
-type PlanData  = { learnerId: string; generatedAt?: string; goals: PlanGoal[]; status?: "activities_selected" | "no_activities" };
+type PlanData  = {
+  learnerId: string;
+  generatedAt?: string;
+  currentPerformanceStatement?: string;
+  planVision?: string;
+  goals: PlanGoal[];
+  status?: "activities_selected" | "no_activities";
+};
 type ReportReadinessResult = {
   status:
     | "blocked_goal_draft"
@@ -693,6 +700,26 @@ function ReportPage() {
             <InfoRow label="الحالة"              value={statusLabel(student?.status)} />
           </Card>
         </div>
+
+        {(plan?.currentPerformanceStatement || plan?.planVision) && (
+          <div className="report-section">
+            <Card>
+              <SectionTitle num="٢" title="مكونات الخطة المعتمدة" />
+              {plan.currentPerformanceStatement && (
+                <div style={{ marginBottom: 14, padding: "10px 14px", background: "#F8F7F4", borderRadius: 8, borderRight: `4px solid ${TEAL}` }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "#64748B", fontWeight: 700 }}>مستوى الأداء الحالي كمكوّن خطة</p>
+                  <p style={{ margin: "6px 0 0", fontSize: 14, color: "#1F2937", whiteSpace: "pre-line", lineHeight: 1.8 }}>{plan.currentPerformanceStatement}</p>
+                </div>
+              )}
+              {plan.planVision && (
+                <div style={{ padding: "10px 14px", background: "#FBF7F4", borderRadius: 8, borderRight: `4px solid ${ORANGE}` }}>
+                  <p style={{ margin: 0, fontSize: 13, color: "#64748B", fontWeight: 700 }}>رؤية الخطة التربوية الفردية لفريق العمل الصفي</p>
+                  <p style={{ margin: "6px 0 0", fontSize: 14, color: "#1F2937", whiteSpace: "pre-line", lineHeight: 1.8 }}>{plan.planVision}</p>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
 
         {/* ── Section 2: Assessment results ──────────────────────────────── */}
         <div className="report-section">

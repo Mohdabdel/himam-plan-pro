@@ -70,6 +70,7 @@ type RawGoal = {
   evidenceRef?: string; lifePractice?: string; override?: RawGoalOverride;
 };
 type RawIEP  = {
+  vision?: string;
   goals?:
     | Record<string, RawGoal[]>   // grouped by domain code (existing format)
     | RawGoal[];                  // flat array with domainCode field
@@ -82,6 +83,20 @@ type CoverageData = {
   failedDomains?:   string[];
   emergingDomains?: string[];
   passedDomains?:   string[];
+};
+
+type NormalisedDomain = { success: number; emerging: number; fail: number; note?: string };
+type NormalisedDomains = Record<string, NormalisedDomain>;
+type RawDomainEntry = { code: string; score: string; note?: string };
+type RawAssessment = {
+  domains?:
+    | Record<string, { success?: string | number; emerging?: string | number; fail?: string | number; score?: string; note?: string }>
+    | RawDomainEntry[];
+  tool?: string;
+  assessorName?: string;
+  assessmentDate?: string;
+  savedAt?: string;
+  updatedAt?: string;
 };
 
 // Actual family storage shape (matches family.tsx / report.tsx)
@@ -127,6 +142,20 @@ const ORANGE = "#D9764A";
 const PRIORITY_LABEL = { high: "أولوية عالية", medium: "أولوية متوسطة", low: "أولوية منخفضة" } as const;
 const PRIORITY_COLOR = { high: "#B91C1C",       medium: "#92400E",        low: "#374151"       } as const;
 const PRIORITY_BG    = { high: "#FEE2E2",        medium: "#FEF3C7",        low: "#F3F4F6"       } as const;
+const DOMAIN_NAMES: Record<string, string> = {
+  VS: "المهارات المهنية",
+  VB: "السلوكيات المهنية",
+  IF: "الأداء الوظيفي المستقل",
+  LS: "مهارات الترفيه",
+  FC: "التواصل الوظيفي",
+  IB: "السلوك البينشخصي",
+  COG: "المهارات المعرفية",
+  COM: "التواصل واللغة",
+  SOC: "المهارات الاجتماعية",
+  ADL: "مهارات الحياة اليومية",
+  VOC: "التأهيل المهني",
+  MOT: "المهارات الحركية",
+};
 
 // Keywords that indicate a home/family preference in learner voice environments
 const HOME_KEYWORDS = ["البيت", "المنزل", "مجلس", "حديقة"];
@@ -136,6 +165,70 @@ const HOME_KEYWORDS = ["البيت", "المنزل", "مجلس", "حديقة"];
 function safeParse<T>(key: string): T | null {
   try { return JSON.parse(localStorage.getItem(key) || "null"); }
   catch { return null; }
+}
+
+function scoreToNums(score: string): { success: number; emerging: number; fail: number } {
+  if (score === "pass") return { success: 100, emerging: 0, fail: 0 };
+  if (score === "emerge") return { success: 0, emerging: 100, fail: 0 };
+  if (score === "fail") return { success: 0, emerging: 0, fail: 100 };
+  return { success: 0, emerging: 0, fail: 0 };
+}
+
+function normaliseAssessmentDomains(raw: RawAssessment | null): NormalisedDomains {
+  if (!raw?.domains) return {};
+  if (Array.isArray(raw.domains)) {
+    return Object.fromEntries(
+      raw.domains
+        .filter((entry) => entry.code)
+        .map((entry) => [entry.code, { ...scoreToNums(entry.score ?? ""), note: entry.note }]),
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(raw.domains).map(([code, value]) => {
+      if (value.score !== undefined && typeof value.score === "string" && value.success === undefined) {
+        return [code, { ...scoreToNums(value.score), note: value.note }];
+      }
+      return [code, {
+        success: Number(value.success) || 0,
+        emerging: Number(value.emerging) || 0,
+        fail: Number(value.fail) || 0,
+        note: value.note,
+      }];
+    }),
+  );
+}
+
+function buildPlanCurrentPerformanceStatement(input: {
+  studentName: string;
+  assessment: RawAssessment | null;
+  coverage: CoverageData;
+  familyPriorities: string[];
+  learnerPreference: string;
+}) {
+  const domains = normaliseAssessmentDomains(input.assessment);
+  const entries = Object.entries(domains);
+  const strengths = entries
+    .filter(([, value]) => value.success > 0)
+    .map(([code, value]) => `${DOMAIN_NAMES[code] ?? code}${value.note ? `: ${value.note}` : ""}`);
+  const needs = entries
+    .filter(([, value]) => value.emerging > 0 || value.fail > 0)
+    .map(([code, value]) => `${DOMAIN_NAMES[code] ?? code}${value.note ? `: ${value.note}` : ""}`);
+  const fallbackStrengths = (input.coverage.passedDomains ?? []).map((code) => DOMAIN_NAMES[code] ?? code);
+  const fallbackNeeds = [...(input.coverage.emergingDomains ?? []), ...(input.coverage.failedDomains ?? [])]
+    .map((code) => DOMAIN_NAMES[code] ?? code);
+  const strengthText = strengths.length ? strengths : fallbackStrengths;
+  const needText = needs.length ? needs : fallbackNeeds;
+  const source = input.assessment?.tool
+    ? `وفق نتائج ${input.assessment.tool}`
+    : "وفق مصادر جمع المعلومات المتاحة";
+
+  return [
+    `${source}، يظهر مستوى الأداء الحالي لـ ${input.studentName || "المتعلم"} نقاط قوة في: ${strengthText.length ? strengthText.join("، ") : "لم توثق بعد بصورة كافية"}.`,
+    `وتظهر نقاط احتياج أو مهارات ناشئة في: ${needText.length ? needText.join("، ") : "لم توثق بعد بصورة كافية"}.`,
+    input.familyPriorities.length ? `وتدعم أولويات الأسرة مراجعة مجالات: ${input.familyPriorities.join("، ")}.` : "",
+    input.learnerPreference ? `كما يؤخذ صوت المتعلم في الاعتبار، خاصة ما يرتبط بـ: ${input.learnerPreference}.` : "",
+    "هذه الصياغة مكون خطة قابل للتنقيح من المختص، وليست بديلاً عن قراءة البروفايل أو شاشة الدعم المعرفي.",
+  ].filter(Boolean).join("\n");
 }
 
 function ageYearsFromBirthDate(birthDate?: string) {
@@ -273,6 +366,8 @@ function PlanPage() {
   const [contextHint,      setContextHint]      = useState<{ context: string; reason: string }>({ context: "", reason: "" });
   const [familyPriorities, setFamilyPriorities] = useState<string[]>([]);
   const [learnedLove,      setLearnedLove]      = useState("");
+  const [currentPerformanceStatement, setCurrentPerformanceStatement] = useState("");
+  const [planVision, setPlanVision] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -288,6 +383,7 @@ function PlanPage() {
 
       // 2. Load supporting data
       const rawIEP    = safeParse<RawIEP>(`himam_iep_${id}`);
+      const assessment = safeParse<RawAssessment>(`himam_assessment_${id}`);
       const coverage  = safeParse<CoverageData>(`himam_coverage_${id}`) ?? {};
       const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
       const learnerV  = safeParse<LearnerVoiceData>(`himam_learner_voice_${id}`) ?? {};
@@ -327,6 +423,15 @@ function PlanPage() {
       });
       setFamilyPriorities((family.priorities ?? []).slice(0, 3));
       setLearnedLove(learnerV.q_love?.trim() ?? "");
+      setPlanVision(rawIEP?.vision?.trim() ?? "");
+      const saved = safeParse<{ goals: GoalEntry[]; currentPerformanceStatement?: string }>(`himam_plan_${id}`);
+      setCurrentPerformanceStatement(saved?.currentPerformanceStatement?.trim() || buildPlanCurrentPerformanceStatement({
+        studentName: s?.name ?? "المتعلم",
+        assessment,
+        coverage,
+        familyPriorities: family.priorities ?? [],
+        learnerPreference: learnerV.q_love?.trim() ?? "",
+      }));
 
       // 4. Normalise goals
       const flatGoals = normalizeGoals(rawIEP);
@@ -360,7 +465,6 @@ function PlanPage() {
       const entries = approvedFlatGoals.map((g) => buildEntry(g, coverage, defaultContext, conceptLevels, recommendCurriculumActivities));
 
       // 6. Restore saved plan selections
-      const saved = safeParse<{ goals: GoalEntry[] }>(`himam_plan_${id}`);
       if (saved?.goals) {
         const savedMap = new Map(saved.goals.map((g) => [g.goalId, g]));
         for (const e of entries) {
@@ -472,6 +576,8 @@ function PlanPage() {
       localStorage.setItem(`himam_plan_${id}`, JSON.stringify({
         learnerId:   id,
         generatedAt: new Date().toISOString(),
+        currentPerformanceStatement,
+        planVision,
         goals:       goalEntries,
         status:      planRecordStatus,
         planDraftId: governanceBundle.planDraft.planDraftId,
@@ -656,6 +762,40 @@ function PlanPage() {
 
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>اختيار الأنشطة والخطة النهائية</h1>
         <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>{student?.name ?? "—"}</p>
+
+        {loaded && hasGoals && (
+          <section style={{ marginTop: 20, background: "white", border: "1px solid #E5E7EB", borderRadius: 12, padding: 16 }}>
+            <p style={{ margin: 0, color: TEAL, fontSize: 15, fontWeight: 800 }}>قالب مكونات الخطة</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginTop: 12 }}>
+              <PlanTemplateInfo label="المتعلم" value={student?.name ?? "—"} />
+              <PlanTemplateInfo label="المؤسسة" value={student?.center ?? "—"} />
+              <PlanTemplateInfo label="أداة التقييم الأساسية" value={student?.tool ?? "—"} />
+            </div>
+            <label style={{ display: "block", marginTop: 14 }}>
+              <span style={{ display: "block", marginBottom: 6, color: TEAL, fontSize: 13, fontWeight: 800 }}>
+                مستوى الأداء الحالي كمكوّن خطة
+              </span>
+              <textarea
+                value={currentPerformanceStatement}
+                onChange={(event) => setCurrentPerformanceStatement(event.target.value)}
+                rows={7}
+                style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", lineHeight: 1.8 }}
+              />
+            </label>
+            <label style={{ display: "block", marginTop: 12 }}>
+              <span style={{ display: "block", marginBottom: 6, color: TEAL, fontSize: 13, fontWeight: 800 }}>
+                رؤية الخطة التربوية الفردية لفريق العمل الصفي
+              </span>
+              <textarea
+                value={planVision}
+                onChange={(event) => setPlanVision(event.target.value)}
+                rows={3}
+                placeholder="تظهر هنا رؤية الخطة من شاشة الأهداف ويمكن تنقيحها قبل حفظ مسودة الخطة."
+                style={{ width: "100%", padding: "10px 12px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", lineHeight: 1.8 }}
+              />
+            </label>
+          </section>
+        )}
 
         {/* ── Plan context strip ────────────────────────────────────────────── */}
         {loaded && hasGoals && (
@@ -1009,5 +1149,14 @@ function PlanQualitySummary({ result }: { result: GoalPlanQualityRubricResult })
         هذا الملخص لا يعتمد الخطة ولا يمنح درجة رقمية؛ يستخدمه المختص الأعلى لمراجعة الاتساق قبل قرار الاعتماد.
       </p>
     </section>
+  );
+}
+
+function PlanTemplateInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 8, padding: 10 }}>
+      <p style={{ margin: 0, color: "#64748B", fontSize: 11, fontWeight: 800 }}>{label}</p>
+      <p style={{ margin: "4px 0 0", color: "#1F2937", fontSize: 13, fontWeight: 700 }}>{value}</p>
+    </div>
   );
 }
