@@ -433,6 +433,7 @@ function IEPPage() {
   const [goalBuilder, setGoalBuilder] = useState<GoalBuilderState>(EMPTY_GOAL_BUILDER);
   const [builderMessage, setBuilderMessage] = useState("");
   const [knowledgeSupportOpen, setKnowledgeSupportOpen] = useState(false);
+  const [builderQualityOpen, setBuilderQualityOpen] = useState(false);
   const [sourceDetailsOpen, setSourceDetailsOpen] = useState(false);
   const [processingDetailsOpen, setProcessingDetailsOpen] = useState(false);
   const [profileDetailsOpen, setProfileDetailsOpen] = useState(false);
@@ -903,7 +904,7 @@ function IEPPage() {
         </nav>
 
         <h1 style={{ fontSize: 26, fontWeight: 800, color: TEAL, margin: 0 }}>
-          توليد الأهداف
+          محرك توليد الأهداف التفاعلي
         </h1>
         <p style={{ marginTop: 6, color: "#475569", fontSize: 15 }}>
           {student ? student.name : "—"}
@@ -933,9 +934,12 @@ function IEPPage() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={sectionTitle}>منشئ الهدف التفاعلي</h2>
+          <h2 style={sectionTitle}>حدد آلية إعداد الأهداف من خيارات المنصة</h2>
           <p style={{ color: "#64748B", fontSize: 13, marginTop: 4, marginBottom: 0, lineHeight: 1.8 }}>
-            ابدأ بمنشئ الهدف التفاعلي عند الحاجة إلى دعم منظم، أو أدخل الهدف مباشرة عندما تكون الصياغة جاهزة. في الحالتين يجب ربط الهدف بمرجعية خط قاعدي مفسرة.
+            أداة تفاعلية تدعم المختص بمعلومات مستوى الأداء الحالي ونتائج التقييمات في إطار من معايير جودة الأهداف التربوية الفردية.
+          </p>
+          <p style={{ color: "#64748B", fontSize: 13, marginTop: 6, marginBottom: 0, lineHeight: 1.8 }}>
+            اختر نمط العمل الملائم: منشىء الهدف التفاعلي لمسار موجه بالأسئلة، أو إدخال مباشر للأهداف مع شاشة دعم معرفي موازية عند الطلب.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
@@ -944,9 +948,9 @@ function IEPPage() {
               onClick={() => updateGoalBuilder("mode", "guided")}
               style={modeButtonStyle(goalBuilder.mode === "guided")}
             >
-              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>منشئ الهدف التفاعلي</span>
+              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>منشىء الهدف التفاعلي</span>
               <span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.7, color: goalBuilder.mode === "guided" ? "white" : "#64748B" }}>
-                أسئلة قصيرة تساعد على توليد مسودة الهدف من المصدر والخط القاعدي.
+                مسار منشئ الهدف التفاعلي الموجه يساعد على ربط الهدف بالهدف العام، الأثر الوظيفي، ومستوى الأداء الحالي.
               </span>
             </button>
             <button
@@ -954,9 +958,9 @@ function IEPPage() {
               onClick={() => updateGoalBuilder("mode", "direct")}
               style={modeButtonStyle(goalBuilder.mode === "direct")}
             >
-              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>إدراج هدف مباشرة</span>
+              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>إدخال مباشر للأهداف</span>
               <span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.7, color: goalBuilder.mode === "direct" ? "white" : "#64748B" }}>
-                كتابة مستقلة مع إبقاء الدعم المعرفي متاحاً عند الطلب.
+                إدراج هدف مباشرة بكتابة مستقلة مع إتاحة شاشة دعم معرفي موازية عند الطلب.
               </span>
             </button>
           </div>
@@ -1151,9 +1155,16 @@ function IEPPage() {
           )}
 
           {goalBuilder.mode && (
-            <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(300px, 0.85fr)", gap: 14 }}>
+            <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: builderQualityOpen ? "minmax(0, 1.15fr) minmax(300px, 0.85fr)" : "1fr", gap: 14 }}>
               <div style={{ border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, background: "#F8FAFC" }}>
-                <h3 style={{ margin: 0, color: TEAL, fontSize: 14, fontWeight: 800 }}>مسودة الهدف المجمعة تلقائياً</h3>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <h3 style={{ margin: 0, color: TEAL, fontSize: 14, fontWeight: 800 }}>مسودة الهدف المجمعة تلقائياً</h3>
+                  <DetailsToggleButton
+                    open={builderQualityOpen}
+                    label="مراجعة الجودة"
+                    onClick={() => setBuilderQualityOpen((openValue) => !openValue)}
+                  />
+                </div>
                 <p style={{ margin: "8px 0 0", color: "#334155", fontSize: 13, lineHeight: 1.9 }}>{generatedGoalDraft.text}</p>
                 <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   {generatedGoalDraft.elements.map(([label, value]) => (
@@ -1165,23 +1176,27 @@ function IEPPage() {
                 </div>
               </div>
 
-              <div style={{ border: "1px solid #FEF3C7", borderRadius: 10, padding: 12, background: "#FFFBEB" }}>
-                <h3 style={{ margin: 0, color: "#92400E", fontSize: 14, fontWeight: 800 }}>أسئلة مراجعة ضمان الجودة</h3>
-                <ul style={{ margin: "8px 0 0", paddingInlineStart: 18, color: "#78350F", fontSize: 12, lineHeight: 1.8 }}>
-                  <li>هل الهدف محدد ويصف ما سيفعله الطالب بدقة؟</li>
-                  <li>هل الهدف قابل للقياس ببيانات حقيقية؟</li>
-                  <li>هل يمكن تحقيقه خلال عام واحد بالنظر إلى المستوى الحالي؟</li>
-                  <li>هل هو موجه نحو نتيجة حياتية وليس مجرد نشاط؟</li>
-                  <li>هل يتضمن: من، السلوك، المعيار، السياق/الحالة، ومقياس الأداء؟</li>
-                  <li>هل يستند مباشرة إلى مستوى الأداء الحالي أو مصدر معلومات موثق؟</li>
-                </ul>
-                {vagueWord && (
-                  <p style={{ margin: "10px 0 0", color: "#B91C1C", fontSize: 12, fontWeight: 800, lineHeight: 1.7 }}>
-                    تنبيه صياغة مبهمة: ظهرت كلمة "{vagueWord}". استبدلها بفعل قابل للملاحظة مثل: يحدد، يكتب، يكمل، يرتب، يطلب.
-                  </p>
-                )}
-              </div>
-              <GoalPlanQualitySummary result={builderRubric} />
+              {builderQualityOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ border: "1px solid #FEF3C7", borderRadius: 10, padding: 12, background: "#FFFBEB" }}>
+                    <h3 style={{ margin: 0, color: "#92400E", fontSize: 14, fontWeight: 800 }}>أسئلة مراجعة ضمان الجودة</h3>
+                    <ul style={{ margin: "8px 0 0", paddingInlineStart: 18, color: "#78350F", fontSize: 12, lineHeight: 1.8 }}>
+                      <li>هل الهدف محدد ويصف ما سيفعله الطالب بدقة؟</li>
+                      <li>هل الهدف قابل للقياس ببيانات حقيقية؟</li>
+                      <li>هل يمكن تحقيقه خلال عام واحد بالنظر إلى المستوى الحالي؟</li>
+                      <li>هل هو موجه نحو نتيجة حياتية وليس مجرد نشاط؟</li>
+                      <li>هل يتضمن: من، السلوك، المعيار، السياق/الحالة، ومقياس الأداء؟</li>
+                      <li>هل يستند مباشرة إلى مستوى الأداء الحالي أو مصدر معلومات موثق؟</li>
+                    </ul>
+                    {vagueWord && (
+                      <p style={{ margin: "10px 0 0", color: "#B91C1C", fontSize: 12, fontWeight: 800, lineHeight: 1.7 }}>
+                        تنبيه صياغة مبهمة: ظهرت كلمة "{vagueWord}". استبدلها بفعل قابل للملاحظة مثل: يحدد، يكتب، يكمل، يرتب، يطلب.
+                      </p>
+                    )}
+                  </div>
+                  <GoalPlanQualitySummary result={builderRubric} />
+                </div>
+              )}
             </div>
           )}
 

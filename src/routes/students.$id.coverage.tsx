@@ -237,6 +237,7 @@ function InformationSufficiencyPage() {
   const [profileProcessing, setProfileProcessing] = useState<LearnerProfileProcessingModel>(
     () => buildLearnerProfileProcessingModel({ learnerId: id, informationRecords: [], sourcePipelines: [] }),
   );
+  const [processingDetailsOpen, setProcessingDetailsOpen] = useState(false);
 
   useEffect(() => {
     const loadedStudent = loadStudent(id);
@@ -273,6 +274,7 @@ function InformationSufficiencyPage() {
   const qualityItems = recommendations.filter((item) => item.level === "quality");
   const enrichmentItems = recommendations.filter((item) => item.level === "enrichment");
   const canProceed = blockers.length === 0;
+  const transitionAgeApplies = student?.ageBand === "AGE_14_PLUS" || (typeof student?.ageYears === "number" && student.ageYears >= 14);
 
   function handleNext() {
     if (!canProceed) {
@@ -326,7 +328,11 @@ function InformationSufficiencyPage() {
           <StatusCard
             title="التقييم الرسمي"
             status={records.length > 0 && hasUploadedAssessment(records) ? "مكتمل أساسياً" : "يحتاج استكمال"}
-            body={records.length > 0 ? `${records.length} سجل تقييم محفوظ، ${hasUploadedAssessment(records) ? "وتوجد نتيجة مرفوعة." : "لكن لا توجد نتيجة مرفوعة بعد."}` : "لم يتم حفظ أداة تقييم رسمية بعد."}
+            body={transitionAgeApplies
+              ? "بناء على معايير اختيار أداة تقييم الانتقال الملائم للعمر، من المهم استخدام أدوات انتقال تدعم معلومات مستوى الأداء الحالي لمفاهيم الانتقال."
+              : records.length > 0
+                ? `${records.length} سجل تقييم محفوظ، ${hasUploadedAssessment(records) ? "وتوجد نتيجة مرفوعة." : "لكن لا توجد نتيجة مرفوعة بعد."}`
+                : "لم يتم حفظ أداة تقييم رسمية بعد."}
           />
           <StatusCard
             title="صوت المتعلم"
@@ -350,6 +356,24 @@ function InformationSufficiencyPage() {
           />
         </section>
 
+        <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <MetricBox label="جاهزية الحد الأدنى" value={canProceed ? 1 : 0} />
+            <MetricBox label="موانع تقدم" value={blockers.length} />
+            <MetricBox label="تنبيهات جودة" value={qualityItems.length} />
+            <MetricBox label="إثراءات" value={enrichmentItems.length} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setProcessingDetailsOpen((open) => !open)}
+            className="mt-4 rounded-lg border border-[#9EC7C3] bg-white px-4 py-2 text-sm font-bold text-[#0F3D3E]"
+          >
+            {processingDetailsOpen ? "إخفاء نتائج تفسير ومعالجة معلومات المتعلم" : "للمزيد من المعلومات اطلع على نتائج تفسير ومعالجة معلومات المتعلم"}
+          </button>
+        </section>
+
+        {processingDetailsOpen && (
+          <>
         <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -392,7 +416,11 @@ function InformationSufficiencyPage() {
             </div>
           )}
         </section>
+          </>
+        )}
 
+        {processingDetailsOpen && (
+          <>
         <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -470,7 +498,11 @@ function InformationSufficiencyPage() {
             </div>
           )}
         </section>
+          </>
+        )}
 
+        {processingDetailsOpen && (
+          <>
         <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -553,13 +585,8 @@ function InformationSufficiencyPage() {
             </div>
           )}
         </section>
-
-        <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-          <h3 className="text-base font-bold text-[#0F3D3E]">مدخل شاشة الدعم المعرفي التالية</h3>
-          <p className="mt-2 text-sm leading-7 text-stone-600">
-            عند الانتقال لإعداد الخطة، ستُنقل هذه الصفحة كملخص داعم: مصادر مثبتة، معلومات ناقصة، توصيات جودة، وتنبيهات عمرية. كل ذلك يبقى معلومات داعمة للمختص ولا يتحول إلى اعتماد آلي أو مستوى أداء نهائي.
-          </p>
-        </section>
+          </>
+        )}
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <Link

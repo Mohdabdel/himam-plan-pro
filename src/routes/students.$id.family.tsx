@@ -341,6 +341,9 @@ function FamilyVoicePage() {
               <p className="mt-3 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs leading-6 text-stone-600">
                 اختر الأداة مباشرة من القائمة، ثم أدخل رؤية الأسرة أو أولوياتها ومخاوفها.
               </p>
+              {selectedLibraryToolId === "FAMILY_VISION_PICTURE_CARDS" && (
+                <FamilyPictureCardsSelfApplication />
+              )}
               <InformationToolApplication
                 learnerId={id}
                 tools={familyTools}
@@ -405,6 +408,45 @@ function FamilyVoicePage() {
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function FamilyPictureCardsSelfApplication() {
+  const scenes = [
+    { title: "اختيار بين نشاطين", prompt: "ما الخيار الذي تتمنى الأسرة أن يشارك فيه المتعلم أكثر؟" },
+    { title: "التعبير عن حاجة", prompt: "ما المساعدة أو الوسيلة التي تجعل التعبير أوضح؟" },
+    { title: "روتين عناية صباحية", prompt: "ما الخطوة التي يمكن أن تصبح أكثر استقلالية؟" },
+    { title: "تنقل في مكان مألوف", prompt: "ما علامة الأمان أو الدعم التي تحتاجها الأسرة؟" },
+    { title: "نشاط مع الأقران", prompt: "ما شكل المشاركة الاجتماعية المناسبة الآن؟" },
+    { title: "موقف سلامة", prompt: "ما السلوك الذي تريد الأسرة الحفاظ عليه أو تعليمه؟" },
+  ];
+
+  return (
+    <div className="mt-4 rounded-2xl border border-[#9EC7C3] bg-white p-4">
+      <p className="text-sm font-bold text-[#0F3D3E]">تطبيق ذاتي موجه للأسرة</p>
+      <p className="mt-1 text-xs leading-6 text-stone-600">
+        تعرض البطاقات أمام الأسرة أثناء الجلسة، ويستخدمها المختص كحوار قصير قبل تسجيل اختيارات الأسرة في الأداة أدناه.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+        {scenes.map((scene, index) => (
+          <article key={scene.title} className="overflow-hidden rounded-xl border border-stone-200 bg-stone-50">
+            <div className="flex h-24 items-center justify-center bg-[#E6F2F1] px-4 text-center text-sm font-bold leading-6 text-[#0F3D3E]">
+              بطاقة {index + 1}: {scene.title}
+            </div>
+            <div className="p-3">
+              <p className="text-xs leading-6 text-stone-600">{scene.prompt}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {["أولوية", "قوة", "يحتاج دعم", "ليس الآن"].map((choice) => (
+                  <span key={choice} className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-stone-600">
+                    {choice}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

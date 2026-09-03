@@ -8,7 +8,6 @@ import {
 } from "@/lib/assessment-records";
 import {
   coverageAreaLabelAr,
-  isDevelopmentalAssessmentUnder9,
   reviewAssessmentTransitionCoverage,
 } from "@/lib/information-source-review";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
@@ -91,12 +90,14 @@ function OfficialAssessmentPage() {
   const [records, setRecords] = useState<AssessmentRecord[]>([]);
   const [toolId, setToolId] = useState("TTAP-3");
   const [customToolName, setCustomToolName] = useState("");
-  const [assessorName, setAssessorName] = useState("");
-  const [assessmentDate, setAssessmentDate] = useState("");
   const [upload, setUpload] = useState<File | null>(null);
   const [draftText, setDraftText] = useState("");
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [extractionWarning, setExtractionWarning] = useState("");
+  const [draftReaderOpen, setDraftReaderOpen] = useState(false);
+  const [additionalToolName, setAdditionalToolName] = useState("");
+  const [additionalToolNotes, setAdditionalToolNotes] = useState("");
+  const [additionalUpload, setAdditionalUpload] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
   const [sourcePipelines, setSourcePipelines] = useState<SourceFilePipelineRecord[]>([]);
@@ -116,11 +117,6 @@ function OfficialAssessmentPage() {
     ageBand: student?.ageBand,
     selectedToolId: toolId,
   });
-  const developmentalUnder9 = isDevelopmentalAssessmentUnder9({
-    ageYears: student?.ageYears ?? null,
-    selectedToolId: toolId,
-  });
-
   async function handleUploadChange(file: File | null) {
     setUpload(file);
     setExtractionWarning("");
@@ -159,8 +155,8 @@ function OfficialAssessmentPage() {
     const record = createAssessmentRecord({
       learnerId: id,
       toolId,
-      assessorName,
-      assessmentDate,
+      assessorName: "",
+      assessmentDate: "",
       ageBand: student?.ageBand,
       uploadedFileName: upload.name,
       uploadedFileType: upload.type,
@@ -210,12 +206,25 @@ function OfficialAssessmentPage() {
     ];
     saveAssessmentRecords(id, next);
     const nextPipelines = appendSourceFilePipeline(id, sourcePipeline);
+    if (additionalToolName.trim() || additionalToolNotes.trim() || additionalUpload) {
+      localStorage.setItem(`himam_additional_assessment_intent_${id}`, JSON.stringify({
+        toolName: additionalToolName.trim(),
+        notes: additionalToolNotes.trim(),
+        uploadedFileName: additionalUpload?.name ?? "",
+        uploadedFileType: additionalUpload?.type ?? "",
+        savedAt: new Date().toISOString(),
+        status: "pending_structured_processing",
+      }));
+    }
     updateStudentAssessmentTool(id, toolId);
     setRecords(next);
     setSourcePipelines(nextPipelines);
     setUpload(null);
     setDraftText("");
     setReviewerNotes("");
+    setAdditionalToolName("");
+    setAdditionalToolNotes("");
+    setAdditionalUpload(null);
     setExtractionWarning("");
     setComponentStatus(loadPlanComponentStatus(id));
     setError("");
@@ -260,8 +269,13 @@ function OfficialAssessmentPage() {
           <p className="text-xs font-bold text-[#D9764A]">أداة التقييم الرسمية</p>
           <h2 className="mt-1 text-2xl font-bold text-[#0F3D3E]">حدد أداة التقييم الرسمية التي تم اعتمادها مع المتعلم لبناء الخطة التربوية الفردية</h2>
           <p className="mt-2 text-sm leading-7 text-stone-600">
-            اختر اسم الأداة المطبقة من القائمة. عند اختيار "أخرى" تفتح مساحة لكتابة اسم الأداة يدويا.
+            قم برفع ملف نتائج التقييم النهائية. يمكنك مراجعة مسودة القراءة قبل تحويلها إلى مرجعية مهنية للبروفايل ومستوى الأداء الحالي.
           </p>
+          {(student?.ageBand === "AGE_14_PLUS" || (typeof student?.ageYears === "number" && student.ageYears >= 14)) && selectedTool && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-800">
+              وفق معايير أدوات تقييم الانتقال الملائمة للعمر، قد لا تغطي أداة {selectedTool.nameAr} مستويات الأداء الحالية لعدد من مجالات الاهتمام المطلوبة في خطة الطالب مثل تقرير المصير، الوعي الذاتي، ومهارات الحياة. يظهر هذا التنويه لأن المتعلم ضمن إطار التخطيط للانتقال.
+            </div>
+          )}
 
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
@@ -288,40 +302,18 @@ function OfficialAssessmentPage() {
                 />
               </div>
             )}
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-stone-500">اسم المقيم أو المختص</label>
-              <input
-                type="text"
-                value={assessorName}
-                onChange={(event) => setAssessorName(event.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-                placeholder="اختياري"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-stone-500">تاريخ التطبيق</label>
-              <input
-                type="date"
-                value={assessmentDate}
-                onChange={(event) => setAssessmentDate(event.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-              />
-            </div>
           </div>
         </section>
 
         <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-bold text-[#0F3D3E]">نتائج التقييم الرسمي</h3>
           <p className="mt-2 text-sm leading-7 text-stone-600">
-            يتم التعامل مع التقييمات الرسمية كأدوات مطبقة خارج منصة همم. ارفع ملف النتائج أو التقرير بصيغة قابلة للقراءة، ثم راجع مسودة القراءة قبل تحويلها إلى مرجعية مهنية للبروفايل ومستوى الأداء الحالي.
+            يتم التعامل مع التقييمات الرسمية كأدوات مطبقة خارج منصة همم، وتعالج المنصة نتائجها المرفوعة بعد مراجعة المختص.
           </p>
 
           <div className="mt-5 grid grid-cols-1 gap-4">
             <div className="rounded-xl border border-[#0F3D3E] bg-[#E6F2F1] p-4">
               <p className="text-sm font-bold text-[#0F3D3E]">رفع النتائج</p>
-              <p className="mt-2 text-xs leading-6 text-stone-600">
-                ارفع ملف نتائج التقييم أو التقرير كما طبقه المختص خارج منصة همم. لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً؛ تعالج فقط النتيجة المفسرة التي راجعها المختص.
-              </p>
               <p className="mt-2 text-xs font-bold text-[#0F3D3E]">
                 الصيغ المقبولة: {ACCEPTED_OFFICIAL_RESULT_LABEL_AR}
               </p>
@@ -363,38 +355,23 @@ function OfficialAssessmentPage() {
 
           {upload && (
             <div className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
-              <label className="mb-1 block text-xs font-semibold text-stone-500">مسودة قراءة الملف القابلة للتصحيح</label>
-              <textarea
-                value={draftText}
-                onChange={(event) => setDraftText(event.target.value)}
-                rows={5}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
-                placeholder="راجع النص المقروء من ملف النتائج فقط. لا تدخل درجات جديدة هنا؛ صحح القراءة أو احذف ما لا يمثل نتيجة مفسرة من التقرير."
-              />
-              <label className="mt-3 mb-1 block text-xs font-semibold text-stone-500">ملاحظة المراجعة</label>
-              <input
-                type="text"
-                value={reviewerNotes}
-                onChange={(event) => setReviewerNotes(event.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-                placeholder="اختياري - سبب اعتماد البنود أو التصحيح"
-              />
-            </div>
-          )}
-
-          {selectedTool && (
-            <div className="mt-5 rounded-xl border border-stone-200 bg-stone-50 p-4">
-              <p className="text-sm font-bold text-[#0F3D3E]">ملاحظة معالجة معرفية</p>
-              <p className="mt-2 text-xs leading-6 text-stone-600">{selectedTool.descriptionAr}</p>
-              {coverageReview.reviewed && coverageReview.missingAreas.length > 0 && (
-                <p className="mt-2 text-xs leading-6 text-stone-600">
-                  توصيات تغطية مرتبطة بالعمر: {coverageReview.missingAreas.map((area) => coverageAreaLabelAr(area)).join("، ")}
-                </p>
-              )}
-              {developmentalUnder9 && (
-                <p className="mt-2 rounded-lg border border-[#D9764A]/30 bg-[#FBE9E1] px-3 py-2 text-xs leading-6 text-stone-700">
-                  نقطة واجبة المناقشة لاحقا: عمر المتعلم أقل من 9 سنوات والأداة نمائية؛ معالجة النتائج وترشيح المنهج والدروس ستحتاج مسارا نمائيا مختلفا.
-                </p>
+              <button
+                type="button"
+                onClick={() => setDraftReaderOpen((open) => !open)}
+                className="w-full text-right text-sm font-bold text-[#0F3D3E]"
+              >
+                مسودة قراءة الملف القابلة للتصحيح {draftReaderOpen ? "▲" : "▼"}
+              </button>
+              {draftReaderOpen && (
+                <div className="mt-3">
+                  <textarea
+                    value={draftText}
+                    onChange={(event) => setDraftText(event.target.value)}
+                    rows={5}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                    placeholder="راجع النص المقروء من ملف النتائج فقط. لا تدخل درجات جديدة هنا؛ صحح القراءة أو احذف ما لا يمثل نتيجة مفسرة من التقرير."
+                  />
+                </div>
               )}
             </div>
           )}
@@ -402,28 +379,55 @@ function OfficialAssessmentPage() {
           <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-[#0F3D3E]">مكتبة أدوات التقييم المتاحة للتجربة</p>
+                <p className="text-sm font-bold text-[#0F3D3E]">معالج نتائج أدوات التقييم الرسمية</p>
               <p className="mt-1 text-xs leading-6 text-stone-600">
-                  هذه مكتبة محولات مرجعية للأدوات الرسمية المطبقة خارج همم. لا تطبق الأداة المقننة كاملة داخل المنصة حالياً، لكنها توضح الأداة ومجالاتها وتدعم تفسير النتائج المرفوعة يدوياً.
+                  من خلال هذا الخيار يتم تنفيذ عملية مراجعة ومعالجة لنتائج عدد من أدوات التقييم الرسمية كنماذج تجريبية، كما أن خيار ضبط وإضافة أدوات خاصة متاح بناء على طلب المستخدم.
               </p>
               </div>
               <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0F3D3E]">
                 {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").length} أدوات
               </span>
             </div>
-            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+            <select
+              value={toolId}
+              onChange={(event) => setToolId(event.target.value)}
+              className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+            >
               {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").map((tool) => (
-                <button
-                  key={tool.id}
-                  type="button"
-                  onClick={() => setToolId(tool.id)}
-                  className="rounded-lg border border-white bg-white px-3 py-2 text-right transition hover:border-[#0F3D3E]"
-                >
-                  <p className="text-xs font-bold text-[#0F3D3E]">{tool.nameAr}</p>
-                  <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-stone-500">{tool.descriptionAr}</p>
-                </button>
+                <option key={tool.id} value={tool.id}>{tool.nameAr}</option>
               ))}
+            </select>
+          </div>
+
+          <div className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
+            <p className="text-sm font-bold text-[#0F3D3E]">هل تود رفع نتائج تقييمات إضافية تم تطبيقها على المتعلم، رسمية أو غير رسمية؟</p>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <input
+                type="text"
+                value={additionalToolName}
+                onChange={(event) => setAdditionalToolName(event.target.value)}
+                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                placeholder="اسم الأداة"
+              />
+              <input
+                type="text"
+                value={additionalToolNotes}
+                onChange={(event) => setAdditionalToolNotes(event.target.value)}
+                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                placeholder="إدخال يدوي مختصر"
+              />
+              <input
+                type="file"
+                accept={ACCEPTED_OFFICIAL_RESULT_EXTENSIONS}
+                onChange={(event) => setAdditionalUpload(event.target.files?.[0] ?? null)}
+                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none file:ml-3 file:rounded-md file:border-0 file:bg-[#0F3D3E] file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white focus:border-[#0F3D3E]"
+              />
             </div>
+            {(additionalToolName || additionalToolNotes || additionalUpload) && (
+              <p className="mt-2 text-xs font-bold text-[#0F3D3E]">
+                سيتم ربط هذا المدخل لاحقاً بمسار معالجة التقييمات الإضافية.
+              </p>
+            )}
           </div>
 
           {records.length > 0 && (
@@ -432,7 +436,7 @@ function OfficialAssessmentPage() {
                 <div key={record.id} className="rounded-xl border border-stone-100 bg-white p-4">
                   <p className="text-sm font-bold text-[#0F3D3E]">{record.toolNameAr}</p>
                   <p className="mt-1 text-xs text-stone-500">
-                    الملف: {record.uploadedFileName || "غير مرفوع"} {record.assessmentDate ? `- تاريخ التطبيق: ${record.assessmentDate}` : ""}
+                    الملف: {record.uploadedFileName || "غير مرفوع"}
                   </p>
                 </div>
               ))}

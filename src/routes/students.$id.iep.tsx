@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { loadAssessmentRecords } from "@/lib/assessment-records";
 import {
@@ -37,6 +37,7 @@ type StoredStudent = {
 };
 
 type ActiveSection = "basic" | "currentLevel" | "specialistVision";
+type CurrentLevelRow = { domainCode: string; strengths: string; needs: string };
 
 type ComponentCard = {
   key: ActiveSection | "goals";
@@ -62,21 +63,68 @@ function loadStudent(id: string): StoredStudent | null {
   return list.find((item) => item.id === id) ?? null;
 }
 
+const DOMAIN_NAMES: Record<string, string> = {
+  VS: "المهارات المهنية",
+  VB: "السلوكيات المهنية",
+  IF: "الأداء الوظيفي المستقل",
+  LS: "مهارات الترفيه",
+  FC: "التواصل الوظيفي",
+  IB: "السلوك البينشخصي",
+  COG: "المهارات المعرفية",
+  COM: "التواصل واللغة",
+  SOC: "المهارات الاجتماعية",
+  ADL: "مهارات الحياة اليومية",
+  VOC: "التأهيل المهني",
+  MOT: "المهارات الحركية",
+};
+
+function buildCurrentLevelRows(id: string): CurrentLevelRow[] {
+  const saved = safeParse<{ currentLevelRows?: CurrentLevelRow[] }>(`himam_plan_preparation_${id}`);
+  if (saved?.currentLevelRows?.length) return saved.currentLevelRows;
+  const assessment = safeParse<{ domains?: Array<{ code: string; score?: string; note?: string }> }>(`himam_assessment_${id}`);
+  const family = safeParse<{ priorities?: string[]; vision5y?: string }>(`himam_family_${id}`);
+  const learner = safeParse<{ q_good?: string; q_love?: string; q_hard?: string }>(`himam_learner_voice_${id}`);
+  const domains = assessment?.domains?.length
+    ? assessment.domains
+    : ["VS", "VB", "IF", "LS", "FC", "IB"].map((code) => ({ code, score: "", note: "" }));
+
+  return domains.map((domain) => {
+    const domainName = DOMAIN_NAMES[domain.code] ?? domain.code;
+    const isStrength = domain.score === "pass";
+    const isNeed = domain.score === "emerge" || domain.score === "fail";
+    return {
+      domainCode: domain.code,
+      strengths: [
+        isStrength ? `${domainName}: ${domain.note || "أداء ناجح وفق التقييم الرسمي."}` : "",
+        learner?.q_good ? `صوت المتعلم - قوة: ${learner.q_good}` : "",
+      ].filter(Boolean).join("\n"),
+      needs: [
+        isNeed ? `${domainName}: ${domain.note || "مجال يحتاج تدعيم أو تدريب إضافي وفق التقييم الرسمي."}` : "",
+        family?.priorities?.length ? `أولويات الأسرة ذات صلة: ${family.priorities.join("، ")}` : "",
+        learner?.q_hard ? `صوت المتعلم - صعوبة: ${learner.q_hard}` : "",
+      ].filter(Boolean).join("\n"),
+    };
+  });
+}
+
 function PlanPreparationHubPage() {
   const { id } = Route.useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const hubPath = `/students/${id}/iep`;
   const isHubPage = location.pathname === hubPath || location.pathname === `${hubPath}/`;
 
   const [student, setStudent] = useState<StoredStudent | null>(null);
   const [activeSection, setActiveSection] = useState<ActiveSection>("basic");
   const [specialistVision, setSpecialistVision] = useState("");
+  const [currentLevelRows, setCurrentLevelRows] = useState<CurrentLevelRow[]>([]);
   const [savedMessage, setSavedMessage] = useState("");
 
   useEffect(() => {
     setStudent(loadStudent(id));
     const savedVision = safeParse<{ specialistVision?: string }>(`himam_plan_preparation_${id}`);
     if (savedVision?.specialistVision) setSpecialistVision(savedVision.specialistVision);
+    setCurrentLevelRows(buildCurrentLevelRows(id));
   }, [id]);
 
   if (!isHubPage) {
@@ -131,9 +179,23 @@ function PlanPreparationHubPage() {
   function saveSpecialistVision() {
     localStorage.setItem(
       `himam_plan_preparation_${id}`,
-      JSON.stringify({ specialistVision, savedAt: new Date().toISOString() }),
+      JSON.stringify({ specialistVision, currentLevelRows, savedAt: new Date().toISOString() }),
     );
     setSavedMessage("تم حفظ رؤية المختص كمسودة قابلة للمراجعة البشرية.");
+  }
+
+  function saveCurrentLevelRows() {
+    localStorage.setItem(
+      `himam_plan_preparation_${id}`,
+      JSON.stringify({ specialistVision, currentLevelRows, savedAt: new Date().toISOString() }),
+    );
+    setSavedMessage("تم حفظ مستوى الأداء الحالي كمكوّن قابل للمراجعة في الخطة.");
+  }
+
+  function updateCurrentLevelRow(index: number, field: "domainCode" | "strengths" | "needs", value: string) {
+    setCurrentLevelRows((rows) => rows.map((row, rowIndex) => (
+      rowIndex === index ? { ...row, [field]: value } : row
+    )));
   }
 
   return (
@@ -163,53 +225,29 @@ function PlanPreparationHubPage() {
         </nav>
 
         <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold" style={{ color: ORANGE }}>فهرس مكونات الخطة</p>
+          <p className="text-xs font-bold" style={{ color: ORANGE }}>إعداد الخطة التربوية الفردية</p>
           <h2 className="mt-1 text-2xl font-bold text-[#0F3D3E]">إعداد الخطة التربوية الفردية</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-stone-600">
-            تبدأ هذه المرحلة بمراجعة مكونات الخطة التي سيستند إليها المختص. صوت الأسرة وصوت المتعلم يظلان مصادر داعمة من المرحلة السابقة، ولا يظهران هنا كتبويبات مستقلة داخل إعداد الخطة.
-          </p>
-        </section>
-
-        <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
-          {cards.map((card) => {
-            const isActive = activeSection === card.key;
-            if (card.key === "goals") {
-              return currentPerformanceSummary.baselineReady ? (
-                <Link
-                  key={card.key}
-                  to="/students/$id/iep/goals"
-                  params={{ id }}
-                  className="rounded-2xl border bg-white p-5 text-right shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
-                >
-                  <ComponentCardContent card={card} active={false} />
-                </Link>
-              ) : (
-                <Link
-                  key={card.key}
-                  to="/students/$id/coverage"
-                  params={{ id }}
-                  className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-right shadow-sm transition hover:border-amber-400"
-                >
-                  <ComponentCardContent card={card} active={false} />
-                  <p className="mt-3 text-xs font-bold leading-6 text-amber-800">
-                    لا يفتح توليد الأهداف قبل وجود نتيجة تقييم رسمية مفسرة ومراجعة.
-                  </p>
-                </Link>
-              );
-            }
-
-            return (
-              <button
-                key={card.key}
-                type="button"
-                onClick={() => setActiveSection(card.key as ActiveSection)}
-                className="rounded-2xl border bg-white p-5 text-right shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
-                style={{ borderColor: isActive ? TEAL : "#E7E5E4" }}
-              >
-                <ComponentCardContent card={card} active={isActive} />
-              </button>
-            );
-          })}
+          <div className="mt-5">
+            <label className="mb-1 block text-xs font-semibold text-stone-500">مكونات الخطة</label>
+            <select
+              value={activeSection}
+              onChange={(event) => {
+                if (event.target.value === "goals") {
+                  if (currentPerformanceSummary.baselineReady) navigate({ to: "/students/$id/iep/goals", params: { id } });
+                  else navigate({ to: "/students/$id/coverage", params: { id } });
+                  return;
+                }
+                setActiveSection(event.target.value as ActiveSection);
+              }}
+              className="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm font-bold text-stone-800 outline-none focus:border-[#0F3D3E]"
+            >
+              {cards.map((card) => (
+                <option key={card.key} value={card.key}>
+                  {card.title} {card.status.includes("مكتمل") || card.status.includes("مدونة") || card.status.includes("متاح") ? "✓" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
         </section>
 
         <section className="mt-5 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -227,6 +265,10 @@ function PlanPreparationHubPage() {
               learnerVoice={Boolean(learnerVoice)}
               familyVoice={Boolean(familyVoice)}
               additionalSources={Boolean(additionalSources)}
+              rows={currentLevelRows}
+              onUpdateRow={updateCurrentLevelRow}
+              onSave={saveCurrentLevelRows}
+              savedMessage={savedMessage}
             />
           )}
           {activeSection === "specialistVision" && (
@@ -240,26 +282,6 @@ function PlanPreparationHubPage() {
         </section>
       </main>
     </div>
-  );
-}
-
-function ComponentCardContent({ card, active }: { card: ComponentCard; active: boolean }) {
-  return (
-    <>
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <h3 className="text-base font-bold text-[#0F3D3E]">{card.title}</h3>
-        <span
-          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
-          style={{
-            backgroundColor: active ? "#E6F2F1" : "#F5F5F4",
-            color: active ? TEAL : "#57534E",
-          }}
-        >
-          {card.status}
-        </span>
-      </div>
-      <p className="text-sm leading-7 text-stone-600">{card.body}</p>
-    </>
   );
 }
 
@@ -299,6 +321,10 @@ function CurrentLevelSection(props: {
   learnerVoice: boolean;
   familyVoice: boolean;
   additionalSources: boolean;
+  rows: CurrentLevelRow[];
+  onUpdateRow: (index: number, field: "domainCode" | "strengths" | "needs", value: string) => void;
+  onSave: () => void;
+  savedMessage: string;
 }) {
   const rows = [
     ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
@@ -326,6 +352,62 @@ function CurrentLevelSection(props: {
             <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
           </div>
         ))}
+      </div>
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[760px] border-collapse text-sm">
+          <thead>
+            <tr className="bg-[#E6F2F1] text-right text-[#0F3D3E]">
+              <th className="border border-stone-200 px-3 py-2">المجال</th>
+              <th className="border border-stone-200 px-3 py-2">نقاط القوة</th>
+              <th className="border border-stone-200 px-3 py-2">نقاط الاحتياج</th>
+            </tr>
+          </thead>
+          <tbody>
+            {props.rows.map((row, index) => (
+              <tr key={`${row.domainCode}-${index}`}>
+                <td className="border border-stone-200 p-2 align-top">
+                  <select
+                    value={row.domainCode}
+                    onChange={(event) => props.onUpdateRow(index, "domainCode", event.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
+                  >
+                    {Object.entries(DOMAIN_NAMES).map(([code, name]) => (
+                      <option key={code} value={code}>{name}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="border border-stone-200 p-2 align-top">
+                  <textarea
+                    value={row.strengths}
+                    onChange={(event) => props.onUpdateRow(index, "strengths", event.target.value)}
+                    rows={4}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                    placeholder="نقاط القوة المستخلصة من التقييم الرسمي وبقية مصادر جمع المعلومات..."
+                  />
+                </td>
+                <td className="border border-stone-200 p-2 align-top">
+                  <textarea
+                    value={row.needs}
+                    onChange={(event) => props.onUpdateRow(index, "needs", event.target.value)}
+                    rows={4}
+                    className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm leading-7 text-stone-800 outline-none focus:border-[#0F3D3E]"
+                    placeholder="نقاط الاحتياج أو المهارات الناشئة المستخلصة من التقييم الرسمي وبقية المصادر..."
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={props.onSave}
+          className="rounded-lg bg-[#0F3D3E] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#0b2f30]"
+        >
+          حفظ مستوى الأداء الحالي
+        </button>
+        {props.savedMessage && <span className="text-sm font-bold text-emerald-700">{props.savedMessage}</span>}
       </div>
     </div>
   );

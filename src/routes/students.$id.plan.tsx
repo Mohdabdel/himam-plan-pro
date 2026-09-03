@@ -368,6 +368,9 @@ function PlanPage() {
   const [learnedLove,      setLearnedLove]      = useState("");
   const [currentPerformanceStatement, setCurrentPerformanceStatement] = useState("");
   const [planVision, setPlanVision] = useState("");
+  const [contextSignalsOpen, setContextSignalsOpen] = useState(false);
+  const [planQualityOpen, setPlanQualityOpen] = useState(false);
+  const [expandedPlanGoalDetails, setExpandedPlanGoalDetails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -517,6 +520,15 @@ function PlanPage() {
     setGoalEntries((prev) =>
       prev.map((e) => (e.goalId === goalId ? { ...e, specialistNote: note } : e))
     );
+  }
+
+  function togglePlanGoalDetails(goalId: string) {
+    setExpandedPlanGoalDetails((current) => {
+      const next = new Set(current);
+      if (next.has(goalId)) next.delete(goalId);
+      else next.add(goalId);
+      return next;
+    });
   }
 
   function handleSave() {
@@ -797,39 +809,48 @@ function PlanPage() {
           </section>
         )}
 
-        {/* ── Plan context strip ────────────────────────────────────────────── */}
+        {/* ── Plan operating summary ───────────────────────────────────────── */}
         {loaded && hasGoals && (
-          <div style={{ marginTop: 20, background: "#F0F9F8", border: "1px solid #B2D8D8", borderRadius: 10, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-            {/* Context origin */}
-            {contextHint.reason && (
-              <p style={{ margin: 0, fontSize: 13, color: TEAL }}>
-                <strong>السياق الافتراضي:</strong> {contextHint.context} — {contextHint.reason}
+          <div style={{ marginTop: 20, background: "#F0F9F8", border: "1px solid #B2D8D8", borderRadius: 10, padding: "14px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+                <strong style={{ color: TEAL }}>{goalEntries.filter((e) => e.selectedActivities.length > 0).length}</strong>
+                {" "}من{" "}
+                <strong style={{ color: TEAL }}>{goalEntries.length}</strong>
+                {" "}أهداف بها أنشطة محددة
               </p>
-            )}
-            {/* Family top priorities */}
-            {familyPriorities.length > 0 && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13, color: "#64748B", flexShrink: 0 }}>أولويات الأسرة:</span>
-                {familyPriorities.map((p) => (
-                  <span key={p} style={{ fontSize: 12, padding: "2px 10px", borderRadius: 12, background: "#E6F2F1", color: TEAL, fontWeight: 600 }}>
-                    {p}
-                  </span>
-                ))}
+              <button
+                type="button"
+                onClick={() => setContextSignalsOpen((openValue) => !openValue)}
+                style={toggleButtonStyle(contextSignalsOpen)}
+              >
+                {contextSignalsOpen ? "إخفاء إشارات السياق" : "عرض إشارات السياق"}
+              </button>
+            </div>
+            {contextSignalsOpen && (
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                {contextHint.reason && (
+                  <p style={{ margin: 0, fontSize: 13, color: TEAL }}>
+                    <strong>السياق الافتراضي:</strong> {contextHint.context} - {contextHint.reason}
+                  </p>
+                )}
+                {familyPriorities.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, color: "#64748B", flexShrink: 0 }}>أولويات الأسرة:</span>
+                    {familyPriorities.map((p) => (
+                      <span key={p} style={{ fontSize: 12, padding: "2px 10px", borderRadius: 12, background: "#E6F2F1", color: TEAL, fontWeight: 600 }}>
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {learnedLove && (
+                  <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>
+                    <strong>ما يحبه المتعلم:</strong> {learnedLove}
+                  </p>
+                )}
               </div>
             )}
-            {/* Learner love cue */}
-            {learnedLove && (
-              <p style={{ margin: 0, fontSize: 13, color: "#374151" }}>
-                ❤️ <strong>ماذا يحب المتعلم:</strong> {learnedLove}
-              </p>
-            )}
-            {/* Live completion counter */}
-            <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
-              <strong style={{ color: TEAL }}>{goalEntries.filter((e) => e.selectedActivities.length > 0).length}</strong>
-              {" "}من{" "}
-              <strong style={{ color: TEAL }}>{goalEntries.length}</strong>
-              {" "}أهداف بها أنشطة محددة
-            </p>
           </div>
         )}
 
@@ -851,7 +872,19 @@ function PlanPage() {
           </div>
         )}
 
-        {loaded && hasGoals && <PlanQualitySummary result={planQuality} />}
+        {loaded && hasGoals && (
+          <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-start" }}>
+            <button
+              type="button"
+              onClick={() => setPlanQualityOpen((openValue) => !openValue)}
+              style={toggleButtonStyle(planQualityOpen)}
+            >
+              {planQualityOpen ? "إخفاء مراجعة جودة الخطة" : "عرض مراجعة جودة الخطة"}
+            </button>
+          </div>
+        )}
+
+        {loaded && hasGoals && planQualityOpen && <PlanQualitySummary result={planQuality} />}
 
         {/* Plan input readiness gate */}
         {showPlanInputGate && (
@@ -871,7 +904,10 @@ function PlanPage() {
         )}
 
         {/* Goal cards */}
-        {goalEntries.map((entry) => (
+        {goalEntries.map((entry) => {
+          const hasTransferredGoalDetails = Boolean(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepGoalTrigger || entry.iepPerformanceAnchor || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride);
+          const goalDetailsOpen = expandedPlanGoalDetails.has(entry.goalId);
+          return (
           <div
             key={entry.goalId}
             style={{ marginTop: 24, background: "white", border: "1px solid #E5E7EB", borderRadius: 14, overflow: "hidden" }}
@@ -895,7 +931,19 @@ function PlanPage() {
             <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 18 }}>
 
               {/* IEP structured details — read-only, carried from the goal-quality workspace */}
-              {(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepGoalTrigger || entry.iepPerformanceAnchor || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride) && (
+              {hasTransferredGoalDetails && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => togglePlanGoalDetails(entry.goalId)}
+                    style={toggleButtonStyle(goalDetailsOpen)}
+                  >
+                    {goalDetailsOpen ? "إخفاء تفاصيل الهدف المعتمد" : "عرض تفاصيل الهدف المعتمد"}
+                  </button>
+                </div>
+              )}
+
+              {hasTransferredGoalDetails && goalDetailsOpen && (
                 <div style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 4 }}>
                   <p style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", margin: "0 0 2px" }}>من الخطة التربوية</p>
                   {entry.iepGoalTrigger && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>باعث الهدف:</strong> {entry.iepGoalTrigger}</p>}
@@ -1002,7 +1050,8 @@ function PlanPage() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         {/* Save actions */}
         {goalEntries.length > 0 && (
@@ -1159,4 +1208,18 @@ function PlanTemplateInfo({ label, value }: { label: string; value: string }) {
       <p style={{ margin: "4px 0 0", color: "#1F2937", fontSize: 13, fontWeight: 700 }}>{value}</p>
     </div>
   );
+}
+
+function toggleButtonStyle(open: boolean): React.CSSProperties {
+  return {
+    background: open ? TEAL : "white",
+    color: open ? "white" : TEAL,
+    border: open ? `1px solid ${TEAL}` : "1px solid #9EC7C3",
+    borderRadius: 8,
+    padding: "8px 12px",
+    cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: 12,
+    fontWeight: 800,
+  };
 }
