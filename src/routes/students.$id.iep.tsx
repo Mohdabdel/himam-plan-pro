@@ -326,7 +326,8 @@ function CurrentLevelSection(props: {
   onSave: () => void;
   savedMessage: string;
 }) {
-  const rows = [
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailRows = [
     ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
     ["نتائج مفسرة مراجعة", props.interpretedAssessmentCount > 0 ? `${props.interpretedAssessmentCount} بطاقة قابلة للتتبع` : "غير متاحة بعد"],
     ["معالجة أدوات المعلومات", props.processedSignalCount > 0 ? `${props.processedSignalCount} إشارة بروفايل معالجة` : "لا توجد إشارات بعد"],
@@ -343,15 +344,13 @@ function CurrentLevelSection(props: {
     <div>
       <h3 className="text-lg font-bold text-[#0F3D3E]">مستوى الأداء الحالي</h3>
       <p className="mt-2 text-sm leading-7 text-stone-600">
-        هذا الملخص لا يحل محل صياغة المختص لمستوى الأداء الحالي، لكنه يعرض معالجة أولية/متوسطة لأدوات المعلومات والملفات المراجعة، بما في ذلك إشارات القوة والاحتياج والدعم والأولوية وفرص الأهداف التي توجه بناء الخطة.
+        النقاط التالية مسودة مقترحة أعدتها المنصة بعد معالجة نتائج التقييم الرسمي وبقية مصادر جمع المعلومات، ثم تصنيفها إلى نقاط قوة ونقاط احتياج وفق مجالات أداة التقييم الرسمية. يمكن للمختص تعديلها، الإضافة عليها، أو استبعادها وبناء مستوى الأداء الحالي ذاتياً.
       </p>
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-        {rows.map(([label, value]) => (
-          <div key={label} className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-            <div className="text-xs font-bold text-stone-500">{label}</div>
-            <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
-          </div>
-        ))}
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+        <SummaryMetric label="سجلات تقييم رسمي" value={props.assessmentCount} />
+        <SummaryMetric label="بطاقات أداء مفسرة" value={props.interpretedAssessmentCount} />
+        <SummaryMetric label="إشارات معالجة" value={props.processedSignalCount} />
+        <SummaryMetric label="فرص أهداف" value={props.goalOpportunityCount} />
       </div>
       <div className="mt-6 overflow-x-auto">
         <table className="w-full min-w-[760px] border-collapse text-sm">
@@ -399,6 +398,26 @@ function CurrentLevelSection(props: {
           </tbody>
         </table>
       </div>
+      <div className="mt-4 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
+        <button
+          type="button"
+          onClick={() => setDetailsOpen((open) => !open)}
+          className="flex w-full items-center justify-between gap-3 text-right text-sm font-bold text-[#0F3D3E]"
+        >
+          <span>استدعاء الملف التفصيلي لمعالجة مصادر المعلومات</span>
+          <span>{detailsOpen ? "▲" : "▼"}</span>
+        </button>
+        {detailsOpen && (
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {detailRows.map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-stone-200 bg-white p-4">
+                <div className="text-xs font-bold text-stone-500">{label}</div>
+                <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -409,6 +428,15 @@ function CurrentLevelSection(props: {
         </button>
         {props.savedMessage && <span className="text-sm font-bold text-emerald-700">{props.savedMessage}</span>}
       </div>
+    </div>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+      <div className="text-xs font-bold text-stone-500">{label}</div>
+      <div className="mt-1 text-xl font-black text-[#0F3D3E]">{value}</div>
     </div>
   );
 }

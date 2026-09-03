@@ -95,6 +95,7 @@ function OfficialAssessmentPage() {
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [extractionWarning, setExtractionWarning] = useState("");
   const [draftReaderOpen, setDraftReaderOpen] = useState(false);
+  const [domainReviewOpen, setDomainReviewOpen] = useState(false);
   const [additionalToolName, setAdditionalToolName] = useState("");
   const [additionalToolNotes, setAdditionalToolNotes] = useState("");
   const [additionalUpload, setAdditionalUpload] = useState<File | null>(null);
@@ -266,8 +267,16 @@ function OfficialAssessmentPage() {
         <PlanComponentsStatus learnerId={id} current="assessment" status={componentStatus} />
 
         <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold text-[#D9764A]">أداة التقييم الرسمية</p>
-          <h2 className="mt-1 text-2xl font-bold text-[#0F3D3E]">حدد أداة التقييم الرسمية التي تم اعتمادها مع المتعلم لبناء الخطة التربوية الفردية</h2>
+          <p className="text-xs font-bold text-[#D9764A]">نتائج التقييم الرسمي</p>
+          <h2 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-bold text-[#0F3D3E]">
+            أداة التقييم الرسمية المطبقة مع المتعلم
+            <span
+              title="عن طريق معالج نتائج التقييم الرسمية يتم تنفيذ عملية مراجعة ومعالجة لنتائج أداة التقييم الرسمية. ويشار إليه أيضاً باسم معالج نتائج أدوات التقييم الرسمية. وقد تم إتاحة عدد منها كنماذج يمكن اختيار الأداة المطبقة في حال وجدتها ضمن القائمة، كما يمكن تخصيص أدوات محددة بناء على طلب المستخدم."
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#9EC7C3] bg-[#F4FAF9] text-sm font-bold text-[#0F3D3E]"
+            >
+              i
+            </span>
+          </h2>
           <p className="mt-2 text-sm leading-7 text-stone-600">
             قم برفع ملف نتائج التقييم النهائية. يمكنك مراجعة مسودة القراءة قبل تحويلها إلى مرجعية مهنية للبروفايل ومستوى الأداء الحالي.
           </p>
@@ -279,7 +288,7 @@ function OfficialAssessmentPage() {
 
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-stone-500">أداة التقييم الرسمية</label>
+              <label className="mb-1 block text-xs font-semibold text-stone-500">اختر الأداة المطبقة</label>
               <select
                 value={toolId}
                 onChange={(event) => setToolId(event.target.value)}
@@ -336,20 +345,34 @@ function OfficialAssessmentPage() {
 
           {upload && selectedTool && (
             <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-white p-4">
-              <p className="text-sm font-bold text-[#0F3D3E]">مجالات مرجعية لقراءة نتائج {selectedTool.nameAr}</p>
-              <p className="mt-1 text-xs leading-6 text-stone-600">
-                تستخدم هذه المجالات كخريطة قراءة وتصنيف فقط. لا يدخل المختص درجات أو تقديرات يدوية هنا، ولا تنشئ المنصة تصحيحاً بديلاً للأداة الرسمية.
-              </p>
-              <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
-                {selectedTool.domains.map((domain) => (
-                  <div key={domain.code} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
-                    <p className="text-sm font-bold text-[#0F3D3E]">{domain.nameAr}</p>
-                    <p className="mt-1 text-[11px] leading-5 text-stone-500">
-                      المفاهيم المرتبطة: {domain.linkedConcepts.join("، ")}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setDomainReviewOpen((open) => !open)}
+                className="flex w-full items-center justify-between gap-3 text-right text-sm font-bold text-[#0F3D3E]"
+              >
+                <span>
+                  مجالات مرجعية لقراءة نتائج {selectedTool.nameAr}
+                  <span
+                    title="تستخدم هذه المجالات كخريطة قراءة وتصنيف فقط. لا يدخل المختص درجات أو تقديرات يدوية هنا، ولا تنشئ المنصة تصحيحاً بديلاً للأداة الرسمية."
+                    className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#9EC7C3] bg-[#F4FAF9] text-xs font-bold text-[#0F3D3E]"
+                  >
+                    i
+                  </span>
+                </span>
+                <span>{domainReviewOpen ? "▲" : "▼"}</span>
+              </button>
+              {domainReviewOpen && (
+                <div className="mt-4 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {selectedTool.domains.map((domain) => (
+                    <div key={domain.code} className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                      <p className="text-sm font-bold text-[#0F3D3E]">{domain.nameAr}</p>
+                      <p className="mt-1 text-[11px] leading-5 text-stone-500">
+                        المفاهيم المرتبطة: {domain.linkedConcepts.join("، ")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -375,30 +398,6 @@ function OfficialAssessmentPage() {
               )}
             </div>
           )}
-
-          <div className="mt-5 rounded-xl border border-[#9EC7C3] bg-[#F4FAF9] p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-[#0F3D3E]">معالج نتائج أدوات التقييم الرسمية</p>
-              <p className="mt-1 text-xs leading-6 text-stone-600">
-                  من خلال هذا الخيار يتم تنفيذ عملية مراجعة ومعالجة لنتائج عدد من أدوات التقييم الرسمية كنماذج تجريبية، كما أن خيار ضبط وإضافة أدوات خاصة متاح بناء على طلب المستخدم.
-              </p>
-              </div>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[#0F3D3E]">
-                {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").length} أدوات
-              </span>
-            </div>
-            <select
-              value={toolId}
-              onChange={(event) => setToolId(event.target.value)}
-              className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-            >
-              {ASSESSMENT_TOOLS.filter((tool) => tool.id !== "OTHER_OFFICIAL_ASSESSMENT").map((tool) => (
-                <option key={tool.id} value={tool.id}>{tool.nameAr}</option>
-              ))}
-            </select>
-          </div>
-
           <div className="mt-5 rounded-xl border border-stone-200 bg-white p-4">
             <p className="text-sm font-bold text-[#0F3D3E]">هل تود رفع نتائج تقييمات إضافية تم تطبيقها على المتعلم، رسمية أو غير رسمية؟</p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
