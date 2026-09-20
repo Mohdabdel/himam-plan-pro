@@ -188,14 +188,6 @@ const GENERIC_DOMAINS: { code: DomainCode; name: string }[] = [
 
 const CATEGORIES: GoalCategory[] = ["أكاديمي", "وظيفي", "اجتماعي", "عملي"];
 
-const SUPPORT_SERVICES = [
-  "دعم التواصل",
-  "التدريب المهني",
-  "الدعم الأكاديمي",
-  "التدريب على المهارات الحياتية",
-  "خدمات إعادة التأهيل المهني",
-];
-
 const TEAL = "#0F3D3E";
 const ORANGE = "#D9764A";
 
@@ -677,9 +669,6 @@ function IEPPage() {
   function deleteGoal(code: DomainCode, gid: string) {
     setGoals((g) => ({ ...g, [code]: (g[code] ?? []).filter((x) => x.id !== gid) }));
   }
-  function toggleService(s: string) {
-    setServices((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
-  }
   function toggleGoalExpanded(gid: string) {
     setExpandedGoals((prev) => {
       const next = new Set(prev);
@@ -886,7 +875,7 @@ function IEPPage() {
   }
 
   return (
-    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#F8F7F4", fontFamily: "system-ui, sans-serif" }}>
+    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#FAF7F2", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <header
         style={{
           background: TEAL, color: "white", padding: "14px 24px",
@@ -949,13 +938,10 @@ function IEPPage() {
         </section>
 
         <section style={cardStyle}>
-          <h2 style={sectionTitle}>حدد آلية إعداد الأهداف من خيارات المنصة</h2>
-          <p style={{ color: "#64748B", fontSize: 13, marginTop: 4, marginBottom: 0, lineHeight: 1.8 }}>
-            أداة تفاعلية تدعم المختص بمعلومات مستوى الأداء الحالي ونتائج التقييمات في إطار من معايير جودة الأهداف التربوية الفردية.
-          </p>
-          <p style={{ color: "#64748B", fontSize: 13, marginTop: 6, marginBottom: 0, lineHeight: 1.8 }}>
-            اختر نمط العمل الملائم: منشىء الهدف التفاعلي لمسار موجه بالأسئلة، أو إدخال مباشر للأهداف مع شاشة دعم معرفي موازية عند الطلب.
-          </p>
+          <h2 style={{ ...sectionTitle, display: "flex", alignItems: "center", gap: 8 }}>
+            حدد آلية إعداد الأهداف من خيارات المنصة
+            <InfoMark title="أداة تفاعلية تدعم المختص بمعلومات مستوى الأداء الحالي ونتائج التقييمات ضمن معايير جودة الأهداف. اختر منشئ الهدف التفاعلي لمسار موجه، أو الإدخال المباشر مع دعم معرفي عند الطلب." />
+          </h2>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
             <button
@@ -963,9 +949,9 @@ function IEPPage() {
               onClick={() => updateGoalBuilder("mode", "guided")}
               style={modeButtonStyle(goalBuilder.mode === "guided")}
             >
-              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>منشىء الهدف التفاعلي</span>
-              <span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.7, color: goalBuilder.mode === "guided" ? "white" : "#64748B" }}>
-                مسار منشئ الهدف التفاعلي الموجه يساعد على ربط الهدف بالهدف العام، الأثر الوظيفي، ومستوى الأداء الحالي.
+              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 900, fontSize: 14 }}>
+                منشىء الهدف التفاعلي
+                <InfoMark title="مسار موجه يساعد على ربط الهدف بالهدف العام، الأثر الوظيفي، ومستوى الأداء الحالي." inverted={goalBuilder.mode === "guided"} />
               </span>
             </button>
             <button
@@ -973,9 +959,9 @@ function IEPPage() {
               onClick={() => updateGoalBuilder("mode", "direct")}
               style={modeButtonStyle(goalBuilder.mode === "direct")}
             >
-              <span style={{ display: "block", fontWeight: 900, fontSize: 14 }}>إدخال مباشر للأهداف</span>
-              <span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.7, color: goalBuilder.mode === "direct" ? "white" : "#64748B" }}>
-                إدراج هدف مباشرة بكتابة مستقلة مع إتاحة شاشة دعم معرفي موازية عند الطلب.
+              <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 900, fontSize: 14 }}>
+                إدخال مباشر للأهداف
+                <InfoMark title="كتابة مستقلة للهدف مع إتاحة شاشة دعم معرفي موازية عند الطلب." inverted={goalBuilder.mode === "direct"} />
               </span>
             </button>
           </div>
@@ -1693,29 +1679,13 @@ function IEPPage() {
         {/* Section 3 - Support Services */}
         <section style={cardStyle}>
           <h2 style={sectionTitle}>خدمات الدعم المقررة</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-            {SUPPORT_SERVICES.map((s) => {
-              const checked = services.includes(s);
-              return (
-                <label
-                  key={s}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                    padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 8,
-                    background: checked ? "#F1F5F4" : "white",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleService(s)}
-                    style={{ width: 18, height: 18, accentColor: TEAL }}
-                  />
-                  <span style={{ fontSize: 15, color: "#1F2937" }}>{s}</span>
-                </label>
-              );
-            })}
-          </div>
+          <textarea
+            value={services.join("\n")}
+            onChange={(event) => setServices(event.target.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean))}
+            rows={4}
+            placeholder="اكتب خدمات الدعم المقررة، كل خدمة في سطر مستقل..."
+            style={{ ...textAreaStyle, minHeight: 110, marginTop: 12, fontSize: 14 }}
+          />
         </section>
 
         {/* Section 4 - Start Date */}
@@ -2203,8 +2173,34 @@ function modeButtonStyle(active: boolean): React.CSSProperties {
     padding: 12,
     cursor: "pointer",
     fontFamily: "inherit",
-    minHeight: 78,
+    minHeight: 48,
   };
+}
+
+function InfoMark({ title, inverted = false }: { title: string; inverted?: boolean }) {
+  return (
+    <span
+      title={title}
+      aria-label={title}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 20,
+        height: 20,
+        borderRadius: 999,
+        border: inverted ? "1px solid rgba(255,255,255,0.75)" : "1px solid #9EC7C3",
+        background: inverted ? "rgba(255,255,255,0.12)" : "#F4FAF9",
+        color: inverted ? "white" : TEAL,
+        fontSize: 12,
+        fontWeight: 900,
+        lineHeight: 1,
+        flexShrink: 0,
+      }}
+    >
+      i
+    </span>
+  );
 }
 const selectStyle: React.CSSProperties = {
   width: "100%",
