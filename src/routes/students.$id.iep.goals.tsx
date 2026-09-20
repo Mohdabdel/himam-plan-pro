@@ -34,6 +34,7 @@ import {
   buildKnowledgeSupportItems,
   loadInformationRecords,
 } from "@/lib/information-records";
+import { buildProcessedCurrentLevelRows } from "@/lib/current-level-draft";
 import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import {
   loadSourceFilePipelines,
@@ -517,7 +518,12 @@ function IEPPage() {
     profileProcessing,
     sourcePipelines,
   });
+  const currentLevelRows = buildProcessedCurrentLevelRows({
+    assessmentRecords,
+    profileProcessing,
+  });
   const selectedGoalDomain = domains.find((domain) => domain.code === goalBuilder.domainCode);
+  const selectedCurrentLevelRow = currentLevelRows.find((row) => row.domainCode === goalBuilder.domainCode);
   const selectedAssessmentItems = goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
     ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
     : [];
@@ -1053,6 +1059,46 @@ function IEPPage() {
               />
             </div>
           </div>
+          )}
+
+          {goalBuilder.mode && goalBuilder.domainCode && (
+            <div style={{ marginTop: 12, border: "1px solid #9EC7C3", background: "#F4FAF9", borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ color: TEAL, fontSize: 13, fontWeight: 900 }}>مسودة مستوى الأداء الحالي للمجال المختار</div>
+                  <p style={{ margin: "4px 0 0", color: "#64748B", fontSize: 12, lineHeight: 1.8 }}>
+                    هذه المسودة مقترحة من معالجة نتائج التقييم الرسمي وبقية مصادر المعلومات، وتستخدم كمراجعة قبل اختيار الخط القاعدي وصياغة الهدف.
+                  </p>
+                </div>
+                <span style={{ borderRadius: 999, background: "white", color: TEAL, fontSize: 11, fontWeight: 900, padding: "5px 10px", whiteSpace: "nowrap" }}>
+                  {selectedCurrentLevelRow?.proposedByPlatform ? "مقترح قابل للمراجعة" : "يحتاج استكمال"}
+                </span>
+              </div>
+
+              {selectedCurrentLevelRow ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+                  <div style={{ border: "1px solid #E7E5E4", borderRadius: 10, background: "white", padding: 12 }}>
+                    <div style={{ color: TEAL, fontSize: 12, fontWeight: 900 }}>نقاط القوة المقترحة</div>
+                    <p style={{ margin: "6px 0 0", whiteSpace: "pre-line", color: "#374151", fontSize: 12, lineHeight: 1.8 }}>
+                      {selectedCurrentLevelRow.strengths || "لا توجد نقطة قوة مصنفة لهذا المجال بعد."}
+                    </p>
+                  </div>
+                  <div style={{ border: "1px solid #E7E5E4", borderRadius: 10, background: "white", padding: 12 }}>
+                    <div style={{ color: TEAL, fontSize: 12, fontWeight: 900 }}>نقاط الاحتياج المقترحة</div>
+                    <p style={{ margin: "6px 0 0", whiteSpace: "pre-line", color: "#374151", fontSize: 12, lineHeight: 1.8 }}>
+                      {selectedCurrentLevelRow.needs || "لا توجد نقطة احتياج مصنفة لهذا المجال بعد."}
+                    </p>
+                  </div>
+                  <p style={{ gridColumn: "1 / -1", margin: 0, color: "#64748B", fontSize: 11, lineHeight: 1.7 }}>
+                    {selectedCurrentLevelRow.sourceSummaryAr}
+                  </p>
+                </div>
+              ) : (
+                <p style={{ margin: "10px 0 0", color: "#92400E", fontSize: 12, lineHeight: 1.8 }}>
+                  لا توجد مسودة مستوى أداء مصنفة لهذا المجال بعد. يجب استكمال معالجة مصادر المعلومات أو إدخال خط قاعدي مراجع قبل إضافة الهدف.
+                </p>
+              )}
+            </div>
           )}
 
           {goalBuilder.mode === "guided" && (

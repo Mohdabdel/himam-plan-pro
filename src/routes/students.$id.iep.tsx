@@ -6,6 +6,10 @@ import {
   summarizeCurrentPerformanceWorkspace,
 } from "@/lib/current-performance-workspace";
 import {
+  buildProcessedCurrentLevelRows,
+  type ProcessedCurrentLevelRow,
+} from "@/lib/current-level-draft";
+import {
   buildInformationProcessingProfile,
   loadInformationRecords,
 } from "@/lib/information-records";
@@ -37,7 +41,7 @@ type StoredStudent = {
 };
 
 type ActiveSection = "basic" | "currentLevel" | "specialistVision";
-type CurrentLevelRow = { domainCode: string; strengths: string; needs: string };
+type CurrentLevelRow = Pick<ProcessedCurrentLevelRow, "domainCode" | "strengths" | "needs"> & Partial<ProcessedCurrentLevelRow>;
 
 type ComponentCard = {
   key: ActiveSection | "goals";
@@ -81,29 +85,17 @@ const DOMAIN_NAMES: Record<string, string> = {
 function buildCurrentLevelRows(id: string): CurrentLevelRow[] {
   const saved = safeParse<{ currentLevelRows?: CurrentLevelRow[] }>(`himam_plan_preparation_${id}`);
   if (saved?.currentLevelRows?.length) return saved.currentLevelRows;
-  const assessment = safeParse<{ domains?: Array<{ code: string; score?: string; note?: string }> }>(`himam_assessment_${id}`);
-  const family = safeParse<{ priorities?: string[]; vision5y?: string }>(`himam_family_${id}`);
-  const learner = safeParse<{ q_good?: string; q_love?: string; q_hard?: string }>(`himam_learner_voice_${id}`);
-  const domains = assessment?.domains?.length
-    ? assessment.domains
-    : ["VS", "VB", "IF", "LS", "FC", "IB"].map((code) => ({ code, score: "", note: "" }));
+  const informationRecords = loadInformationRecords(id);
+  const sourcePipelines = loadSourceFilePipelines(id);
+  const profileProcessing = buildLearnerProfileProcessingModel({
+    learnerId: id,
+    informationRecords,
+    sourcePipelines,
+  });
 
-  return domains.map((domain) => {
-    const domainName = DOMAIN_NAMES[domain.code] ?? domain.code;
-    const isStrength = domain.score === "pass";
-    const isNeed = domain.score === "emerge" || domain.score === "fail";
-    return {
-      domainCode: domain.code,
-      strengths: [
-        isStrength ? `${domainName}: ${domain.note || "أداء ناجح وفق التقييم الرسمي."}` : "",
-        learner?.q_good ? `صوت المتعلم - قوة: ${learner.q_good}` : "",
-      ].filter(Boolean).join("\n"),
-      needs: [
-        isNeed ? `${domainName}: ${domain.note || "مجال يحتاج تدعيم أو تدريب إضافي وفق التقييم الرسمي."}` : "",
-        family?.priorities?.length ? `أولويات الأسرة ذات صلة: ${family.priorities.join("، ")}` : "",
-        learner?.q_hard ? `صوت المتعلم - صعوبة: ${learner.q_hard}` : "",
-      ].filter(Boolean).join("\n"),
-    };
+  return buildProcessedCurrentLevelRows({
+    assessmentRecords: loadAssessmentRecords(id),
+    profileProcessing,
   });
 }
 
@@ -327,6 +319,10 @@ function CurrentLevelSection(props: {
   savedMessage: string;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const domainOptions = Array.from(new Map([
+    ...props.rows.map((row) => [row.domainCode, row.domainNameAr || DOMAIN_NAMES[row.domainCode] || row.domainCode] as const),
+    ...Object.entries(DOMAIN_NAMES),
+  ]).entries());
   const detailRows = [
     ["التقييم الرسمي", props.assessmentCount > 0 ? `${props.assessmentCount} سجل محفوظ` : "غير مكتمل"],
     ["نتائج مفسرة مراجعة", props.interpretedAssessmentCount > 0 ? `${props.interpretedAssessmentCount} بطاقة قابلة للتتبع` : "غير متاحة بعد"],
@@ -370,10 +366,15 @@ function CurrentLevelSection(props: {
                     onChange={(event) => props.onUpdateRow(index, "domainCode", event.target.value)}
                     className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
                   >
-                    {Object.entries(DOMAIN_NAMES).map(([code, name]) => (
+                    {domainOptions.map(([code, name]) => (
                       <option key={code} value={code}>{name}</option>
                     ))}
                   </select>
+                  {row.sourceSummaryAr && (
+                    <p className="mt-2 rounded-lg bg-stone-50 px-2 py-1 text-[11px] leading-5 text-stone-500">
+                      {row.sourceSummaryAr}
+                    </p>
+                  )}
                 </td>
                 <td className="border border-stone-200 p-2 align-top">
                   <textarea
