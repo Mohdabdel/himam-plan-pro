@@ -30,6 +30,7 @@
     "verify:build-cycle-10": "node scripts/verify-build-cycle-10.mjs",
     "verify:build-cycle-11": "node scripts/verify-build-cycle-11.mjs",
     "verify:build-cycle-12": "node scripts/verify-build-cycle-12.mjs",
+    "verify:build-cycle-13": "node scripts/verify-build-cycle-13.mjs",
     "verify:plan-quality": "node scripts/verify-plan-quality-references.mjs",
     "verify:transition-assessment": "node scripts/verify-transition-assessment-references.mjs",
     "verify:information-sources": "node scripts/verify-information-sources.mjs",

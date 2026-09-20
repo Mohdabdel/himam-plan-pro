@@ -184,10 +184,30 @@ function PlanPreparationHubPage() {
     setSavedMessage("تم حفظ مستوى الأداء الحالي كمكوّن قابل للمراجعة في الخطة.");
   }
 
-  function updateCurrentLevelRow(index: number, field: "domainCode" | "strengths" | "needs", value: string) {
+  function updateCurrentLevelRow(index: number, field: "domainCode" | "domainNameAr" | "strengths" | "needs", value: string) {
     setCurrentLevelRows((rows) => rows.map((row, rowIndex) => (
-      rowIndex === index ? { ...row, [field]: value } : row
+      rowIndex === index
+        ? {
+            ...row,
+            [field]: value,
+            ...(field === "domainNameAr" ? { domainCode: value.trim() || row.domainCode } : {}),
+          }
+        : row
     )));
+  }
+
+  function addCurrentLevelRow() {
+    setCurrentLevelRows((rows) => [
+      ...rows,
+      {
+        domainCode: `custom-domain-${rows.length + 1}`,
+        domainNameAr: "",
+        strengths: "",
+        needs: "",
+        sourceSummaryAr: "مجال حر أضافه المختص؛ لا توجد معالجة آلية مرتبطة به بعد.",
+        proposedByPlatform: false,
+      },
+    ]);
   }
 
   return (
@@ -259,6 +279,7 @@ function PlanPreparationHubPage() {
               additionalSources={Boolean(additionalSources)}
               rows={currentLevelRows}
               onUpdateRow={updateCurrentLevelRow}
+              onAddRow={addCurrentLevelRow}
               onSave={saveCurrentLevelRows}
               savedMessage={savedMessage}
             />
@@ -314,7 +335,8 @@ function CurrentLevelSection(props: {
   familyVoice: boolean;
   additionalSources: boolean;
   rows: CurrentLevelRow[];
-  onUpdateRow: (index: number, field: "domainCode" | "strengths" | "needs", value: string) => void;
+  onUpdateRow: (index: number, field: "domainCode" | "domainNameAr" | "strengths" | "needs", value: string) => void;
+  onAddRow: () => void;
   onSave: () => void;
   savedMessage: string;
 }) {
@@ -340,7 +362,7 @@ function CurrentLevelSection(props: {
     <div>
       <h3 className="text-lg font-bold text-[#0F3D3E]">مستوى الأداء الحالي</h3>
       <p className="mt-2 text-sm leading-7 text-stone-600">
-        النقاط التالية مسودة مقترحة أعدتها المنصة بعد معالجة نتائج التقييم الرسمي وبقية مصادر جمع المعلومات، ثم تصنيفها إلى نقاط قوة ونقاط احتياج وفق مجالات أداة التقييم الرسمية. يمكن للمختص تعديلها، الإضافة عليها، أو استبعادها وبناء مستوى الأداء الحالي ذاتياً.
+        النقاط التالية مسودة مقترحة أعدتها المنصة بعد معالجة نتائج التقييم الرسمي وبقية مصادر جمع المعلومات. المجالات المعروضة تبدأ من مجالات أداة التقييم الرسمية عند توفرها، ويمكن للمختص تعديل اسم المجال أو إضافة مجال حر وبناء مستوى الأداء الحالي ذاتياً.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
         <SummaryMetric label="سجلات تقييم رسمي" value={props.assessmentCount} />
@@ -361,15 +383,18 @@ function CurrentLevelSection(props: {
             {props.rows.map((row, index) => (
               <tr key={`${row.domainCode}-${index}`}>
                 <td className="border border-stone-200 p-2 align-top">
-                  <select
-                    value={row.domainCode}
-                    onChange={(event) => props.onUpdateRow(index, "domainCode", event.target.value)}
+                  <input
+                    list="current-level-domain-options"
+                    value={row.domainNameAr || DOMAIN_NAMES[row.domainCode] || row.domainCode}
+                    onChange={(event) => props.onUpdateRow(index, "domainNameAr", event.target.value)}
                     className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0F3D3E]"
-                  >
+                    placeholder="اكتب المجال أو اختره من المقترحات"
+                  />
+                  <datalist id="current-level-domain-options">
                     {domainOptions.map(([code, name]) => (
-                      <option key={code} value={code}>{name}</option>
+                      <option key={code} value={name} />
                     ))}
-                  </select>
+                  </datalist>
                   {row.sourceSummaryAr && (
                     <p className="mt-2 rounded-lg bg-stone-50 px-2 py-1 text-[11px] leading-5 text-stone-500">
                       {row.sourceSummaryAr}
@@ -403,23 +428,43 @@ function CurrentLevelSection(props: {
         <button
           type="button"
           onClick={() => setDetailsOpen((open) => !open)}
+          title="استدعاء آلية إنشاء مستوى الأداء والملف التفصيلي"
           className="flex w-full items-center justify-between gap-3 text-right text-sm font-bold text-[#0F3D3E]"
         >
-          <span>استدعاء الملف التفصيلي لمعالجة مصادر المعلومات</span>
+          <span>استدعاء الملف التفصيلي لمعالجة مصادر المعلومات وآلية إنشاء مستوى الأداء</span>
           <span>{detailsOpen ? "▲" : "▼"}</span>
         </button>
         {detailsOpen && (
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {detailRows.map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-stone-200 bg-white p-4">
-                <div className="text-xs font-bold text-stone-500">{label}</div>
-                <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
-              </div>
-            ))}
+          <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-[#9EC7C3] bg-white p-4">
+              <p className="text-sm font-bold text-[#0F3D3E]">كيف أنشئت المسودة؟</p>
+              <ol className="mt-2 list-decimal space-y-1 pr-5 text-xs leading-6 text-stone-600">
+                <li>تبدأ المنصة من مجالات أداة التقييم الرسمية المحفوظة عند توفرها.</li>
+                <li>تجمع نتائج التقييم الرسمي والملفات المراجعة وأدوات صوت الأسرة والمتعلم وبقية مصادر المعلومات.</li>
+                <li>تصنف المدخلات إلى نقاط قوة ونقاط احتياج وأولويات وشروط دعم ودلائل أداء.</li>
+                <li>توزع المدخلات المصنفة على المجالات الأقرب، ثم تعرضها كمسودة قابلة للتعديل أو الاستبعاد.</li>
+                <li>يمكن للمختص تعديل اسم أي مجال أو إضافة مجال حر وبناء المحتوى ذاتياً.</li>
+              </ol>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {detailRows.map(([label, value]) => (
+                <div key={label} className="rounded-xl border border-stone-200 bg-white p-4">
+                  <div className="text-xs font-bold text-stone-500">{label}</div>
+                  <div className="mt-1 text-sm font-semibold text-stone-800">{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={props.onAddRow}
+          className="rounded-lg border border-[#9EC7C3] bg-white px-4 py-2 text-sm font-bold text-[#0F3D3E] transition hover:bg-[#F4FAF9]"
+        >
+          إضافة مجال حر
+        </button>
         <button
           type="button"
           onClick={props.onSave}

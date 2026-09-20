@@ -69,7 +69,7 @@ type StoredStudent = {
   status: string;
 };
 
-type DomainCode = "VS" | "VB" | "IF" | "LS" | "FC" | "IB" | "COG" | "COM" | "SOC" | "ADL" | "VOC" | "MOT";
+type DomainCode = string;
 type GoalCategory = "أكاديمي" | "وظيفي" | "اجتماعي" | "عملي";
 type Goal = {
   id: string;
@@ -242,11 +242,11 @@ const BASELINE_SOURCES: Array<{ id: BaselineSourceId; label: string; note: strin
   },
 ];
 
-function emptyGoalMap(domains: { code: DomainCode }[]): Record<DomainCode, Goal[]> {
-  return Object.fromEntries(domains.map((d): [DomainCode, Goal[]] => [d.code, []])) as Record<DomainCode, Goal[]>;
+function emptyGoalMap(domains: { code: DomainCode }[]): Record<string, Goal[]> {
+  return Object.fromEntries(domains.map((d): [string, Goal[]] => [d.code, []]));
 }
-function emptyOpenMap(domains: { code: DomainCode }[]): Record<DomainCode, boolean> {
-  return Object.fromEntries(domains.map((d) => [d.code, false])) as Record<DomainCode, boolean>;
+function emptyOpenMap(domains: { code: DomainCode }[]): Record<string, boolean> {
+  return Object.fromEntries(domains.map((d) => [d.code, false]));
 }
 
 function sourceLabel(sourceId: GoalSourceId) {
@@ -408,8 +408,8 @@ function IEPPage() {
 
   const domains = student?.tool?.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS;
 
-  const [goals, setGoals] = useState<Record<DomainCode, Goal[]>>(emptyGoalMap(TTAP_DOMAINS));
-  const [open, setOpen] = useState<Record<DomainCode, boolean>>(emptyOpenMap(TTAP_DOMAINS));
+  const [goals, setGoals] = useState<Record<string, Goal[]>>(emptyGoalMap(TTAP_DOMAINS));
+  const [open, setOpen] = useState<Record<string, boolean>>(emptyOpenMap(TTAP_DOMAINS));
   const [services, setServices] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
@@ -522,8 +522,17 @@ function IEPPage() {
     assessmentRecords,
     profileProcessing,
   });
-  const selectedGoalDomain = domains.find((domain) => domain.code === goalBuilder.domainCode);
-  const selectedCurrentLevelRow = currentLevelRows.find((row) => row.domainCode === goalBuilder.domainCode);
+  const currentLevelDomainOptions = currentLevelRows
+    .map((row) => ({
+      code: row.domainCode,
+      name: row.domainNameAr || row.domainCode,
+    }))
+    .filter((domain) => domain.name.trim());
+  const goalDomainOptions = currentLevelDomainOptions.length > 0 ? currentLevelDomainOptions : domains;
+  const selectedGoalDomain = goalDomainOptions.find((domain) => domain.code === goalBuilder.domainCode);
+  const selectedCurrentLevelRow = currentLevelRows.find((row) => (
+    row.domainCode === goalBuilder.domainCode || row.domainNameAr === goalBuilder.domainCode
+  ));
   const selectedAssessmentItems = goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
     ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
     : [];
@@ -641,7 +650,7 @@ function IEPPage() {
   function addGoal(code: DomainCode) {
     setGoals((g) => ({
       ...g,
-      [code]: [...g[code], {
+        [code]: [...(g[code] ?? []), {
         id: crypto.randomUUID(), text: "", category: "",
         context: "", criterion: "", measurementMethod: "", evidenceRef: "", goalTrigger: "", performanceAnchor: "", lifePractice: "",
       }],
@@ -650,23 +659,23 @@ function IEPPage() {
   function updateGoalText(code: DomainCode, gid: string, text: string) {
     setGoals((g) => ({
       ...g,
-      [code]: g[code].map((x) => (x.id === gid ? { ...x, text } : x)),
+      [code]: (g[code] ?? []).map((x) => (x.id === gid ? { ...x, text } : x)),
     }));
   }
   function updateGoalCategory(code: DomainCode, gid: string, cat: GoalCategory | "") {
     setGoals((g) => ({
       ...g,
-      [code]: g[code].map((x) => (x.id === gid ? { ...x, category: cat } : x)),
+      [code]: (g[code] ?? []).map((x) => (x.id === gid ? { ...x, category: cat } : x)),
     }));
   }
   function updateGoalField(code: DomainCode, gid: string, field: keyof Goal, value: string) {
     setGoals((g) => ({
       ...g,
-      [code]: g[code].map((x) => (x.id === gid ? { ...x, [field]: value } : x)),
+      [code]: (g[code] ?? []).map((x) => (x.id === gid ? { ...x, [field]: value } : x)),
     }));
   }
   function deleteGoal(code: DomainCode, gid: string) {
-    setGoals((g) => ({ ...g, [code]: g[code].filter((x) => x.id !== gid) }));
+    setGoals((g) => ({ ...g, [code]: (g[code] ?? []).filter((x) => x.id !== gid) }));
   }
   function toggleService(s: string) {
     setServices((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
@@ -695,7 +704,7 @@ function IEPPage() {
     if (!draft?.reason) return;
     setGoals((g) => ({
       ...g,
-      [code]: g[code].map((x) => (x.id === gid
+      [code]: (g[code] ?? []).map((x) => (x.id === gid
         ? { ...x, override: { reason: draft.reason, note: draft.note || undefined, at: new Date().toISOString() } }
         : x)),
     }));
@@ -713,7 +722,7 @@ function IEPPage() {
     messages: string[];
   }[] = [];
   const startedGoals: Array<Goal & { domainCode: DomainCode }> = [];
-  for (const d of domains) {
+  for (const d of goalDomainOptions) {
     for (const g of goals[d.code] ?? []) {
       if (g.text.trim()) startedGoals.push({ ...g, domainCode: d.code });
       const rubric = evaluateGoalPlanQuality({
@@ -974,17 +983,23 @@ function IEPPage() {
           {goalBuilder.mode && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
             <div style={builderStepStyle}>
-              <div style={builderStepTitle}>1. مجال أداة التقييم</div>
+              <div style={builderStepTitle}>1. مجال مستوى الأداء</div>
               <select
                 value={goalBuilder.domainCode}
-                onChange={(event) => updateGoalBuilder("domainCode", event.target.value as DomainCode | "")}
+                onChange={(event) => updateGoalBuilder("domainCode", event.target.value)}
                 style={selectStyle}
               >
-                <option value="">اختر المجال</option>
-                {domains.map((domain) => (
+                <option value="">اختر المجال من مستوى الأداء الحالي</option>
+                {goalDomainOptions.map((domain) => (
                   <option key={domain.code} value={domain.code}>{domain.name}</option>
                 ))}
               </select>
+              <input
+                value={goalBuilder.domainCode && !goalDomainOptions.some((domain) => domain.code === goalBuilder.domainCode) ? goalBuilder.domainCode : ""}
+                onChange={(event) => updateGoalBuilder("domainCode", event.target.value)}
+                placeholder="أو اكتب مجالاً حراً"
+                style={{ ...inputStyle, marginTop: 8, fontSize: 12 }}
+              />
             </div>
 
             <div style={builderStepStyle}>
@@ -1295,7 +1310,7 @@ function IEPPage() {
             أدخل الأهداف تحت كل مجال بحرية كاملة
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            {!loaded ? null : domains.map((d) => (
+            {!loaded ? null : goalDomainOptions.map((d) => (
               <div key={d.code} style={{ border: "1px solid #E5E7EB", borderRadius: 10, overflow: "hidden" }}>
                 <button
                   type="button"

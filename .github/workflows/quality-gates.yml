@@ -61,6 +61,9 @@ jobs:
       - name: Verify build cycle 12
         run: npm run verify:build-cycle-12
 
+      - name: Verify build cycle 13
+        run: npm run verify:build-cycle-13
+
       - name: Typecheck
         run: npm run typecheck
 
