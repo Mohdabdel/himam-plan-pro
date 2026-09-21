@@ -15,6 +15,14 @@ function requireText(label, content, expected) {
   checks.push(label);
 }
 
+function forbidText(label, content, forbidden) {
+  if (content.includes(forbidden)) {
+    failures.push(`${label} should not include ${forbidden}`);
+    return;
+  }
+  checks.push(label);
+}
+
 const spec = read("specs/himam_build_cycle_15_execution_plan_2026-09-21.md");
 const goals = read("src/routes/students.$id.iep.goals.tsx");
 const report = read("src/routes/students.$id.report.tsx");
@@ -30,6 +38,7 @@ requireText("support service delete", goals, "deleteSupportService");
 requireText("support service table type header", goals, "نوع الخدمة");
 requireText("support service table name header", goals, "اسم الخدمة");
 requireText("support service table goals header", goals, "الأهداف");
+forbidText("support service action column", goals, "<th style={supportServiceCellStyle}>إجراء</th>");
 requireText("legacy service normalization", goals, "normalizeSupportServices");
 requireText("report service label compatibility", report, "serviceLabel");
 

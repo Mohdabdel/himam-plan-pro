@@ -1790,7 +1790,6 @@ function IEPPage() {
                     <th style={supportServiceCellStyle}>نوع الخدمة</th>
                     <th style={supportServiceCellStyle}>اسم الخدمة</th>
                     <th style={supportServiceCellStyle}>الأهداف</th>
-                    <th style={supportServiceCellStyle}>إجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1798,12 +1797,12 @@ function IEPPage() {
                     <tr key={service.id}>
                       <td style={supportServiceCellStyle}>{service.serviceType || "غير محدد"}</td>
                       <td style={supportServiceCellStyle}>{service.serviceName || "غير محدد"}</td>
-                      <td style={supportServiceCellStyle}>{service.linkedGoals || "غير محدد"}</td>
                       <td style={supportServiceCellStyle}>
+                        <div>{service.linkedGoals || "غير محدد"}</div>
                         <button
                           type="button"
                           onClick={() => deleteSupportService(service.id)}
-                          style={{ background: "none", border: "none", color: "#92400E", cursor: "pointer", fontFamily: "inherit", fontWeight: 800 }}
+                          style={{ background: "none", border: "none", color: "#92400E", cursor: "pointer", fontFamily: "inherit", fontWeight: 800, marginTop: 6, padding: 0 }}
                         >
                           حذف
                         </button>
