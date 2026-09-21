@@ -86,6 +86,12 @@ type Goal = {
   lifePractice?: string;
   override?: GoalOverride;
 };
+type SupportServiceDraft = {
+  id: string;
+  serviceType: string;
+  serviceName: string;
+  linkedGoals: string;
+};
 
 // Same context vocabulary already used in plan.tsx, for consistency.
 const GOAL_CONTEXTS = ["البيت", "المركز / المدرسة", "المجتمع (المسجد، دار الحي، الحديقة)", "مجلس العائلة"];
@@ -187,6 +193,32 @@ const GENERIC_DOMAINS: { code: DomainCode; name: string }[] = [
 ];
 
 const CATEGORIES: GoalCategory[] = ["أكاديمي", "وظيفي", "اجتماعي", "عملي"];
+
+function normalizeSupportServices(value: unknown): SupportServiceDraft[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item, index) => {
+    if (typeof item === "string") {
+      const serviceName = item.trim();
+      return serviceName
+        ? [{ id: `legacy-service-${index}`, serviceType: "", serviceName, linkedGoals: "" }]
+        : [];
+    }
+    if (item && typeof item === "object") {
+      const record = item as Partial<SupportServiceDraft>;
+      const serviceName = record.serviceName?.trim() ?? "";
+      const serviceType = record.serviceType?.trim() ?? "";
+      const linkedGoals = record.linkedGoals?.trim() ?? "";
+      if (!serviceName && !serviceType && !linkedGoals) return [];
+      return [{
+        id: record.id || `service-${index}-${serviceName || serviceType || linkedGoals}`,
+        serviceType,
+        serviceName,
+        linkedGoals,
+      }];
+    }
+    return [];
+  });
+}
 
 const TEAL = "#0F3D3E";
 const ORANGE = "#D9764A";
@@ -402,7 +434,8 @@ function IEPPage() {
 
   const [goals, setGoals] = useState<Record<string, Goal[]>>(emptyGoalMap(TTAP_DOMAINS));
   const [open, setOpen] = useState<Record<string, boolean>>(emptyOpenMap(TTAP_DOMAINS));
-  const [services, setServices] = useState<string[]>([]);
+  const [services, setServices] = useState<SupportServiceDraft[]>([]);
+  const [serviceDraft, setServiceDraft] = useState({ serviceType: "", serviceName: "", linkedGoals: "" });
   const [startDate, setStartDate] = useState("");
   const [expandedGoals, setExpandedGoals] = useState<Set<string>>(new Set());
 
@@ -466,7 +499,7 @@ function IEPPage() {
         const activeDomains = found?.tool?.includes("TTAP") ? TTAP_DOMAINS : GENERIC_DOMAINS;
         if (data.vision) setVision(data.vision);
         if (data.goals) setGoals({ ...emptyGoalMap(activeDomains), ...data.goals });
-        if (data.services) setServices(data.services);
+        if (data.services) setServices(normalizeSupportServices(data.services));
         if (data.startDate) setStartDate(data.startDate);
       }
     } catch (error) {
@@ -668,6 +701,28 @@ function IEPPage() {
   }
   function deleteGoal(code: DomainCode, gid: string) {
     setGoals((g) => ({ ...g, [code]: (g[code] ?? []).filter((x) => x.id !== gid) }));
+  }
+  function updateServiceDraft(field: "serviceType" | "serviceName" | "linkedGoals", value: string) {
+    setServiceDraft((current) => ({ ...current, [field]: value }));
+  }
+  function addSupportService() {
+    const serviceType = serviceDraft.serviceType.trim();
+    const serviceName = serviceDraft.serviceName.trim();
+    const linkedGoals = serviceDraft.linkedGoals.trim();
+    if (!serviceType && !serviceName && !linkedGoals) return;
+    setServices((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        serviceType,
+        serviceName,
+        linkedGoals,
+      },
+    ]);
+    setServiceDraft({ serviceType: "", serviceName: "", linkedGoals: "" });
+  }
+  function deleteSupportService(serviceId: string) {
+    setServices((current) => current.filter((service) => service.id !== serviceId));
   }
   function toggleGoalExpanded(gid: string) {
     setExpandedGoals((prev) => {
@@ -1679,13 +1734,86 @@ function IEPPage() {
         {/* Section 3 - Support Services */}
         <section style={cardStyle}>
           <h2 style={sectionTitle}>خدمات الدعم المقررة</h2>
-          <textarea
-            value={services.join("\n")}
-            onChange={(event) => setServices(event.target.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean))}
-            rows={4}
-            placeholder="اكتب خدمات الدعم المقررة، كل خدمة في سطر مستقل..."
-            style={{ ...textAreaStyle, minHeight: 110, marginTop: 12, fontSize: 14 }}
-          />
+          <div style={{ display: "grid", gridTemplateColumns: "0.9fr 1fr 1.2fr auto", gap: 10, marginTop: 12, alignItems: "end" }}>
+            <label style={{ display: "block" }}>
+              <span style={miniLabelStyle}>نوع الخدمة</span>
+              <input
+                value={serviceDraft.serviceType}
+                onChange={(event) => updateServiceDraft("serviceType", event.target.value)}
+                placeholder="مثال: علاج نطق"
+                style={inputStyle}
+              />
+            </label>
+            <label style={{ display: "block" }}>
+              <span style={miniLabelStyle}>اسم الخدمة</span>
+              <input
+                value={serviceDraft.serviceName}
+                onChange={(event) => updateServiceDraft("serviceName", event.target.value)}
+                placeholder="مثال: تدريب التواصل الوظيفي"
+                style={inputStyle}
+              />
+            </label>
+            <label style={{ display: "block" }}>
+              <span style={miniLabelStyle}>الأهداف المرتبطة</span>
+              <input
+                value={serviceDraft.linkedGoals}
+                onChange={(event) => updateServiceDraft("linkedGoals", event.target.value)}
+                placeholder="اكتب الهدف أو أرقام الأهداف المرتبطة"
+                style={inputStyle}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={addSupportService}
+              style={{
+                background: TEAL,
+                color: "white",
+                border: "none",
+                borderRadius: 8,
+                padding: "9px 14px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: 800,
+                fontSize: 13,
+                whiteSpace: "nowrap",
+              }}
+            >
+              إضافة
+            </button>
+          </div>
+
+          {services.length > 0 && (
+            <div style={{ marginTop: 14, overflowX: "auto" }}>
+              <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: "#E6F2F1", color: TEAL, textAlign: "right" }}>
+                    <th style={supportServiceCellStyle}>نوع الخدمة</th>
+                    <th style={supportServiceCellStyle}>اسم الخدمة</th>
+                    <th style={supportServiceCellStyle}>الأهداف</th>
+                    <th style={supportServiceCellStyle}>إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {services.map((service) => (
+                    <tr key={service.id}>
+                      <td style={supportServiceCellStyle}>{service.serviceType || "غير محدد"}</td>
+                      <td style={supportServiceCellStyle}>{service.serviceName || "غير محدد"}</td>
+                      <td style={supportServiceCellStyle}>{service.linkedGoals || "غير محدد"}</td>
+                      <td style={supportServiceCellStyle}>
+                        <button
+                          type="button"
+                          onClick={() => deleteSupportService(service.id)}
+                          style={{ background: "none", border: "none", color: "#92400E", cursor: "pointer", fontFamily: "inherit", fontWeight: 800 }}
+                        >
+                          حذف
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         {/* Section 4 - Start Date */}
@@ -2229,6 +2357,11 @@ const textAreaStyle: React.CSSProperties = {
   fontFamily: "inherit",
   resize: "vertical",
   boxSizing: "border-box",
+};
+const supportServiceCellStyle: React.CSSProperties = {
+  border: "1px solid #E5E7EB",
+  padding: "8px 10px",
+  verticalAlign: "top",
 };
 const miniLabelStyle: React.CSSProperties = {
   display: "block",

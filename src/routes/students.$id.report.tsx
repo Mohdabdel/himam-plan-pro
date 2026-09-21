@@ -102,13 +102,18 @@ type RawIEP = {
   goals?:
     | Record<string, RawGoal[]>   // grouped by domain code (existing format)
     | RawGoal[];                  // flat array with domainCode field
-  services?:  string[];
+  services?:  Array<string | { id?: string; serviceType?: string; serviceName?: string; linkedGoals?: string }>;
   startDate?: string;
   goalApprovalIds?: string[];
   reviewStatus?: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
   draftProgressTag?: "continuable" | "blocked_until_progress_findings_resolved" | "ready_for_plan_review";
   blockingGoalReviews?: Array<{ goalId: string; domainCode: string; domainName: string; messages: string[] }>;
 };
+
+function serviceLabel(service: NonNullable<RawIEP["services"]>[number]) {
+  if (typeof service === "string") return service;
+  return [service.serviceType, service.serviceName, service.linkedGoals].filter(Boolean).join(" - ");
+}
 
 // ── IEP goals normalisation ───────────────────────────────────────────────────
 function normaliseIEPGoals(raw: RawIEP | null): Record<string, Goal[]> {
@@ -794,7 +799,7 @@ function ReportPage() {
             {iep?.services && iep.services.length > 0 && (
               <div style={{ marginTop: 16 }}>
                 <p style={{ fontWeight: 700, color: TEAL, fontSize: 15, margin: "0 0 8px" }}>خدمات الدعم المقررة</p>
-                <div>{iep.services.map((s) => <Tag key={s} text={s} />)}</div>
+                <div>{iep.services.map((s, index) => <Tag key={`${serviceLabel(s)}-${index}`} text={serviceLabel(s)} />)}</div>
               </div>
             )}
             {iep?.startDate && (
