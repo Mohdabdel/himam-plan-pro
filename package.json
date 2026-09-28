@@ -38,6 +38,7 @@
     "verify:plan-quality": "node scripts/verify-plan-quality-references.mjs",
     "verify:transition-assessment": "node scripts/verify-transition-assessment-references.mjs",
     "verify:information-sources": "node scripts/verify-information-sources.mjs",
+    "search:prior": "node scripts/search-prior-projects.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
