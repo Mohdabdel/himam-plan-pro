@@ -93,6 +93,12 @@ type SupportServiceDraft = {
   linkedGoals: string;
 };
 
+type BaselineCandidate = {
+  id: string;
+  label: string;
+  source: "assessment_record" | "current_level" | "ttap_item";
+};
+
 // Same context vocabulary already used in plan.tsx, for consistency.
 const GOAL_CONTEXTS = ["البيت", "المركز / المدرسة", "المجتمع (المسجد، دار الحي، الحديقة)", "مجلس العائلة"];
 const MEASUREMENT_METHODS = ["ملاحظة مباشرة", "سجل تكراري", "عيّنة عمل", "تقرير الأسرة"];
@@ -362,6 +368,68 @@ function buildGoalSources(input: {
   return sources;
 }
 
+function ratingLabel(rating?: string) {
+  if (rating === "pass") return "ناجح/قوة";
+  if (rating === "emerge") return "مهارة ناشئة";
+  if (rating === "fail") return "احتياج واضح";
+  if (rating === "not_observed") return "غير ملاحظ";
+  return "غير محدد";
+}
+
+function buildBaselineCandidates(input: {
+  domainCode: string;
+  assessmentRecords: AssessmentRecord[];
+  currentLevelRow?: ReturnType<typeof buildProcessedCurrentLevelRows>[number];
+}): BaselineCandidate[] {
+  if (!input.domainCode) return [];
+  const candidates: BaselineCandidate[] = [];
+
+  input.assessmentRecords.forEach((record) => {
+    record.domains
+      .filter((domain) => (
+        domain.domainCode === input.domainCode ||
+        domain.domainNameAr === input.domainCode ||
+        domain.domainNameAr === input.currentLevelRow?.domainNameAr
+      ))
+      .forEach((domain) => {
+        candidates.push({
+          id: `assessment-record:${record.id}:${domain.domainCode}`,
+          source: "assessment_record",
+          label: [
+            record.toolNameAr,
+            domain.domainNameAr,
+            ratingLabel(domain.rating),
+            domain.note,
+          ].filter(Boolean).join(" - "),
+        });
+      });
+  });
+
+  if (input.currentLevelRow?.needs || input.currentLevelRow?.strengths) {
+    candidates.push({
+      id: `current-level:${input.currentLevelRow.domainCode}`,
+      source: "current_level",
+      label: [
+        `مسودة مستوى الأداء الحالي: ${input.currentLevelRow.domainNameAr || input.currentLevelRow.domainCode}`,
+        input.currentLevelRow.needs ? `احتياج: ${input.currentLevelRow.needs}` : "",
+        input.currentLevelRow.strengths ? `قوة: ${input.currentLevelRow.strengths}` : "",
+      ].filter(Boolean).join(" - "),
+    });
+  }
+
+  if (TTAP_DOMAINS.some((domain) => domain.code === input.domainCode)) {
+    getItemsByDomain(input.domainCode as TTAPDomain).forEach((item) => {
+      candidates.push({
+        id: `ttap-item:${item.id}`,
+        source: "ttap_item",
+        label: `بند TTAP ${item.id} - ${item.name}`,
+      });
+    });
+  }
+
+  return candidates;
+}
+
 function hasVagueLanguage(text: string) {
   return VAGUE_GOAL_WORDS.find((word) => text.includes(word));
 }
@@ -558,20 +626,24 @@ function IEPPage() {
   const selectedCurrentLevelRow = currentLevelRows.find((row) => (
     row.domainCode === goalBuilder.domainCode || row.domainNameAr === goalBuilder.domainCode
   ));
-  const selectedAssessmentItems = goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.domainCode && TTAP_DOMAINS.some((domain) => domain.code === goalBuilder.domainCode)
-    ? getItemsByDomain(goalBuilder.domainCode as TTAPDomain)
+  const baselineCandidates = goalBuilder.baselineSourceId === "formal_assessment"
+    ? buildBaselineCandidates({
+        domainCode: goalBuilder.domainCode,
+        assessmentRecords,
+        currentLevelRow: selectedCurrentLevelRow,
+      })
     : [];
-  const selectedItemLabels = selectedAssessmentItems
-    .filter((item) => goalBuilder.selectedItemIds.includes(String(item.id)))
-    .map((item) => `بند ${item.id} - ${item.name}`);
-  const selectedPerformanceAnchor = performanceAnchorFromBuilder(goalBuilder, selectedItemLabels);
+  const selectedBaselineLabels = baselineCandidates
+    .filter((item) => goalBuilder.selectedItemIds.includes(item.id))
+    .map((item) => item.label);
+  const selectedPerformanceAnchor = performanceAnchorFromBuilder(goalBuilder, selectedBaselineLabels);
   const selectedGoalTrigger = goalBuilder.sourceId ? sourceLabel(goalBuilder.sourceId as GoalSourceId) : "";
   const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
   const generatedGoalDraft = buildGoalDraft({
     studentName: student?.name ?? "الطالب",
     startDate,
     builder: goalBuilder,
-    selectedItems: selectedItemLabels,
+    selectedItems: selectedBaselineLabels,
   });
   const builderRubric = evaluateGoalPlanQuality({
     goalText: generatedGoalDraft.text,
@@ -634,8 +706,8 @@ function IEPPage() {
       setBuilderMessage("اختر مرجعية الخط القاعدي قبل إضافة المسودة.");
       return;
     }
-    if (goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.selectedItemIds.length === 0) {
-      setBuilderMessage("اختر بنداً واحداً على الأقل من بنود أداة التقييم الرسمية في المجال المحدد.");
+    if (goalBuilder.baselineSourceId === "formal_assessment" && goalBuilder.selectedItemIds.length === 0 && !goalBuilder.performanceAnchor.trim()) {
+      setBuilderMessage("اختر نتيجة أو بنداً واحداً على الأقل من التقييم الرسمي أو مستوى الأداء الحالي في المجال المحدد.");
       return;
     }
     if (!selectedPerformanceAnchor) {
@@ -1083,19 +1155,28 @@ function IEPPage() {
               )}
               {goalBuilder.baselineSourceId === "formal_assessment" ? (
                 <div style={{ maxHeight: 132, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-                  {selectedAssessmentItems.length === 0 ? (
+                  {baselineCandidates.length === 0 ? (
                     <p style={{ margin: 0, color: "#94A3B8", fontSize: 12, lineHeight: 1.7 }}>
-                      اختر مجالاً من أداة TTAP لعرض البنود المتاحة، ثم اختر بند الخط القاعدي.
+                      لا توجد نتيجة تقييم رسمية أو مسودة مستوى أداء مرتبطة بهذا المجال بعد. اكتب تفسير الخط القاعدي يدوياً إن كان لديك مصدر مراجع.
                     </p>
-                  ) : selectedAssessmentItems.map((item) => (
+                  ) : baselineCandidates.map((item) => (
                     <label key={item.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, color: "#374151", lineHeight: 1.6 }}>
                       <input
                         type="checkbox"
-                        checked={goalBuilder.selectedItemIds.includes(String(item.id))}
-                        onChange={() => toggleBuilderItem(String(item.id))}
+                        checked={goalBuilder.selectedItemIds.includes(item.id)}
+                        onChange={() => toggleBuilderItem(item.id)}
                         style={{ marginTop: 3 }}
                       />
-                      <span>بند {item.id}: {item.name}</span>
+                      <span>
+                        {item.label}
+                        <small style={{ display: "block", color: "#94A3B8", fontSize: 10, marginTop: 2 }}>
+                          {item.source === "assessment_record"
+                            ? "نتيجة تقييم رسمي محفوظة"
+                            : item.source === "current_level"
+                              ? "مسودة مستوى أداء حالي قابلة للمراجعة"
+                              : "بند مرجعي داعم من TTAP"}
+                        </small>
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -1108,7 +1189,7 @@ function IEPPage() {
                 value={goalBuilder.performanceAnchor}
                 onChange={(event) => updateGoalBuilder("performanceAnchor", event.target.value)}
                 rows={2}
-                placeholder={goalBuilder.baselineSourceId === "formal_assessment" && selectedItemLabels.length > 0
+                placeholder={goalBuilder.baselineSourceId === "formal_assessment" && selectedBaselineLabels.length > 0
                   ? "يمكن تركه فارغاً لاستخدام البنود المحددة كمرتكز أداء، أو اكتب تفسيراً مراجعاً لها..."
                   : "اكتب مرتكز الأداء أو الخط القاعدي المراجع: الأداة/البند/النتيجة/التفسير..."}
                 style={{ ...textAreaStyle, minHeight: 64, marginTop: 8, fontSize: 12 }}
