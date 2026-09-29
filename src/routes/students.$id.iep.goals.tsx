@@ -35,6 +35,13 @@ import {
   loadInformationRecords,
 } from "@/lib/information-records";
 import { buildProcessedCurrentLevelRows } from "@/lib/current-level-draft";
+import {
+  buildGoalOpportunityCards,
+  buildGoalProposals,
+  type GoalReadiness,
+  type GoalOpportunityCard,
+  type GoalProposal,
+} from "@/lib/goal-opportunity-engine";
 import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import {
   loadSourceFilePipelines,
@@ -639,6 +646,26 @@ function IEPPage() {
   const selectedPerformanceAnchor = performanceAnchorFromBuilder(goalBuilder, selectedBaselineLabels);
   const selectedGoalTrigger = goalBuilder.sourceId ? sourceLabel(goalBuilder.sourceId as GoalSourceId) : "";
   const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
+  const goalOpportunityCards = buildGoalOpportunityCards({
+    currentLevelRows,
+    assessmentRecords,
+    profileProcessing,
+    planVisionAr: vision,
+    familyVisionAr: family?.vision5y,
+    familyPrioritiesAr: family?.priorities,
+    learnerVoiceAr: [learnerVoice?.q_love, learnerVoice?.q_good].filter(Boolean).join("، "),
+    ageYears: learnerAgeYears,
+  });
+  const selectedOpportunityCards = goalOpportunityCards
+    .filter((card) => !goalBuilder.domainCode || card.domainCode === goalBuilder.domainCode || card.domainNameAr === goalBuilder.domainCode)
+    .slice(0, 3);
+  const selectedGoalProposals = selectedOpportunityCards.flatMap((opportunity) => (
+    buildGoalProposals({
+      opportunity,
+      studentNameAr: student?.name,
+      maxProposals: 3,
+    })
+  )).slice(0, 3);
   const generatedGoalDraft = buildGoalDraft({
     studentName: student?.name ?? "الطالب",
     startDate,
@@ -742,6 +769,42 @@ function IEPPage() {
       return;
     }
     setBuilderMessage("أكمل السلوك المستهدف أو اكتب الهدف مباشرة قبل إضافة المسودة.");
+  }
+
+  function addProposalToGoals(proposal: GoalProposal) {
+    const opportunity = goalOpportunityCards.find((card) => card.id === proposal.opportunityId);
+    const domainCode = opportunity?.domainCode || goalBuilder.domainCode;
+    if (!domainCode) {
+      setBuilderMessage("اختر مجالاً قبل اعتماد المقترح كمسودة.");
+      return;
+    }
+    if (proposal.readiness === "needs_evidence") {
+      setBuilderMessage("هذا المقترح يحتاج ربطاً بخط قاعدي أو دليل أداء قبل إضافته كمسودة.");
+      return;
+    }
+
+    const goalId = crypto.randomUUID();
+    setGoals((current) => ({
+      ...current,
+      [domainCode]: [
+        ...(current[domainCode] ?? []),
+        {
+          id: goalId,
+          text: proposal.textAr,
+          category: "",
+          context: proposal.contextAr,
+          criterion: proposal.criterionAr,
+          measurementMethod: proposal.measurementMethodAr,
+          goalTrigger: proposal.goalTriggerAr,
+          performanceAnchor: proposal.evidenceRefAr,
+          evidenceRef: proposal.evidenceRefAr,
+          lifePractice: proposal.lifePracticeAr,
+        },
+      ],
+    }));
+    setOpen((current) => ({ ...current, [domainCode]: true }));
+    setExpandedGoals((current) => new Set([...current, goalId]));
+    setBuilderMessage("تمت إضافة المقترح كمسودة هدف قابلة للمراجعة داخل قائمة الأهداف.");
   }
 
   function addGoal(code: DomainCode) {
@@ -1233,6 +1296,42 @@ function IEPPage() {
               ) : (
                 <p style={{ margin: "10px 0 0", color: "#92400E", fontSize: 12, lineHeight: 1.8 }}>
                   لا توجد مسودة مستوى أداء مصنفة لهذا المجال بعد. يجب استكمال معالجة مصادر المعلومات أو إدخال خط قاعدي مراجع قبل إضافة الهدف.
+                </p>
+              )}
+            </div>
+          )}
+
+          {goalBuilder.mode && (
+            <div style={{ marginTop: 12, border: "1px solid #E2E8F0", background: "white", borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div>
+                  <h3 style={{ margin: 0, color: TEAL, fontSize: 14, fontWeight: 900 }}>مقترحات المحرك ضمن النطاق المحدد</h3>
+                  <p style={{ margin: "5px 0 0", color: "#64748B", fontSize: 12, lineHeight: 1.8 }}>
+                    يعرض المحرك حتى 3 مقترحات فقط، تبدأ من مستوى الأداء أو البوصلة الانتقالية أو الرؤية، ثم تمر على الخط القاعدي والجودة قبل إضافتها كمسودة.
+                  </p>
+                </div>
+                <span style={{ borderRadius: 999, background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#334155", fontSize: 11, fontWeight: 900, padding: "5px 10px" }}>
+                  {selectedGoalProposals.length} مقترح
+                </span>
+              </div>
+
+              {selectedGoalProposals.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginTop: 12 }}>
+                  {selectedGoalProposals.map((proposal) => {
+                    const opportunity = goalOpportunityCards.find((card) => card.id === proposal.opportunityId);
+                    return (
+                      <GoalProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        opportunity={opportunity}
+                        onAdd={() => addProposalToGoals(proposal)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ margin: "10px 0 0", color: "#92400E", fontSize: 12, lineHeight: 1.8 }}>
+                  لا توجد مقترحات كافية بعد. اختر المجال ومرتكز الأداء أو استكمل مستوى الأداء الحالي ومصادر المعلومات السابقة.
                 </p>
               )}
             </div>
@@ -2021,6 +2120,92 @@ function IEPPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function goalReadinessLabel(readiness: GoalReadiness) {
+  if (readiness === "ready") return "جاهز كمسودة";
+  if (readiness === "improvable") return "قابل للتحسين";
+  if (readiness === "needs_preparatory_goal") return "يفضل هدف تمهيدي";
+  return "يحتاج دليل";
+}
+
+function goalReadinessStyle(readiness: GoalReadiness) {
+  if (readiness === "ready") return { background: "#DCFCE7", color: "#166534", border: "#BBF7D0" };
+  if (readiness === "improvable") return { background: "#FEF3C7", color: "#92400E", border: "#FDE68A" };
+  if (readiness === "needs_preparatory_goal") return { background: "#E0F2FE", color: "#075985", border: "#BAE6FD" };
+  return { background: "#FEE2E2", color: "#991B1B", border: "#FECACA" };
+}
+
+function goalModeLabel(mode?: GoalOpportunityCard["mode"]) {
+  if (mode === "performance_based") return "مستوى الأداء";
+  if (mode === "transition_based") return "بوصلة الانتقال";
+  if (mode === "vision_based") return "الرؤية";
+  if (mode === "blended") return "مزج مصادر";
+  return "مصدر غير محدد";
+}
+
+function GoalProposalCard({
+  proposal,
+  opportunity,
+  onAdd,
+}: {
+  proposal: GoalProposal;
+  opportunity?: GoalOpportunityCard;
+  onAdd: () => void;
+}) {
+  const readiness = goalReadinessStyle(proposal.readiness);
+
+  return (
+    <article style={{ border: "1px solid #E5E7EB", borderRadius: 10, background: "#FAFAF8", padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div>
+          <p style={{ margin: 0, color: TEAL, fontSize: 12, fontWeight: 900 }}>{proposal.titleAr}</p>
+          <p style={{ margin: "3px 0 0", color: "#64748B", fontSize: 10, fontWeight: 800 }}>
+            {goalModeLabel(opportunity?.mode)}
+          </p>
+        </div>
+        <span style={{ border: `1px solid ${readiness.border}`, background: readiness.background, color: readiness.color, borderRadius: 999, padding: "4px 8px", fontSize: 10, fontWeight: 900, whiteSpace: "nowrap" }}>
+          {goalReadinessLabel(proposal.readiness)}
+        </span>
+      </div>
+
+      <p style={{ margin: 0, color: "#334155", fontSize: 12, lineHeight: 1.8 }}>{proposal.textAr}</p>
+      <p style={{ margin: 0, color: "#475569", fontSize: 11, lineHeight: 1.6 }}>
+        {proposal.whyAr}
+      </p>
+
+      <details style={{ borderTop: "1px solid #E5E7EB", paddingTop: 6 }}>
+        <summary style={{ color: TEAL, cursor: "pointer", fontSize: 11, fontWeight: 900 }}>عرض سبب التوليد والأدلة</summary>
+        <ul style={{ margin: "6px 0 0", paddingInlineStart: 18, color: "#64748B", fontSize: 11, lineHeight: 1.7 }}>
+          <li>مرتكز الأداء: {proposal.evidenceRefAr || "غير مكتمل"}</li>
+          <li>باعث الهدف: {proposal.goalTriggerAr || "غير محدد"}</li>
+          {proposal.detailsAr.slice(0, 4).map((detail) => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+      </details>
+
+      <button
+        type="button"
+        onClick={onAdd}
+        disabled={proposal.readiness === "needs_evidence"}
+        style={{
+          marginTop: "auto",
+          background: proposal.readiness === "needs_evidence" ? "#D1D5DB" : TEAL,
+          color: "white",
+          border: "none",
+          borderRadius: 8,
+          padding: "8px 10px",
+          cursor: proposal.readiness === "needs_evidence" ? "not-allowed" : "pointer",
+          fontFamily: "inherit",
+          fontSize: 12,
+          fontWeight: 900,
+        }}
+      >
+        إضافة كمسودة هدف
+      </button>
+    </article>
   );
 }
 

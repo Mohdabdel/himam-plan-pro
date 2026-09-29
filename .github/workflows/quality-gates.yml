@@ -76,6 +76,9 @@ jobs:
       - name: Verify build cycle 17
         run: npm run verify:build-cycle-17
 
+      - name: Verify build cycle 18
+        run: npm run verify:build-cycle-18
+
       - name: Typecheck
         run: npm run typecheck
 
