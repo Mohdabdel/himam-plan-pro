@@ -36,11 +36,13 @@ import {
 } from "@/lib/information-records";
 import { buildProcessedCurrentLevelRows } from "@/lib/current-level-draft";
 import {
-  buildGoalOpportunityCards,
-  buildGoalProposals,
-  type GoalReadiness,
-  type GoalOpportunityCard,
-  type GoalProposal,
+  buildBoundedGoalAiSuggestions,
+  type GoalAiLayerPolicy,
+} from "@/lib/goal-ai-layer";
+import type {
+  GoalReadiness,
+  GoalOpportunityCard,
+  GoalProposal,
 } from "@/lib/goal-opportunity-engine";
 import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import {
@@ -646,7 +648,7 @@ function IEPPage() {
   const selectedPerformanceAnchor = performanceAnchorFromBuilder(goalBuilder, selectedBaselineLabels);
   const selectedGoalTrigger = goalBuilder.sourceId ? sourceLabel(goalBuilder.sourceId as GoalSourceId) : "";
   const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
-  const goalOpportunityCards = buildGoalOpportunityCards({
+  const goalAiSuggestions = buildBoundedGoalAiSuggestions({
     currentLevelRows,
     assessmentRecords,
     profileProcessing,
@@ -655,17 +657,13 @@ function IEPPage() {
     familyPrioritiesAr: family?.priorities,
     learnerVoiceAr: [learnerVoice?.q_love, learnerVoice?.q_good].filter(Boolean).join("، "),
     ageYears: learnerAgeYears,
+    selectedDomainCode: goalBuilder.domainCode,
+    selectedDomainNameAr: selectedGoalDomain?.name,
+    studentNameAr: student?.name,
+    maxVisibleProposals: 3,
   });
-  const selectedOpportunityCards = goalOpportunityCards
-    .filter((card) => !goalBuilder.domainCode || card.domainCode === goalBuilder.domainCode || card.domainNameAr === goalBuilder.domainCode)
-    .slice(0, 3);
-  const selectedGoalProposals = selectedOpportunityCards.flatMap((opportunity) => (
-    buildGoalProposals({
-      opportunity,
-      studentNameAr: student?.name,
-      maxProposals: 3,
-    })
-  )).slice(0, 3);
+  const goalOpportunityCards = goalAiSuggestions.opportunities;
+  const selectedGoalProposals = goalAiSuggestions.proposals;
   const generatedGoalDraft = buildGoalDraft({
     studentName: student?.name ?? "الطالب",
     startDate,
@@ -1305,15 +1303,19 @@ function IEPPage() {
             <div style={{ marginTop: 12, border: "1px solid #E2E8F0", background: "white", borderRadius: 12, padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
                 <div>
-                  <h3 style={{ margin: 0, color: TEAL, fontSize: 14, fontWeight: 900 }}>مقترحات المحرك ضمن النطاق المحدد</h3>
+                  <h3 style={{ margin: 0, color: TEAL, fontSize: 14, fontWeight: 900 }}>طبقة AI المساندة لتوليد الأهداف</h3>
                   <p style={{ margin: "5px 0 0", color: "#64748B", fontSize: 12, lineHeight: 1.8 }}>
-                    يعرض المحرك حتى 3 مقترحات فقط، تبدأ من مستوى الأداء أو البوصلة الانتقالية أو الرؤية، ثم تمر على الخط القاعدي والجودة قبل إضافتها كمسودة.
+                    {goalAiSuggestions.visibleSummaryAr} لا تعتمد هذه الطبقة هدفاً، ولا تنشئ خطاً قاعدياً جديداً.
                   </p>
                 </div>
                 <span style={{ borderRadius: 999, background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#334155", fontSize: 11, fontWeight: 900, padding: "5px 10px" }}>
                   {selectedGoalProposals.length} مقترح
                 </span>
               </div>
+              <details style={{ marginTop: 8 }}>
+                <summary style={{ color: TEAL, cursor: "pointer", fontSize: 11, fontWeight: 900 }}>حدود طبقة AI</summary>
+                <AiLayerPolicyDetails policy={goalAiSuggestions.policy} limitationAr={goalAiSuggestions.limitationAr} />
+              </details>
 
               {selectedGoalProposals.length > 0 ? (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginTop: 12 }}>
@@ -2143,6 +2145,41 @@ function goalModeLabel(mode?: GoalOpportunityCard["mode"]) {
   if (mode === "vision_based") return "الرؤية";
   if (mode === "blended") return "مزج مصادر";
   return "مصدر غير محدد";
+}
+
+function AiLayerPolicyDetails({
+  policy,
+  limitationAr,
+}: {
+  policy: GoalAiLayerPolicy;
+  limitationAr: string;
+}) {
+  return (
+    <div style={{ marginTop: 8, border: "1px solid #E2E8F0", borderRadius: 8, background: "#F8FAFC", padding: 10 }}>
+      <p style={{ margin: 0, color: "#475569", fontSize: 11, lineHeight: 1.7 }}>
+        {limitationAr}
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginTop: 8 }}>
+        <MiniStatus label="قرار" value={policy.producesApproval ? "ينتج اعتماد" : "دعم مراجعة فقط"} />
+        <MiniStatus label="خط قاعدي" value={policy.producesBaseline ? "ينشئ" : "لا ينشئ"} />
+        <MiniStatus label="مراجعة بشرية" value={policy.requiresHumanReview ? "إلزامية" : "غير مفعلة"} />
+      </div>
+      <ul style={{ margin: "8px 0 0", paddingInlineStart: 18, color: "#64748B", fontSize: 11, lineHeight: 1.7 }}>
+        {policy.guardrailsAr.map((guardrail) => (
+          <li key={guardrail}>{guardrail}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MiniStatus({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ background: "white", border: "1px solid #E5E7EB", borderRadius: 6, padding: 8 }}>
+      <p style={{ margin: 0, color: "#64748B", fontSize: 10, fontWeight: 800 }}>{label}</p>
+      <p style={{ margin: "3px 0 0", color: TEAL, fontSize: 11, fontWeight: 900 }}>{value}</p>
+    </div>
+  );
 }
 
 function GoalProposalCard({
