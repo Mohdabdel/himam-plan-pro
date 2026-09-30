@@ -1,6 +1,6 @@
 // ── Journey / progress model ─────────────────────────────────────────────────
 // Single source of truth for where a student sits in the specialist journey:
-// assessment → learner voice → family voice → additional sources → current level review → iep → plan → implementation → report.
+// assessment → learner voice → family voice → current level review → iep → plan → implementation → report.
 // Every route that advances a student's progress should go through
 // `advanceStage()` so status never regresses; every screen that needs to
 // know "where am I / what's next" should read through the helpers below
@@ -26,11 +26,11 @@ export const STAGE_RANK: Record<StudentStage, number> = {
   not_started: 0,
   assessment_in_progress: 1,
   assessment_completed: 2,
-  coverage_ready: 3,
+  learner_voice_completed: 3,
+  learner_voice_skipped: 3,
   family_completed: 4,
   family_skipped: 4,
-  learner_voice_completed: 5,
-  learner_voice_skipped: 5,
+  coverage_ready: 5,
   iep_completed: 6,
   plan_completed: 7,
   // plan_completed just means the plan step was saved; report_ready means it
@@ -93,9 +93,9 @@ export type StepDef = {
 
 export const JOURNEY_STEPS: StepDef[] = [
   { id: "assessment", label: "مصادر جمع المعلومات", routeTo: "/students/$id/assessment", completionRank: STAGE_RANK.assessment_completed },
-  { id: "coverage", label: "مراجعة كفاية المعلومات", routeTo: "/students/$id/coverage", completionRank: STAGE_RANK.coverage_ready },
-  { id: "family", label: "صوت الأسرة", routeTo: "/students/$id/family", completionRank: STAGE_RANK.family_completed },
   { id: "learner_voice", label: "صوت المتعلم", routeTo: "/students/$id/student-voice", completionRank: STAGE_RANK.learner_voice_completed },
+  { id: "family", label: "صوت الأسرة", routeTo: "/students/$id/family", completionRank: STAGE_RANK.family_completed },
+  { id: "coverage", label: "مراجعة كفاية المعلومات", routeTo: "/students/$id/coverage", completionRank: STAGE_RANK.coverage_ready },
   { id: "iep", label: "الخطة التربوية", routeTo: "/students/$id/iep", completionRank: STAGE_RANK.iep_completed },
   { id: "plan", label: "الخطة التنفيذية", routeTo: "/students/$id/plan", completionRank: STAGE_RANK.plan_approved },
   { id: "implementation", label: "التنفيذ", routeTo: "/students/$id/implementation", completionRank: STAGE_RANK.implementation_recorded },

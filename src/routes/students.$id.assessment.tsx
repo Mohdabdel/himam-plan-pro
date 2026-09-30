@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-rout
 import { useEffect, useState } from "react";
 import { PlanComponentsStatus } from "@/components/plan-components-status";
 import { loadPlanComponentStatus } from "@/components/plan-components-status-store";
+import { JourneyStepper } from "@/components/journey-stepper";
 
 export const Route = createFileRoute("/students/$id/assessment")({
   component: InformationSourcesHubPage,
@@ -51,6 +52,14 @@ const CARDS = [
     href: "/students/$id/assessment/additional",
     stateKey: "additionalSources",
   },
+] as const;
+
+const LINEAR_STEPS = [
+  "أداة التقييم الرسمية",
+  "صوت المتعلم",
+  "صوت الأسرة",
+  "أدوات ومصادر إضافية",
+  "مراجعة كفاية المعلومات",
 ] as const;
 
 function loadStudent(id: string): StoredStudent | null {
@@ -111,7 +120,36 @@ function InformationSourcesHubPage() {
           )}
         </section>
 
+        <JourneyStepper studentId={id} currentStep="assessment" status={student?.status} />
+
+        <section className="mb-6 rounded-2xl border border-[#9EC7C3] bg-[#F4FAF9] p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-bold text-[#D9764A]">المسار الرئيسي للتجربة</p>
+              <h3 className="mt-1 text-lg font-bold text-[#0F3D3E]">ابدأ من أداة التقييم الرسمية ثم تابع بزر التالي في كل شاشة</h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {LINEAR_STEPS.map((step, index) => (
+                  <span key={step} className="rounded-full border border-[#9EC7C3] bg-white px-3 py-1 text-xs font-bold text-[#0F3D3E]">
+                    {index + 1}. {step}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <Link
+              to="/students/$id/assessment/official"
+              params={{ id }}
+              className="rounded-xl bg-[#0F3D3E] px-5 py-3 text-center text-sm font-bold text-white transition hover:opacity-90"
+            >
+              التالي: أداة التقييم الرسمية ←
+            </Link>
+          </div>
+        </section>
+
         <PlanComponentsStatus learnerId={id} current="assessment" status={componentStatus} />
+
+        <p className="mb-3 text-xs font-bold text-stone-500">
+          البطاقات التالية للاطلاع أو العودة لمكوّن محدد، أما المسار الأساسي فيبدأ من زر التالي أعلاه.
+        </p>
 
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {CARDS.map((card) => {

@@ -210,6 +210,24 @@ function PlanPreparationHubPage() {
     ]);
   }
 
+  function goToNextPlanComponent() {
+    if (activeSection === "basic") {
+      setActiveSection("currentLevel");
+      setSavedMessage("");
+      return;
+    }
+    if (activeSection === "currentLevel") {
+      setActiveSection("specialistVision");
+      setSavedMessage("");
+      return;
+    }
+    if (currentPerformanceSummary.baselineReady) {
+      navigate({ to: "/students/$id/iep/goals", params: { id } });
+      return;
+    }
+    navigate({ to: "/students/$id/coverage", params: { id } });
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF7F2]" dir="rtl" lang="ar">
       <header className="flex items-center justify-between px-8 py-4" style={{ backgroundColor: TEAL }}>
@@ -292,6 +310,22 @@ function PlanPreparationHubPage() {
               savedMessage={savedMessage}
             />
           )}
+          <div className="mt-6 flex flex-col gap-3 border-t border-stone-100 pt-5 md:flex-row md:items-center md:justify-between">
+            <p className="text-xs font-semibold leading-6 text-stone-500">
+              اتبع زر التالي للمرور الخطي بين مكونات إعداد الخطة. يمكن استخدام القائمة فقط للعودة أو المراجعة.
+            </p>
+            <button
+              type="button"
+              onClick={goToNextPlanComponent}
+              className="rounded-xl bg-[#0F3D3E] px-5 py-3 text-sm font-bold text-white transition hover:opacity-90"
+            >
+              {activeSection === "basic"
+                ? "التالي: مستوى الأداء الحالي ←"
+                : activeSection === "currentLevel"
+                  ? "التالي: رؤية المختص ←"
+                  : "التالي: توليد الأهداف ←"}
+            </button>
+          </div>
         </section>
       </main>
     </div>
