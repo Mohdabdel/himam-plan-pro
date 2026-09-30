@@ -1036,6 +1036,28 @@ function IEPPage() {
           label: "المسودة غير قابلة للتقدم قبل استيفاء موانع التقدم",
           note: "يمكن حفظها فقط كمسودة، وتظهر تفاصيل الموانع عند طلبها.",
         };
+  const goalHandoffReview = {
+    totalStartedGoals: startedGoals.length,
+    readyGoalCount: canSubmitForApproval ? startedGoals.length : 0,
+    blockedGoalCount: blockingGoals.length,
+    draftOnlyGoalCount: canSubmitForApproval ? 0 : startedGoals.length,
+    status: !canSaveDraft
+      ? "no_goals"
+      : canSubmitForApproval
+        ? "ready_for_plan_review"
+        : "blocked_until_progress_findings_resolved",
+    summaryAr: !canSaveDraft
+      ? "لم تبدأ أهداف قابلة للحفظ بعد."
+      : canSubmitForApproval
+        ? `توجد ${startedGoals.length} أهداف جاهزة للرفع إلى نموذج الخطة والمراجعة البشرية.`
+        : `توجد ${blockingGoals.length} أهداف عليها موانع تقدم؛ تحفظ كمسودة ولا تنتقل إلى الخطة قبل استيفاء الموانع.`,
+    blockerSummaries: blockingGoals.map((goal) => ({
+      goalId: goal.goalId,
+      domainCode: goal.domainCode,
+      domainName: goal.domainName,
+      firstMessageAr: goal.messages[0] ?? "مانع تقدم غير محدد",
+    })),
+  };
 
   function persistIepDraft(input: {
     goalApprovalIds: string[];
@@ -1052,6 +1074,7 @@ function IEPPage() {
         goalApprovalIds: input.goalApprovalIds,
         reviewStatus: input.reviewStatus,
         draftProgressTag: input.draftProgressTag,
+        goalHandoffReview,
         blockingGoalReviews: blockingGoals.map((goal) => ({
           goalId: goal.goalId,
           domainCode: goal.domainCode,
@@ -2135,6 +2158,40 @@ function IEPPage() {
           />
         </section>
 
+        {canSaveDraft && (
+          <section style={{ ...cardStyle, borderColor: canSubmitForApproval ? "#A7F3D0" : "#FCA5A5", background: canSubmitForApproval ? "#F0FDF4" : "#FEF2F2" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div>
+                <p style={{ margin: 0, color: canSubmitForApproval ? "#065F46" : "#7A1F1F", fontSize: 13, fontWeight: 900 }}>
+                  تقرير انتقال الأهداف إلى الخطة
+                </p>
+                <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 13, lineHeight: 1.8 }}>
+                  {goalHandoffReview.summaryAr}
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <HandoffMetric label="أهداف بدأت" value={goalHandoffReview.totalStartedGoals} />
+                <HandoffMetric label="جاهزة للرفع" value={goalHandoffReview.readyGoalCount} />
+                <HandoffMetric label="موانع تقدم" value={goalHandoffReview.blockedGoalCount} />
+              </div>
+            </div>
+            {goalHandoffReview.blockerSummaries.length > 0 && (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: "pointer", color: "#7A1F1F", fontSize: 12, fontWeight: 800 }}>
+                  تفاصيل الموانع قبل رفع الخطة
+                </summary>
+                <ul style={{ margin: "8px 0 0", paddingRight: 18, color: "#7A1F1F", fontSize: 12, lineHeight: 1.8 }}>
+                  {goalHandoffReview.blockerSummaries.map((blocker) => (
+                    <li key={blocker.goalId}>
+                      {blocker.domainName}: {blocker.firstMessageAr}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </section>
+        )}
+
         {/* Info box */}
         <div
           style={{
@@ -2245,6 +2302,15 @@ function IEPPage() {
           </button>
         </div>
       </main>
+    </div>
+  );
+}
+
+function HandoffMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ minWidth: 92, background: "white", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+      <p style={{ margin: 0, color: TEAL, fontSize: 18, fontWeight: 900 }}>{value}</p>
+      <p style={{ margin: "2px 0 0", color: "#64748B", fontSize: 11, fontWeight: 800 }}>{label}</p>
     </div>
   );
 }

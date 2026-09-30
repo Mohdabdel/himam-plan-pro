@@ -87,6 +87,20 @@ type RawIEP  = {
   reviewStatus?: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
   draftProgressTag?: "continuable" | "blocked_until_progress_findings_resolved" | "ready_for_plan_review";
   goalApprovalIds?: string[];
+  goalHandoffReview?: {
+    totalStartedGoals: number;
+    readyGoalCount: number;
+    blockedGoalCount: number;
+    draftOnlyGoalCount: number;
+    status: "no_goals" | "ready_for_plan_review" | "blocked_until_progress_findings_resolved";
+    summaryAr: string;
+    blockerSummaries: Array<{
+      goalId: string;
+      domainCode: string;
+      domainName: string;
+      firstMessageAr: string;
+    }>;
+  };
 };
 
 type CoverageData = {
@@ -380,6 +394,7 @@ function PlanPage() {
   const [learnedLove,      setLearnedLove]      = useState("");
   const [currentPerformanceStatement, setCurrentPerformanceStatement] = useState("");
   const [planVision, setPlanVision] = useState("");
+  const [goalHandoffReview, setGoalHandoffReview] = useState<RawIEP["goalHandoffReview"] | null>(null);
   const [contextSignalsOpen, setContextSignalsOpen] = useState(false);
   const [planQualityOpen, setPlanQualityOpen] = useState(false);
   const [expandedPlanGoalDetails, setExpandedPlanGoalDetails] = useState<Set<string>>(new Set());
@@ -398,6 +413,7 @@ function PlanPage() {
 
       // 2. Load supporting data
       const rawIEP    = safeParse<RawIEP>(`himam_iep_${id}`);
+      setGoalHandoffReview(rawIEP?.goalHandoffReview ?? null);
       const assessment = safeParse<RawAssessment>(`himam_assessment_${id}`);
       const coverage  = safeParse<CoverageData>(`himam_coverage_${id}`) ?? {};
       const family    = safeParse<FamilyData>(`himam_family_${id}`) ?? {};
@@ -884,6 +900,44 @@ function PlanPage() {
           </div>
         )}
 
+        {loaded && hasGoals && goalHandoffReview && (
+          <section style={{
+            marginTop: 14,
+            background: goalHandoffReview.status === "ready_for_plan_review" ? "#F0FDF4" : "#FEF2F2",
+            border: `1px solid ${goalHandoffReview.status === "ready_for_plan_review" ? "#A7F3D0" : "#FCA5A5"}`,
+            borderRadius: 10,
+            padding: "14px 16px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div>
+                <p style={{ margin: 0, color: goalHandoffReview.status === "ready_for_plan_review" ? "#065F46" : "#7A1F1F", fontSize: 13, fontWeight: 900 }}>
+                  تقرير انتقال الأهداف من شاشة الإعداد
+                </p>
+                <p style={{ margin: "6px 0 0", color: "#475569", fontSize: 13, lineHeight: 1.7 }}>
+                  {goalHandoffReview.summaryAr}
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <PlanHandoffMetric label="أهداف بدأت" value={goalHandoffReview.totalStartedGoals} />
+                <PlanHandoffMetric label="جاهزة" value={goalHandoffReview.readyGoalCount} />
+                <PlanHandoffMetric label="موانع" value={goalHandoffReview.blockedGoalCount} />
+              </div>
+            </div>
+            {goalHandoffReview.blockerSummaries.length > 0 && (
+              <details style={{ marginTop: 12 }}>
+                <summary style={{ cursor: "pointer", color: "#7A1F1F", fontSize: 12, fontWeight: 800 }}>
+                  عرض موانع التقدم المحفوظة
+                </summary>
+                <ul style={{ margin: "8px 0 0", paddingRight: 18, color: "#7A1F1F", fontSize: 12, lineHeight: 1.8 }}>
+                  {goalHandoffReview.blockerSummaries.map((blocker) => (
+                    <li key={blocker.goalId}>{blocker.domainName}: {blocker.firstMessageAr}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </section>
+        )}
+
         {loaded && hasGoals && (
           <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-start" }}>
             <button
@@ -1228,6 +1282,15 @@ function PlanTemplateInfo({ label, value }: { label: string; value: string }) {
     <div style={{ background: "#F8FAFC", border: "1px solid #E5E7EB", borderRadius: 8, padding: 10 }}>
       <p style={{ margin: 0, color: "#64748B", fontSize: 11, fontWeight: 800 }}>{label}</p>
       <p style={{ margin: "4px 0 0", color: "#1F2937", fontSize: 13, fontWeight: 700 }}>{value}</p>
+    </div>
+  );
+}
+
+function PlanHandoffMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ minWidth: 82, background: "white", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 9px", textAlign: "center" }}>
+      <p style={{ margin: 0, color: TEAL, fontSize: 17, fontWeight: 900 }}>{value}</p>
+      <p style={{ margin: "2px 0 0", color: "#64748B", fontSize: 11, fontWeight: 800 }}>{label}</p>
     </div>
   );
 }
