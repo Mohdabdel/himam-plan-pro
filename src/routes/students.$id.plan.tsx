@@ -68,6 +68,16 @@ type RawGoal = {
   context?: string; criterion?: string; measurementMethod?: string;
   goalTrigger?: string; performanceAnchor?: string;
   evidenceRef?: string; lifePractice?: string; override?: RawGoalOverride;
+  aiSuggestion?: {
+    layerName: string;
+    proposalId: string;
+    opportunityId: string;
+    variant: string;
+    readiness: string;
+    whyAr: string;
+    limitationAr: string;
+    addedAt: string;
+  };
 };
 type RawIEP  = {
   vision?: string;
@@ -131,6 +141,7 @@ type GoalEntry = {
   iepEvidenceRef?:        string;
   iepLifePractice?:       string;
   iepOverride?:           RawGoalOverride;
+  iepAiSuggestion?:       RawGoal["aiSuggestion"];
   conceptLevel?:          number | null;
   conceptCalibrationStatus?: string;
 };
@@ -340,6 +351,7 @@ function buildEntry(
     iepEvidenceRef:        raw.evidenceRef || undefined,
     iepLifePractice:       raw.lifePractice || undefined,
     iepOverride:           raw.override,
+    iepAiSuggestion:       raw.aiSuggestion,
     conceptLevel,
     conceptCalibrationStatus,
   };
@@ -905,7 +917,7 @@ function PlanPage() {
 
         {/* Goal cards */}
         {goalEntries.map((entry) => {
-          const hasTransferredGoalDetails = Boolean(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepGoalTrigger || entry.iepPerformanceAnchor || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride);
+          const hasTransferredGoalDetails = Boolean(entry.iepCriterion || entry.iepMeasurementMethod || entry.iepGoalTrigger || entry.iepPerformanceAnchor || entry.iepEvidenceRef || entry.iepLifePractice || entry.iepOverride || entry.iepAiSuggestion);
           const goalDetailsOpen = expandedPlanGoalDetails.has(entry.goalId);
           return (
           <div
@@ -952,6 +964,16 @@ function PlanPage() {
                   {entry.iepMeasurementMethod && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>طريقة القياس:</strong> {entry.iepMeasurementMethod}</p>}
                   {entry.iepEvidenceRef && entry.iepEvidenceRef !== entry.iepPerformanceAnchor && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>الدليل المرتبط:</strong> {entry.iepEvidenceRef}</p>}
                   {entry.iepLifePractice && <p style={{ fontSize: 13, margin: 0, color: "#374151" }}><strong>ممارسة حياتية مرتبطة:</strong> {entry.iepLifePractice}</p>}
+                  {entry.iepAiSuggestion && (
+                    <div style={{ marginTop: 6, border: "1px solid #9EC7C3", borderRadius: 8, background: "#F4FAF9", padding: 8 }}>
+                      <p style={{ fontSize: 12, margin: 0, color: TEAL, fontWeight: 800 }}>
+                        وسم طبقة AI: الهدف بدأ كمقترح مساعد قابل للمراجعة.
+                      </p>
+                      <p style={{ fontSize: 12, margin: "4px 0 0", color: "#475569" }}>
+                        سبب الترشيح: {entry.iepAiSuggestion.whyAr}
+                      </p>
+                    </div>
+                  )}
                   {entry.iepOverride && (
                     <p style={{ fontSize: 12, margin: "4px 0 0", color: "#92400E", fontWeight: 700 }}>
                       ⚠ هدف بتجاوز مهني موثّق — {entry.iepOverride.reason}

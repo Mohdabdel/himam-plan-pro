@@ -94,6 +94,16 @@ type Goal = {
   performanceAnchor?: string;
   lifePractice?: string;
   override?: GoalOverride;
+  aiSuggestion?: {
+    layerName: string;
+    proposalId: string;
+    opportunityId: string;
+    variant: string;
+    readiness: string;
+    whyAr: string;
+    limitationAr: string;
+    addedAt: string;
+  };
 };
 type SupportServiceDraft = {
   id: string;
@@ -797,6 +807,16 @@ function IEPPage() {
           performanceAnchor: proposal.evidenceRefAr,
           evidenceRef: proposal.evidenceRefAr,
           lifePractice: proposal.lifePracticeAr,
+          aiSuggestion: {
+            layerName: goalAiSuggestions.policy.layerName,
+            proposalId: proposal.id,
+            opportunityId: proposal.opportunityId,
+            variant: proposal.variant,
+            readiness: proposal.readiness,
+            whyAr: proposal.whyAr,
+            limitationAr: goalAiSuggestions.limitationAr,
+            addedAt: new Date().toISOString(),
+          },
         },
       ],
     }));
@@ -1825,6 +1845,18 @@ function IEPPage() {
                                 override={g.override ?? null}
                               />
                               <GoalPlanQualitySummary result={rubric} />
+
+                              {g.aiSuggestion && (
+                                <div style={{ background: "#F4FAF9", border: "1px solid #9EC7C3", borderRadius: 8, padding: 10, fontSize: 12, color: TEAL, lineHeight: 1.7 }}>
+                                  <strong>وسم طبقة AI:</strong> هذا الهدف أضيف كمسودة من مقترح AI مضبوط.
+                                  <p style={{ margin: "4px 0 0", color: "#475569" }}>
+                                    سبب الترشيح: {g.aiSuggestion.whyAr}
+                                  </p>
+                                  <p style={{ margin: "4px 0 0", color: "#64748B", fontSize: 11 }}>
+                                    الحدود: {g.aiSuggestion.limitationAr}
+                                  </p>
+                                </div>
+                              )}
 
                               {g.text.trim() && (
                                 g.override ? (
