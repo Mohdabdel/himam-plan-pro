@@ -449,6 +449,36 @@ function buildBaselineCandidates(input: {
   return candidates;
 }
 
+// GOAL_AI_PROPOSAL_VISIBLE_DOMAIN_ROUTING keeps AI suggestions inside visible editable goal domains.
+function routeAiProposalDomain(input: {
+  opportunity?: GoalOpportunityCard;
+  currentDomainCode: DomainCode | "";
+  goalDomainOptions: Array<{ code: DomainCode; name: string }>;
+}) {
+  const visibleDomains = input.goalDomainOptions;
+  const opportunityCode = input.opportunity?.domainCode;
+  const opportunityName = input.opportunity?.domainNameAr;
+  const exactOpportunityDomain = opportunityCode
+    ? visibleDomains.find((domain) => domain.code === opportunityCode)
+    : null;
+  if (exactOpportunityDomain) return exactOpportunityDomain.code;
+
+  const namedOpportunityDomain = opportunityName
+    ? visibleDomains.find((domain) => domain.name === opportunityName)
+    : null;
+  if (namedOpportunityDomain) return namedOpportunityDomain.code;
+
+  const selectedVisibleDomain = input.currentDomainCode
+    ? visibleDomains.find((domain) => (
+        domain.code === input.currentDomainCode ||
+        domain.name === input.currentDomainCode
+      ))
+    : null;
+  if (selectedVisibleDomain) return selectedVisibleDomain.code;
+
+  return visibleDomains[0]?.code ?? "";
+}
+
 function hasVagueLanguage(text: string) {
   return VAGUE_GOAL_WORDS.find((word) => text.includes(word));
 }
@@ -793,8 +823,13 @@ function IEPPage() {
   }
 
   function addProposalToGoals(proposal: GoalProposal) {
-    const opportunity = goalOpportunityCards.find((card) => card.id === proposal.opportunityId);
-    const domainCode = opportunity?.domainCode || goalBuilder.domainCode;
+    const opportunity = goalOpportunityCards.find((card) => card.id === proposal.opportunityId)
+      ?? initialGoalOpportunityCards.find((card) => card.id === proposal.opportunityId);
+    const domainCode = routeAiProposalDomain({
+      opportunity,
+      currentDomainCode: goalBuilder.domainCode,
+      goalDomainOptions,
+    });
     if (!domainCode) {
       setBuilderMessage("اختر مجالاً قبل اعتماد المقترح كمسودة.");
       return;
@@ -841,6 +876,11 @@ function IEPPage() {
   function startFromAiProposal(proposal: GoalProposal) {
     const opportunity = initialGoalOpportunityCards.find((card) => card.id === proposal.opportunityId)
       ?? goalOpportunityCards.find((card) => card.id === proposal.opportunityId);
+    const routedDomainCode = routeAiProposalDomain({
+      opportunity,
+      currentDomainCode: goalBuilder.domainCode,
+      goalDomainOptions,
+    });
     const preferredSource = goalSources.find((source) => source.id === "processed_information_profile")
       ?? goalSources.find((source) => source.id === "assessment")
       ?? goalSources[0];
@@ -848,7 +888,7 @@ function IEPPage() {
     setGoalBuilder((current) => ({
       ...current,
       mode: "direct",
-      domainCode: opportunity?.domainCode ?? current.domainCode,
+      domainCode: routedDomainCode || current.domainCode,
       sourceId: preferredSource?.id ?? current.sourceId,
       baselineSourceId: proposal.evidenceRefAr ? "formal_assessment" : current.baselineSourceId,
       performanceAnchor: proposal.evidenceRefAr,
