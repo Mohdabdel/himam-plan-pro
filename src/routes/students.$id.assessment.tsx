@@ -54,14 +54,6 @@ const CARDS = [
   },
 ] as const;
 
-const LINEAR_STEPS = [
-  "أداة التقييم الرسمية",
-  "صوت المتعلم",
-  "صوت الأسرة",
-  "أدوات ومصادر إضافية",
-  "مراجعة كفاية المعلومات",
-] as const;
-
 function loadStudent(id: string): StoredStudent | null {
   try {
     const list = JSON.parse(localStorage.getItem("himam_students") || "[]") as StoredStudent[];
@@ -76,6 +68,7 @@ function InformationSourcesHubPage() {
   const location = useLocation();
   const [student, setStudent] = useState<StoredStudent | null>(null);
   const [componentStatus, setComponentStatus] = useState(() => loadPlanComponentStatus(id));
+  const [componentDetailsOpen, setComponentDetailsOpen] = useState(false);
 
   const hubPath = `/students/${id}/assessment`;
   const isHubPage = location.pathname === hubPath || location.pathname === `${hubPath}/`;
@@ -125,15 +118,11 @@ function InformationSourcesHubPage() {
         <section className="mb-6 rounded-2xl border border-[#9EC7C3] bg-[#F4FAF9] p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs font-bold text-[#D9764A]">المسار الرئيسي للتجربة</p>
+              <p className="text-xs font-bold text-[#D9764A]">الخطوة التالية</p>
               <h3 className="mt-1 text-lg font-bold text-[#0F3D3E]">ابدأ من أداة التقييم الرسمية ثم تابع بزر التالي في كل شاشة</h3>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {LINEAR_STEPS.map((step, index) => (
-                  <span key={step} className="rounded-full border border-[#9EC7C3] bg-white px-3 py-1 text-xs font-bold text-[#0F3D3E]">
-                    {index + 1}. {step}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-600">
+                المكونات الفرعية مخفية هنا لتقليل التشتيت، وتظهر فقط عند الحاجة للمراجعة أو العودة إلى مكون محدد.
+              </p>
             </div>
             <Link
               to="/students/$id/assessment/official"
@@ -145,32 +134,55 @@ function InformationSourcesHubPage() {
           </div>
         </section>
 
-        <PlanComponentsStatus learnerId={id} current="assessment" status={componentStatus} />
+        <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-base font-bold text-[#0F3D3E]">مكونات جمع المعلومات</h3>
+              <p className="mt-1 text-sm leading-7 text-stone-600">
+                مساحة مراجعة اختيارية وليست مسارا إضافيا. افتحها فقط عند الحاجة لمعرفة حالة المكونات أو الرجوع إلى صفحة محددة.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setComponentDetailsOpen((open) => !open)}
+              className="rounded-xl border border-[#0F3D3E] px-4 py-2 text-sm font-bold text-[#0F3D3E] transition hover:bg-[#0F3D3E] hover:text-white"
+              aria-expanded={componentDetailsOpen}
+            >
+              {componentDetailsOpen ? "إخفاء مكونات جمع المعلومات" : "عرض مكونات جمع المعلومات"}
+            </button>
+          </div>
 
-        <p className="mb-3 text-xs font-bold text-stone-500">
-          البطاقات التالية للاطلاع أو العودة لمكوّن محدد، أما المسار الأساسي فيبدأ من زر التالي أعلاه.
-        </p>
+          {componentDetailsOpen && (
+            <div className="mt-5 space-y-4">
+              <PlanComponentsStatus learnerId={id} current="assessment" status={componentStatus} />
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {CARDS.map((card) => {
-            const done = componentStatus[card.stateKey];
-            return (
-              <Link
-                key={card.title}
-                to={card.href}
-                params={{ id }}
-                className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
-              >
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <h3 className="text-base font-bold text-[#0F3D3E]">{card.title}</h3>
-                  <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-600">
-                    {done ? "ص" : "—"}
-                  </span>
-                </div>
-                <p className="text-sm leading-7 text-stone-600">{card.body}</p>
-              </Link>
-            );
-          })}
+              <p className="text-xs font-bold text-stone-500">
+                البطاقات التالية للمراجعة أو العودة لمكوّن محدد، أما المسار الأساسي فيبدأ من زر التالي أعلاه.
+              </p>
+
+              <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {CARDS.map((card) => {
+                  const done = componentStatus[card.stateKey];
+                  return (
+                    <Link
+                      key={card.title}
+                      to={card.href}
+                      params={{ id }}
+                      className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition hover:border-[#0F3D3E] hover:shadow-md"
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <h3 className="text-base font-bold text-[#0F3D3E]">{card.title}</h3>
+                        <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-600">
+                          {done ? "ص" : "—"}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-7 text-stone-600">{card.body}</p>
+                    </Link>
+                  );
+                })}
+              </section>
+            </div>
+          )}
         </section>
       </main>
     </div>
