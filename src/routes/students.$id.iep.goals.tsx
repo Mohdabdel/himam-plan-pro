@@ -1162,7 +1162,7 @@ function IEPPage() {
   }
 
   return (
-    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#FAF7F2", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <div dir="rtl" lang="ar" style={{ minHeight: "100vh", background: "#FAF7F2", fontFamily: '"IBM Plex Sans Arabic", system-ui, sans-serif' }}>
       <header
         style={{
           background: TEAL, color: "white", padding: "14px 24px",
@@ -1201,30 +1201,7 @@ function IEPPage() {
           {student ? student.name : "—"}
         </p>
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.35fr) minmax(280px, 0.65fr)",
-            gap: 16,
-            marginTop: 18,
-            marginBottom: 18,
-          }}
-        >
-          <div style={cardStyle}>
-            <h2 style={sectionTitle}>هيكلة توليد الأهداف</h2>
-            <p style={{ color: "#64748B", fontSize: 14, lineHeight: 1.9, margin: "6px 0 0" }}>
-              يبدأ المختص من مستوى الأداء الحالي والمصادر الداعمة، ثم يربط الهدف بالمجال والمهارة وسياق التطبيق ومعيار القياس والأثر الحياتي. الهدف هنا مسودة جاهزة للمراجعة البشرية فقط.
-            </p>
-          </div>
-          <div style={cardStyle}>
-            <h2 style={sectionTitle}>الإطار المعرفي الداعم</h2>
-            <p style={{ color: "#64748B", fontSize: 14, lineHeight: 1.9, margin: "6px 0 0" }}>
-              تظهر هنا إشارات الدعم المعرفي ومعالجة البروفايل المستخلصة من مصادر جمع المعلومات. هذه الإشارات توجه بناء مستوى الأداء والأهداف، لكنها تحتاج تفسير المختص قبل أن تتحول إلى ادعاء أداء أو قرار خطة.
-            </p>
-          </div>
-        </section>
-
-        <section style={cardStyle}>
+        <section style={{ ...cardStyle, marginTop: 18 }}>
           <h2 style={{ ...sectionTitle, display: "flex", alignItems: "center", gap: 8 }}>
             حدد آلية إعداد الأهداف من خيارات المنصة
             <InfoMark title="أداة تفاعلية تدعم المختص بمعلومات مستوى الأداء الحالي ونتائج التقييمات ضمن معايير جودة الأهداف. اختر منشئ الهدف التفاعلي لمسار موجه، أو الإدخال المباشر مع دعم معرفي عند الطلب." />
