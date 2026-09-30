@@ -108,6 +108,20 @@ type RawIEP = {
   reviewStatus?: "draft_only" | "draft_with_blocking_findings" | "ready_for_plan_review";
   draftProgressTag?: "continuable" | "blocked_until_progress_findings_resolved" | "ready_for_plan_review";
   blockingGoalReviews?: Array<{ goalId: string; domainCode: string; domainName: string; messages: string[] }>;
+  goalHandoffReview?: {
+    totalStartedGoals: number;
+    readyGoalCount: number;
+    blockedGoalCount: number;
+    draftOnlyGoalCount: number;
+    status: "no_goals" | "ready_for_plan_review" | "blocked_until_progress_findings_resolved";
+    summaryAr: string;
+    blockerSummaries: Array<{
+      goalId: string;
+      domainCode: string;
+      domainName: string;
+      firstMessageAr: string;
+    }>;
+  };
 };
 
 function serviceLabel(service: NonNullable<RawIEP["services"]>[number]) {
@@ -269,6 +283,15 @@ function Tag({ text, color }: { text: string; color?: string }) {
     <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, background: color ?? "#E6F2F1", color: color ? "white" : TEAL, fontSize: 13, fontWeight: 600, margin: "2px 3px" }}>
       {text}
     </span>
+  );
+}
+
+function ReportHandoffMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div style={{ minWidth: 96, background: "white", border: "1px solid #E5E7EB", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+      <p style={{ margin: 0, color: TEAL, fontSize: 18, fontWeight: 900 }}>{value}</p>
+      <p style={{ margin: "2px 0 0", color: "#64748B", fontSize: 11, fontWeight: 800 }}>{label}</p>
+    </div>
   );
 }
 
@@ -610,6 +633,36 @@ function ReportPage() {
             </div>
           </Card>
         </div>
+
+        {iep?.goalHandoffReview && (
+          <div className="report-section">
+            <Card>
+              <SectionTitle num="↗" title="تقرير انتقال الأهداف إلى الخطة" />
+              <div style={{
+                padding: "12px 16px",
+                background: iep.goalHandoffReview.status === "ready_for_plan_review" ? "#ECFDF5" : "#FEF2F2",
+                borderRadius: 10,
+                borderRight: `4px solid ${iep.goalHandoffReview.status === "ready_for_plan_review" ? GREEN : "#dc2626"}`,
+              }}>
+                <p style={{ margin: 0, color: iep.goalHandoffReview.status === "ready_for_plan_review" ? "#065F46" : "#991B1B", fontSize: 14, fontWeight: 800 }}>
+                  {iep.goalHandoffReview.summaryAr}
+                </p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                  <ReportHandoffMetric label="أهداف بدأت" value={iep.goalHandoffReview.totalStartedGoals} />
+                  <ReportHandoffMetric label="جاهزة للرفع" value={iep.goalHandoffReview.readyGoalCount} />
+                  <ReportHandoffMetric label="موانع تقدم" value={iep.goalHandoffReview.blockedGoalCount} />
+                </div>
+                {iep.goalHandoffReview.blockerSummaries.length > 0 && (
+                  <ul style={{ margin: "10px 0 0", paddingRight: 18, color: "#991B1B", fontSize: 12, lineHeight: 1.8 }}>
+                    {iep.goalHandoffReview.blockerSummaries.map((blocker) => (
+                      <li key={blocker.goalId}>{blocker.domainName}: {blocker.firstMessageAr}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* ── Snapshot card (لمحة عامة) ──────────────────────────────────── */}
         {(() => {
