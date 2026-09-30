@@ -658,6 +658,18 @@ function IEPPage() {
   const selectedPerformanceAnchor = performanceAnchorFromBuilder(goalBuilder, selectedBaselineLabels);
   const selectedGoalTrigger = goalBuilder.sourceId ? sourceLabel(goalBuilder.sourceId as GoalSourceId) : "";
   const learnerAgeYears = ageYearsFromBirthDate(student?.birthDate);
+  const initialGoalAiSuggestions = buildBoundedGoalAiSuggestions({
+    currentLevelRows,
+    assessmentRecords,
+    profileProcessing,
+    planVisionAr: vision,
+    familyVisionAr: family?.vision5y,
+    familyPrioritiesAr: family?.priorities,
+    learnerVoiceAr: [learnerVoice?.q_love, learnerVoice?.q_good].filter(Boolean).join("، "),
+    ageYears: learnerAgeYears,
+    studentNameAr: student?.name,
+    maxVisibleProposals: 3,
+  });
   const goalAiSuggestions = buildBoundedGoalAiSuggestions({
     currentLevelRows,
     assessmentRecords,
@@ -674,6 +686,7 @@ function IEPPage() {
   });
   const goalOpportunityCards = goalAiSuggestions.opportunities;
   const selectedGoalProposals = goalAiSuggestions.proposals;
+  const initialGoalOpportunityCards = initialGoalAiSuggestions.opportunities;
   const generatedGoalDraft = buildGoalDraft({
     studentName: student?.name ?? "الطالب",
     startDate,
@@ -823,6 +836,32 @@ function IEPPage() {
     setOpen((current) => ({ ...current, [domainCode]: true }));
     setExpandedGoals((current) => new Set([...current, goalId]));
     setBuilderMessage("تمت إضافة المقترح كمسودة هدف قابلة للمراجعة داخل قائمة الأهداف.");
+  }
+
+  function startFromAiProposal(proposal: GoalProposal) {
+    const opportunity = initialGoalOpportunityCards.find((card) => card.id === proposal.opportunityId)
+      ?? goalOpportunityCards.find((card) => card.id === proposal.opportunityId);
+    const preferredSource = goalSources.find((source) => source.id === "processed_information_profile")
+      ?? goalSources.find((source) => source.id === "assessment")
+      ?? goalSources[0];
+
+    setGoalBuilder((current) => ({
+      ...current,
+      mode: "direct",
+      domainCode: opportunity?.domainCode ?? current.domainCode,
+      sourceId: preferredSource?.id ?? current.sourceId,
+      baselineSourceId: proposal.evidenceRefAr ? "formal_assessment" : current.baselineSourceId,
+      performanceAnchor: proposal.evidenceRefAr,
+      selectedItemIds: [],
+      directGoalText: proposal.textAr,
+      condition: proposal.contextAr,
+      criterion: proposal.criterionAr,
+      measurementMethod: proposal.measurementMethodAr,
+      generalOutcome: proposal.lifePracticeAr,
+      details: proposal.whyAr,
+    }));
+    setKnowledgeSupportOpen(true);
+    setBuilderMessage("تم فتح المقترح للتحرير داخل شاشة الهدف. راجع الحقول ثم أضفه كمسودة أو عدّله.");
   }
 
   function addGoal(code: DomainCode) {
@@ -1150,6 +1189,42 @@ function IEPPage() {
             حدد آلية إعداد الأهداف من خيارات المنصة
             <InfoMark title="أداة تفاعلية تدعم المختص بمعلومات مستوى الأداء الحالي ونتائج التقييمات ضمن معايير جودة الأهداف. اختر منشئ الهدف التفاعلي لمسار موجه، أو الإدخال المباشر مع دعم معرفي عند الطلب." />
           </h2>
+
+          {!goalBuilder.mode && (
+            <div style={{ marginTop: 14, border: "1px solid #9EC7C3", background: "#F4FAF9", borderRadius: 12, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div>
+                  <h3 style={{ margin: 0, color: TEAL, fontSize: 14, fontWeight: 900 }}>بدء ذكي من طبقة AI</h3>
+                  <p style={{ margin: "5px 0 0", color: "#475569", fontSize: 12, lineHeight: 1.8 }}>
+                    {initialGoalAiSuggestions.visibleSummaryAr} اختر مقترحاً للبدء السريع، أو انتقل للمسار اليدوي أدناه.
+                  </p>
+                </div>
+                <span style={{ borderRadius: 999, background: "white", color: TEAL, fontSize: 11, fontWeight: 900, padding: "5px 10px", border: "1px solid #9EC7C3" }}>
+                  {initialGoalAiSuggestions.proposals.length} مقترح
+                </span>
+              </div>
+              {initialGoalAiSuggestions.proposals.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginTop: 12 }}>
+                  {initialGoalAiSuggestions.proposals.map((proposal) => {
+                    const opportunity = initialGoalOpportunityCards.find((card) => card.id === proposal.opportunityId);
+                    return (
+                      <GoalProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        opportunity={opportunity}
+                        onStart={() => startFromAiProposal(proposal)}
+                        onAdd={() => addProposalToGoals(proposal)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <p style={{ margin: "10px 0 0", color: "#92400E", fontSize: 12, lineHeight: 1.8 }}>
+                  لا توجد مقترحات كافية بعد. يمكن البدء يدوياً أو العودة لاستكمال مستوى الأداء ومصادر المعلومات.
+                </p>
+              )}
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, marginTop: 16 }}>
             <button
@@ -2217,10 +2292,12 @@ function MiniStatus({ label, value }: { label: string; value: string }) {
 function GoalProposalCard({
   proposal,
   opportunity,
+  onStart,
   onAdd,
 }: {
   proposal: GoalProposal;
   opportunity?: GoalOpportunityCard;
+  onStart?: () => void;
   onAdd: () => void;
 }) {
   const readiness = goalReadinessStyle(proposal.readiness);
@@ -2255,25 +2332,45 @@ function GoalProposalCard({
         </ul>
       </details>
 
-      <button
-        type="button"
-        onClick={onAdd}
-        disabled={proposal.readiness === "needs_evidence"}
-        style={{
-          marginTop: "auto",
-          background: proposal.readiness === "needs_evidence" ? "#D1D5DB" : TEAL,
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 10px",
-          cursor: proposal.readiness === "needs_evidence" ? "not-allowed" : "pointer",
-          fontFamily: "inherit",
-          fontSize: 12,
-          fontWeight: 900,
-        }}
-      >
-        إضافة كمسودة هدف
-      </button>
+      <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: onStart ? "1fr 1fr" : "1fr", gap: 6 }}>
+        {onStart && (
+          <button
+            type="button"
+            onClick={onStart}
+            style={{
+              background: "white",
+              color: TEAL,
+              border: `1px solid ${TEAL}`,
+              borderRadius: 8,
+              padding: "8px 10px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 900,
+            }}
+          >
+            بدء التحرير
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={proposal.readiness === "needs_evidence"}
+          style={{
+            background: proposal.readiness === "needs_evidence" ? "#D1D5DB" : TEAL,
+            color: "white",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 10px",
+            cursor: proposal.readiness === "needs_evidence" ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            fontSize: 12,
+            fontWeight: 900,
+          }}
+        >
+          إضافة كمسودة
+        </button>
+      </div>
     </article>
   );
 }
