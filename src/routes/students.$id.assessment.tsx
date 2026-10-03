@@ -41,16 +41,16 @@ const CARDS = [
     stateKey: "familyVoice",
   },
   {
-    title: "مستوى الأداء الحالي",
-    body: "مراجعة كفاية المعلومات ومستوى الأداء الحالي بعد جمع مصادر المعلومات الأساسية والداعمة.",
-    href: "/students/$id/coverage",
-    stateKey: "currentLevel",
-  },
-  {
     title: "أدوات ومصادر إضافية",
     body: "مساحة لإضافة تقييمات أو استبيانات أو قوائم جمع معلومات إضافية من مكتبة الأدوات والنماذج.",
     href: "/students/$id/assessment/additional",
     stateKey: "additionalSources",
+  },
+  {
+    title: "مراجعة كفاية المعلومات ومستوى الأداء الحالي",
+    body: "مراجعة كفاية المعلومات وبناء قراءة مستوى الأداء الحالي بعد جمع مصادر المعلومات الأساسية والداعمة.",
+    href: "/students/$id/coverage",
+    stateKey: "currentLevel",
   },
 ] as const;
 

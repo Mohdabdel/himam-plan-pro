@@ -19,14 +19,14 @@ const COMPONENTS = [
     href: "/students/$id/family",
   },
   {
-    key: "currentLevel",
-    label: "مستوى الأداء الحالي",
-    href: "/students/$id/coverage",
-  },
-  {
     key: "additionalSources",
     label: "أدوات ومصادر إضافية",
     href: "/students/$id/assessment/additional",
+  },
+  {
+    key: "currentLevel",
+    label: "مراجعة كفاية المعلومات ومستوى الأداء الحالي",
+    href: "/students/$id/coverage",
   },
 ] as const;
 
