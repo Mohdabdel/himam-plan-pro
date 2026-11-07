@@ -20,6 +20,7 @@ const files = [
   "src/domain/himam/source-types.ts",
   "src/domain/himam/transition-architecture.ts",
   "src/domain/himam/pre-cvi-crosswalk.ts",
+  "src/domain/himam/current-matrix-gatea-crosswalk.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -54,6 +55,7 @@ if (failures.length === 0) {
   const architecture = require(resolve(compiledDir, "transition-architecture.js"));
   const crosswalk = require(resolve(compiledDir, "pre-cvi-crosswalk.js"));
   const validators = require(resolve(compiledDir, "validators.js"));
+  const matrixCrosswalk = require(resolve(compiledDir, "current-matrix-gatea-crosswalk.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -101,6 +103,21 @@ if (failures.length === 0) {
     "Pre-CVI governance must block production decisions",
   );
 
+  const matrixSummary = matrixCrosswalk.summarizeExistingMatrixGateACrosswalk();
+  assert(
+    matrixCrosswalk.EXISTING_FAMILY_TO_GATE_A_PRE_CVI.length === 22,
+    "Current matrix crosswalk must cover all 22 Gate A candidate competencies",
+  );
+  assert(
+    matrixCrosswalk.CURRENT_MATRIX_CROSSWALK_GOVERNANCE.productionUseAllowed === false &&
+      matrixCrosswalk.CURRENT_MATRIX_CROSSWALK_GOVERNANCE.matrixRowsModified === false,
+    "Current matrix crosswalk must remain non-governing and non-mutating",
+  );
+  assert(
+    matrixSummary.gap >= 1,
+    "Crosswalk should preserve identified gaps rather than force artificial matches",
+  );
+
   assert(
     validators.validateTransitionSchemeDefinition(architecture.GATE_A_PRE_CVI_SCHEME).ok,
     "Gate A pre-CVI scheme should pass governance validation while frozen",
@@ -137,3 +154,4 @@ console.log("Pre-CVI governance PASS");
 console.log("22 candidate competencies PASS");
 console.log("4 performance/access dimensions PASS");
 console.log("Legacy concept crosswalk remains provisional PASS");
+console.log("Current competency matrix Gate A crosswalk PASS");
