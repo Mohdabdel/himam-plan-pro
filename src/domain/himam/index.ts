@@ -1,4 +1,4 @@
-export * from "./concepts";
+export * from "./concepts";\nexport * from "./transition-architecture";
 export * from "./source-types";
 export * from "./types";
 export * from "./schemas";
