@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { HIMAM_CONCEPT_IDS } from "./concepts";
-import { SOURCE_PACKAGES, SOURCE_RECORD_TYPES, SOURCE_TYPES } from "./source-types";\nimport {\n  TRANSITION_ENTITY_TYPES,\n  TRANSITION_MAPPING_STATUSES,\n  TRANSITION_MAPPING_TYPES,\n  TRANSITION_VALIDATION_STATUSES,\n} from "./transition-architecture";
+import { SOURCE_PACKAGES, SOURCE_RECORD_TYPES, SOURCE_TYPES } from "./source-types";
+import {
+  TRANSITION_ENTITY_TYPES,
+  TRANSITION_MAPPING_STATUSES,
+  TRANSITION_MAPPING_TYPES,
+  TRANSITION_VALIDATION_STATUSES,
+} from "./transition-architecture";
 
 const nonEmptyString = z.string().min(1);
 const isoString = nonEmptyString;
