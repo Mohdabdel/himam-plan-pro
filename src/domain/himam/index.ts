@@ -8,6 +8,7 @@ export * from "./post-cvi-contracts";
 export * from "./post-cvi-migration-plan";
 export * from "./review-integration-contract";
 export * from "./review-integration-service";
+export * from "./review-integration-transport";
 export * from "./source-types";
 export * from "./types";
 export * from "./schemas";
