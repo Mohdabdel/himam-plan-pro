@@ -22,6 +22,7 @@ const files = [
   "src/domain/himam/pre-cvi-crosswalk.ts",
   "src/domain/himam/current-matrix-gatea-crosswalk.ts",
   "src/domain/himam/performance-dimension-implementation-analysis.ts",
+  "src/domain/himam/end-to-end-operational-map.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -58,6 +59,7 @@ if (failures.length === 0) {
   const validators = require(resolve(compiledDir, "validators.js"));
   const matrixCrosswalk = require(resolve(compiledDir, "current-matrix-gatea-crosswalk.js"));
   const performanceAnalysis = require(resolve(compiledDir, "performance-dimension-implementation-analysis.js"));
+  const operationalMap = require(resolve(compiledDir, "end-to-end-operational-map.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -113,6 +115,16 @@ if (failures.length === 0) {
   assert(
     performanceAnalysis.PERFORMANCE_DIMENSION_IMPLEMENTATION_ANALYSIS.length === 4,
     "Performance-dimension implementation analysis must cover PD01-PD04",
+  );
+  assert(
+    operationalMap.HIMAM_END_TO_END_OPERATIONAL_MAP.length === 9,
+    "End-to-end operational map must cover the nine agreed architecture stages",
+  );
+  assert(
+    operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.uiChangesAuthorized === false &&
+      operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.productionLogicChangesAuthorized === false &&
+      operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.gateAProductionUseAuthorized === false,
+    "Operational map must preserve the pre-CVI freeze on UI, production logic, and Gate A use",
   );
   assert(
     performanceAnalysis.PERFORMANCE_DIMENSION_IMPLEMENTATION_ANALYSIS.every(
@@ -174,3 +186,4 @@ console.log("4 performance/access dimensions PASS");
 console.log("Legacy concept crosswalk remains provisional PASS");
 console.log("Current competency matrix Gate A crosswalk PASS");
 console.log("Performance dimension implementation analysis PASS");
+console.log("End-to-end operational architecture map PASS");
