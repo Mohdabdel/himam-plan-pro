@@ -21,6 +21,7 @@ const files = [
   "src/domain/himam/transition-architecture.ts",
   "src/domain/himam/pre-cvi-crosswalk.ts",
   "src/domain/himam/current-matrix-gatea-crosswalk.ts",
+  "src/domain/himam/performance-dimension-implementation-analysis.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -56,6 +57,7 @@ if (failures.length === 0) {
   const crosswalk = require(resolve(compiledDir, "pre-cvi-crosswalk.js"));
   const validators = require(resolve(compiledDir, "validators.js"));
   const matrixCrosswalk = require(resolve(compiledDir, "current-matrix-gatea-crosswalk.js"));
+  const performanceAnalysis = require(resolve(compiledDir, "performance-dimension-implementation-analysis.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -109,6 +111,22 @@ if (failures.length === 0) {
     "Current matrix crosswalk must cover all 22 Gate A candidate competencies",
   );
   assert(
+    performanceAnalysis.PERFORMANCE_DIMENSION_IMPLEMENTATION_ANALYSIS.length === 4,
+    "Performance-dimension implementation analysis must cover PD01-PD04",
+  );
+  assert(
+    performanceAnalysis.PERFORMANCE_DIMENSION_IMPLEMENTATION_ANALYSIS.every(
+      (item) => item.productionChangeNow === false,
+    ),
+    "Performance-dimension analysis must remain non-operative before CVI",
+  );
+  assert(
+    performanceAnalysis.PERFORMANCE_DIMENSION_ARCHITECTURE_DECISION.changeImplementationUiNow === false &&
+      performanceAnalysis.PERFORMANCE_DIMENSION_ARCHITECTURE_DECISION.changeReportUiNow === false &&
+      performanceAnalysis.PERFORMANCE_DIMENSION_ARCHITECTURE_DECISION.changeMvpCalibrationNow === false,
+    "Pre-CVI performance-dimension work must not change UI, reporting, or calibration",
+  );
+  assert(
     matrixCrosswalk.CURRENT_MATRIX_CROSSWALK_GOVERNANCE.productionUseAllowed === false &&
       matrixCrosswalk.CURRENT_MATRIX_CROSSWALK_GOVERNANCE.matrixRowsModified === false,
     "Current matrix crosswalk must remain non-governing and non-mutating",
@@ -155,3 +173,4 @@ console.log("22 candidate competencies PASS");
 console.log("4 performance/access dimensions PASS");
 console.log("Legacy concept crosswalk remains provisional PASS");
 console.log("Current competency matrix Gate A crosswalk PASS");
+console.log("Performance dimension implementation analysis PASS");
