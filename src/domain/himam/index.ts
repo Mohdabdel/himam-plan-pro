@@ -6,6 +6,7 @@ export * from "./performance-dimension-implementation-analysis";
 export * from "./end-to-end-operational-map";
 export * from "./post-cvi-contracts";
 export * from "./post-cvi-migration-plan";
+export * from "./review-integration-contract";
 export * from "./source-types";
 export * from "./types";
 export * from "./schemas";
