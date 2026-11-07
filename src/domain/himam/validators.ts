@@ -7,6 +7,9 @@ import {
   learnerProfileSchema,
   structuredResponseSchema,
   toolAdministrationSchema,
+  transitionEntityRefSchema,
+  transitionMappingSchema,
+  transitionSchemeDefinitionSchema,
   verificationRunSchema,
 } from "./schemas";
 import type {
@@ -18,7 +21,12 @@ import type {
   StructuredResponse,
   ToolAdministration,
   VerificationRun,
-} from "./types";\nimport type {\n  TransitionEntityRef,\n  TransitionMapping,\n  TransitionSchemeDefinition,\n} from "./transition-architecture";
+} from "./types";
+import type {
+  TransitionEntityRef,
+  TransitionMapping,
+  TransitionSchemeDefinition,
+} from "./transition-architecture";
 
 export type ValidationIssue = {
   code: string;
