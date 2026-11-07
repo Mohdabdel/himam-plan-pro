@@ -25,6 +25,8 @@ const files = [
   "src/domain/himam/end-to-end-operational-map.ts",
   "src/domain/himam/post-cvi-contracts.ts",
   "src/domain/himam/post-cvi-migration-plan.ts",
+  "src/domain/himam/review-integration-contract.ts",
+  "src/domain/himam/review-integration-service.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -64,6 +66,8 @@ if (failures.length === 0) {
   const operationalMap = require(resolve(compiledDir, "end-to-end-operational-map.js"));
   const postCviContracts = require(resolve(compiledDir, "post-cvi-contracts.js"));
   const migrationPlan = require(resolve(compiledDir, "post-cvi-migration-plan.js"));
+  const reviewContract = require(resolve(compiledDir, "review-integration-contract.js"));
+  const reviewService = require(resolve(compiledDir, "review-integration-service.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -135,6 +139,65 @@ if (failures.length === 0) {
   assert(
     migrationPlan.POST_CVI_MIGRATION_STEPS.length === 7,
     "Post-CVI migration plan must contain the seven ordered migration steps",
+  );
+  assert(
+    reviewContract.HIMAM_REVIEW_INTEGRATION_PROTOCOL === "himam-review-integration-v1",
+    "Review integration protocol must remain versioned",
+  );
+  assert(
+    reviewContract.HIMAM_REVIEW_INTEGRATION_GOVERNANCE.engineMayWriteLearnerProfileDirectly === false &&
+      reviewContract.HIMAM_REVIEW_INTEGRATION_GOVERNANCE.learningCandidatesMayUpdateProfileDirectly === false &&
+      reviewContract.HIMAM_REVIEW_INTEGRATION_GOVERNANCE.acceptedLearningRequiresHumanDecision === true,
+    "Review integration must block direct engine write-back",
+  );
+  assert(
+    reviewService.REVIEW_INTEGRATION_SERVICE_GOVERNANCE.mayWriteLearnerProfileDirectly === false &&
+      reviewService.REVIEW_INTEGRATION_SERVICE_GOVERNANCE.mayCreateGoalAutomatically === false &&
+      reviewService.REVIEW_INTEGRATION_SERVICE_GOVERNANCE.mayChangeCompetencyLevelAutomatically === false,
+    "Himam integration service must remain human-governed",
+  );
+
+  const syntheticPackage = {
+    protocolVersion: reviewContract.HIMAM_REVIEW_INTEGRATION_PROTOCOL,
+    reviewEngine: "smart-iep-engine",
+    reviewEngineVersion: "test",
+    reviewCaseId: "RC-TEST",
+    sourcePlanRef: "synthetic-plan",
+    generatedAt: "2026-11-07T00:00:00.000Z",
+    interactionModes: ["PLAN_QUALITY_GATE"],
+    planFindings: [],
+    profileComparisonFindings: [],
+    learningCandidates: [{
+      candidateId: "cand-1",
+      candidateType: "PLANNING_IMPLICATION",
+      summary: "synthetic",
+      sourceReviewCaseId: "RC-TEST",
+      sourcePlanRefs: [],
+      supportingEvidenceRefs: [],
+      proposedPayload: { test: true },
+      status: "candidate",
+      requiresHumanApproval: true,
+    }],
+    provenanceRefs: ["synthetic"],
+  };
+  assert(
+    reviewService.validateReviewIntegrationPackage(syntheticPackage).ok,
+    "Synthetic review integration package should validate",
+  );
+  const rejectedLearning = reviewService.acceptReviewLearningCandidate({
+    learnerRef: "learner-test",
+    candidate: syntheticPackage.learningCandidates[0],
+    reviewCaseId: "RC-TEST",
+    decision: {
+      candidateId: "cand-1",
+      decision: "rejected",
+      decidedBy: "human-reviewer",
+      decidedAt: "2026-11-07T00:00:00.000Z",
+    },
+  });
+  assert(
+    rejectedLearning === null,
+    "Rejected review learning candidate must not create accepted learning",
   );
   assert(
     migrationPlan.POST_CVI_MIGRATION_GATES.length === 5,
@@ -222,3 +285,4 @@ console.log("Performance dimension implementation analysis PASS");
 console.log("End-to-end operational architecture map PASS");
 console.log("Post-CVI inactive contracts governance PASS");
 console.log("Post-CVI migration plan governance PASS");
+console.log("Review engine integration governance PASS");
