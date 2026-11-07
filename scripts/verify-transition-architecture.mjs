@@ -23,6 +23,7 @@ const files = [
   "src/domain/himam/current-matrix-gatea-crosswalk.ts",
   "src/domain/himam/performance-dimension-implementation-analysis.ts",
   "src/domain/himam/end-to-end-operational-map.ts",
+  "src/domain/himam/post-cvi-contracts.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -60,6 +61,7 @@ if (failures.length === 0) {
   const matrixCrosswalk = require(resolve(compiledDir, "current-matrix-gatea-crosswalk.js"));
   const performanceAnalysis = require(resolve(compiledDir, "performance-dimension-implementation-analysis.js"));
   const operationalMap = require(resolve(compiledDir, "end-to-end-operational-map.js"));
+  const postCviContracts = require(resolve(compiledDir, "post-cvi-contracts.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -119,6 +121,14 @@ if (failures.length === 0) {
   assert(
     operationalMap.HIMAM_END_TO_END_OPERATIONAL_MAP.length === 9,
     "End-to-end operational map must cover the nine agreed architecture stages",
+  );
+  assert(
+    postCviContracts.POST_CVI_CONTRACT_GOVERNANCE.productionUseAllowed === false &&
+      postCviContracts.POST_CVI_CONTRACT_GOVERNANCE.uiUseAllowed === false &&
+      postCviContracts.POST_CVI_CONTRACT_GOVERNANCE.storageMigrationAllowed === false &&
+      postCviContracts.POST_CVI_CONTRACT_GOVERNANCE.automaticGoalCreationAllowed === false &&
+      postCviContracts.POST_CVI_CONTRACT_GOVERNANCE.automaticProfileMutationAllowed === false,
+    "Post-CVI contracts must remain inactive before explicit Gate Pass",
   );
   assert(
     operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.uiChangesAuthorized === false &&
@@ -187,3 +197,4 @@ console.log("Legacy concept crosswalk remains provisional PASS");
 console.log("Current competency matrix Gate A crosswalk PASS");
 console.log("Performance dimension implementation analysis PASS");
 console.log("End-to-end operational architecture map PASS");
+console.log("Post-CVI inactive contracts governance PASS");
