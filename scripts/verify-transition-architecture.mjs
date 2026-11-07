@@ -1,17 +1,32 @@
 import { createRequire } from "node:module";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 const root = process.cwd();
 const compiledDir = resolve(root, ".tmp/transition-architecture");
 const failures = [];
+const HIMAM_REVIEW_CONTRACT_V1_SHA256 = "397557c6c9deaa976e658f4db37b376200bf77c99c7e7e3518ef6ea7b48ab771";
 
 function assert(condition, message) {
   if (!condition) failures.push(message);
 }
 
 mkdirSync(compiledDir, { recursive: true });
+
+const sharedReviewContractPath = resolve(
+  root,
+  "src/domain/himam/shared/himam-review-contract.v1.ts",
+);
+const sharedReviewContractSha256 = createHash("sha256")
+  .update(readFileSync(sharedReviewContractPath))
+  .digest("hex");
+assert(
+  sharedReviewContractSha256 === HIMAM_REVIEW_CONTRACT_V1_SHA256,
+  `Shared Himam review contract v1 SHA-256 mismatch: expected ${HIMAM_REVIEW_CONTRACT_V1_SHA256}, got ${sharedReviewContractSha256}`,
+);
+
 const tscCmd = resolve(root, "node_modules/.bin/tsc.cmd");
 const tscBin = existsSync(tscCmd) ? tscCmd : resolve(root, "node_modules/.bin/tsc");
 
@@ -25,6 +40,7 @@ const files = [
   "src/domain/himam/end-to-end-operational-map.ts",
   "src/domain/himam/post-cvi-contracts.ts",
   "src/domain/himam/post-cvi-migration-plan.ts",
+  "src/domain/himam/shared/himam-review-contract.v1.ts",
   "src/domain/himam/review-integration-contract.ts",
   "src/domain/himam/review-integration-service.ts",
   "src/domain/himam/review-integration-transport.ts",
@@ -145,6 +161,18 @@ if (failures.length === 0) {
   assert(
     reviewContract.HIMAM_REVIEW_INTEGRATION_PROTOCOL === "himam-review-integration-v1",
     "Review integration protocol must remain versioned",
+  );
+  const sharedRefProbe = reviewContract.toSharedTransitionEntityRef({
+    schemeId: "probe",
+    schemeVersion: "v1",
+    entityType: "COMPETENCY",
+    entityId: "probe-entity",
+    validationStatus: "pre_cvi",
+  });
+  assert(
+    sharedRefProbe.entityType === "COMPETENCY" &&
+      sharedRefProbe.validationStatus === "pre_cvi",
+    "Internal TransitionEntityRef must remain compatible with SharedTransitionEntityRef",
   );
   assert(
     reviewContract.HIMAM_REVIEW_INTEGRATION_GOVERNANCE.engineMayWriteLearnerProfileDirectly === false &&
@@ -407,4 +435,5 @@ console.log("End-to-end operational architecture map PASS");
 console.log("Post-CVI inactive contracts governance PASS");
 console.log("Post-CVI migration plan governance PASS");
 console.log("Review engine integration governance PASS");
+console.log(`Shared review contract SHA-256 PASS ${HIMAM_REVIEW_CONTRACT_V1_SHA256}`);
 console.log("Synthetic-only transport governance PASS");
