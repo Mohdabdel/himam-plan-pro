@@ -1,5 +1,6 @@
 export * from "./concepts";
 export * from "./transition-architecture";
+export * from "./pre-cvi-crosswalk";
 export * from "./source-types";
 export * from "./types";
 export * from "./schemas";
