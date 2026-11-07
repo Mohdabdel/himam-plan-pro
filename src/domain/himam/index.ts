@@ -7,6 +7,7 @@ export * from "./end-to-end-operational-map";
 export * from "./post-cvi-contracts";
 export * from "./post-cvi-migration-plan";
 export * from "./review-integration-contract";
+export * from "./review-integration-service";
 export * from "./source-types";
 export * from "./types";
 export * from "./schemas";
