@@ -24,6 +24,7 @@ const files = [
   "src/domain/himam/performance-dimension-implementation-analysis.ts",
   "src/domain/himam/end-to-end-operational-map.ts",
   "src/domain/himam/post-cvi-contracts.ts",
+  "src/domain/himam/post-cvi-migration-plan.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -62,6 +63,7 @@ if (failures.length === 0) {
   const performanceAnalysis = require(resolve(compiledDir, "performance-dimension-implementation-analysis.js"));
   const operationalMap = require(resolve(compiledDir, "end-to-end-operational-map.js"));
   const postCviContracts = require(resolve(compiledDir, "post-cvi-contracts.js"));
+  const migrationPlan = require(resolve(compiledDir, "post-cvi-migration-plan.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -131,6 +133,27 @@ if (failures.length === 0) {
     "Post-CVI contracts must remain inactive before explicit Gate Pass",
   );
   assert(
+    migrationPlan.POST_CVI_MIGRATION_STEPS.length === 7,
+    "Post-CVI migration plan must contain the seven ordered migration steps",
+  );
+  assert(
+    migrationPlan.POST_CVI_MIGRATION_GATES.length === 5,
+    "Post-CVI migration plan must contain the five explicit gates",
+  );
+  assert(
+    migrationPlan.POST_CVI_MIGRATION_GOVERNANCE.executableNow === false &&
+      migrationPlan.POST_CVI_MIGRATION_GOVERNANCE.destructiveMigrationAllowed === false &&
+      migrationPlan.POST_CVI_MIGRATION_GOVERNANCE.historicalRewriteAllowed === false &&
+      migrationPlan.POST_CVI_MIGRATION_GOVERNANCE.automaticLegacyReclassificationAllowed === false,
+    "Migration plan must remain non-executable and non-destructive before Gate Pass",
+  );
+  assert(
+    migrationPlan.POST_CVI_MIGRATION_STEPS.every(
+      (step, index) => step.order === index + 1 && step.rollbackAr.length > 0,
+    ),
+    "Migration steps must be ordered and carry rollback instructions",
+  );
+  assert(
     operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.uiChangesAuthorized === false &&
       operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.productionLogicChangesAuthorized === false &&
       operationalMap.HIMAM_OPERATIONAL_ARCHITECTURE_GOVERNANCE.gateAProductionUseAuthorized === false,
@@ -198,3 +221,4 @@ console.log("Current competency matrix Gate A crosswalk PASS");
 console.log("Performance dimension implementation analysis PASS");
 console.log("End-to-end operational architecture map PASS");
 console.log("Post-CVI inactive contracts governance PASS");
+console.log("Post-CVI migration plan governance PASS");
