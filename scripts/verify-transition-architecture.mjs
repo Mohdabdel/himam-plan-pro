@@ -199,6 +199,114 @@ if (failures.length === 0) {
     rejectedLearning === null,
     "Rejected review learning candidate must not create accepted learning",
   );
+
+  const syntheticSnapshot = reviewService.buildReviewProfileSnapshot({
+    learnerRef: "learner-test",
+    profileVersion: "profile-v1",
+    generatedAt: "2026-11-07T00:00:00.000Z",
+    acceptedEvidenceSummaries: [{
+      evidenceRef: "ev-1",
+      summary: "synthetic accepted performance evidence",
+      context: "school",
+      supportSummary: "minimal verbal support",
+    }],
+    acceptedPlanningPriorities: [{
+      priorityRef: "prio-1",
+      summary: "generalize performance to community",
+      sourceRefs: ["ev-1"],
+    }],
+    goalHistory: [{
+      goalRef: "goal-prev-1",
+      goalText: "synthetic previous goal",
+      status: "completed",
+      evidenceRefs: ["ev-1"],
+    }],
+    acceptedSupportSummaries: [{
+      supportRef: "sup-1",
+      summary: "minimal verbal support is effective",
+      context: "school",
+    }],
+  });
+  assert(
+    syntheticSnapshot.readonly === true &&
+      syntheticSnapshot.purpose === "PLAN_REVIEW",
+    "Profile snapshot must be purpose-limited and read-only",
+  );
+
+  const syntheticE2EPackage = {
+    ...syntheticPackage,
+    reviewCaseId: "RC-E2E",
+    learnerRef: syntheticSnapshot.learnerRef,
+    sourcePlanRef: "synthetic-e2e-plan",
+    profileSnapshotVersionUsed: syntheticSnapshot.profileVersion,
+    interactionModes: ["PLAN_QUALITY_GATE", "PROFILE_PLAN_CONSISTENCY", "LONGITUDINAL_LEARNING"],
+    planFindings: [{
+      findingId: "pf-1",
+      category: "GOAL_QUALITY",
+      severity: "IMPORTANT",
+      summary: "synthetic plan-only quality issue",
+      planRefs: ["goal-current-1"],
+      destination: "PLAN_ONLY",
+    }],
+    profileComparisonFindings: [{
+      findingId: "pc-1",
+      comparisonType: "GOAL_REPEATS_COMPLETED_TARGET",
+      summary: "synthetic profile-plan comparison",
+      profileRefs: ["goal-prev-1"],
+      planRefs: ["goal-current-1"],
+      confidence: "HIGH",
+      requiresHumanReview: true,
+    }],
+    learningCandidates: [{
+      candidateId: "cand-e2e-1",
+      candidateType: "PLANNING_IMPLICATION",
+      summary: "consider generalization instead of retraining",
+      sourceReviewCaseId: "RC-E2E",
+      sourcePlanRefs: ["goal-current-1"],
+      supportingEvidenceRefs: ["ev-1"],
+      proposedPayload: { implication: "generalize_to_community" },
+      status: "candidate",
+      requiresHumanApproval: true,
+    }],
+    provenanceRefs: ["synthetic-e2e"],
+  };
+  assert(
+    reviewService.validateReviewIntegrationPackage(syntheticE2EPackage).ok,
+    "Synthetic E2E review package should validate",
+  );
+  const inbox = reviewService.createReviewIntegrationInboxItem(
+    syntheticE2EPackage,
+    "2026-11-07T00:11:00.000Z",
+  );
+  assert(
+    inbox.status === "received" &&
+      inbox.planFindingCount === 1 &&
+      inbox.profileComparisonFindingCount === 1 &&
+      inbox.learningCandidateCount === 1,
+    "Synthetic E2E package should enter the Himam inbox without mutation",
+  );
+  const queue = reviewService.getHumanReviewQueue(syntheticE2EPackage);
+  assert(
+    queue.profileComparisons.length === 1 && queue.learningCandidates.length === 1,
+    "Profile comparisons and learning candidates must enter human review queue",
+  );
+  const acceptedLearning = reviewService.acceptReviewLearningCandidate({
+    learnerRef: syntheticSnapshot.learnerRef,
+    candidate: queue.learningCandidates[0],
+    reviewCaseId: syntheticE2EPackage.reviewCaseId,
+    decision: {
+      candidateId: "cand-e2e-1",
+      decision: "accepted",
+      decidedBy: "human-reviewer",
+      decidedAt: "2026-11-07T00:13:00.000Z",
+    },
+  });
+  assert(
+    acceptedLearning?.learningType === "PLANNING_IMPLICATION" &&
+      acceptedLearning?.status === "active" &&
+      acceptedLearning?.sourceReviewCaseId === "RC-E2E",
+    "Only a human-approved learning candidate may become AcceptedReviewLearning",
+  );
   assert(
     migrationPlan.POST_CVI_MIGRATION_GATES.length === 5,
     "Post-CVI migration plan must contain the five explicit gates",
