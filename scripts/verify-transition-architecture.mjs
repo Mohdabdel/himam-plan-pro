@@ -27,6 +27,7 @@ const files = [
   "src/domain/himam/post-cvi-migration-plan.ts",
   "src/domain/himam/review-integration-contract.ts",
   "src/domain/himam/review-integration-service.ts",
+  "src/domain/himam/review-integration-transport.ts",
   "src/domain/himam/types.ts",
   "src/domain/himam/schemas.ts",
   "src/domain/himam/validators.ts",
@@ -68,6 +69,7 @@ if (failures.length === 0) {
   const migrationPlan = require(resolve(compiledDir, "post-cvi-migration-plan.js"));
   const reviewContract = require(resolve(compiledDir, "review-integration-contract.js"));
   const reviewService = require(resolve(compiledDir, "review-integration-service.js"));
+  const reviewTransport = require(resolve(compiledDir, "review-integration-transport.js"));
 
   assert(
     architecture.GATE_A_PRE_CVI_SCHEME.validationStatus === "pre_cvi",
@@ -155,6 +157,13 @@ if (failures.length === 0) {
       reviewService.REVIEW_INTEGRATION_SERVICE_GOVERNANCE.mayCreateGoalAutomatically === false &&
       reviewService.REVIEW_INTEGRATION_SERVICE_GOVERNANCE.mayChangeCompetencyLevelAutomatically === false,
     "Himam integration service must remain human-governed",
+  );
+  assert(
+    reviewTransport.HIMAM_REVIEW_TRANSPORT_FEATURE.enabled === false &&
+      reviewTransport.HIMAM_REVIEW_TRANSPORT_FEATURE.syntheticOnly === true &&
+      reviewTransport.HIMAM_REVIEW_TRANSPORT_GOVERNANCE.realDataAllowed === false &&
+      reviewTransport.HIMAM_REVIEW_TRANSPORT_GOVERNANCE.endpointBindingAllowedNow === false,
+    "Review transport must remain synthetic-only and endpoint-unbound",
   );
 
   const syntheticPackage = {
@@ -274,10 +283,14 @@ if (failures.length === 0) {
     reviewService.validateReviewIntegrationPackage(syntheticE2EPackage).ok,
     "Synthetic E2E review package should validate",
   );
-  const inbox = reviewService.createReviewIntegrationInboxItem(
-    syntheticE2EPackage,
-    "2026-11-07T00:11:00.000Z",
-  );
+  const envelope = {
+    protocolVersion: reviewTransport.HIMAM_REVIEW_TRANSPORT_FEATURE.protocolVersion,
+    transportId: "transport-e2e-1",
+    createdAt: "2026-11-07T00:11:00.000Z",
+    synthetic: true,
+    payload: syntheticE2EPackage,
+  };
+  const inbox = reviewTransport.receiveReviewPackageEnvelope(envelope);
   assert(
     inbox.status === "received" &&
       inbox.planFindingCount === 1 &&
@@ -394,3 +407,4 @@ console.log("End-to-end operational architecture map PASS");
 console.log("Post-CVI inactive contracts governance PASS");
 console.log("Post-CVI migration plan governance PASS");
 console.log("Review engine integration governance PASS");
+console.log("Synthetic-only transport governance PASS");
