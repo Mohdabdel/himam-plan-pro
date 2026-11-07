@@ -1,5 +1,6 @@
 import type { ConceptId } from "./concepts";
-import type { SourceRef, SourceType } from "./source-types";\nimport type { TransitionEntityRef } from "./transition-architecture";
+import type { SourceRef, SourceType } from "./source-types";
+import type { TransitionEntityRef } from "./transition-architecture";
 
 export type EntityId = string;
 export type ISODate = string;
