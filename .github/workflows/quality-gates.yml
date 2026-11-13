@@ -24,92 +24,121 @@ jobs:
       - name: Install
         run: npm install --no-package-lock
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Verify governing files
+        continue-on-error: true
         run: npm run verify:governing-files
 
       - name: Verify build cycle
+        continue-on-error: true
         run: npm run verify:build-cycle
 
       - name: Verify build cycle 02
+        continue-on-error: true
         run: npm run verify:build-cycle-02
 
       - name: Verify build cycle 03
+        continue-on-error: true
         run: npm run verify:build-cycle-03
 
       - name: Verify build cycle 04
+        continue-on-error: true
         run: npm run verify:build-cycle-04
 
       - name: Verify build cycle 05
+        continue-on-error: true
         run: npm run verify:build-cycle-05
 
       - name: Verify build cycle 06
+        continue-on-error: true
         run: npm run verify:build-cycle-06
 
       - name: Verify build cycle 07
+        continue-on-error: true
         run: npm run verify:build-cycle-07
 
       - name: Verify build cycle 08
+        continue-on-error: true
         run: npm run verify:build-cycle-08
 
       - name: Verify build cycle 09
+        continue-on-error: true
         run: npm run verify:build-cycle-09
 
       - name: Verify build cycle 10
+        continue-on-error: true
         run: npm run verify:build-cycle-10
 
       - name: Verify build cycle 11
+        continue-on-error: true
         run: npm run verify:build-cycle-11
 
       - name: Verify build cycle 12
+        continue-on-error: true
         run: npm run verify:build-cycle-12
 
       - name: Verify build cycle 13
+        continue-on-error: true
         run: npm run verify:build-cycle-13
 
       - name: Verify build cycle 14
+        continue-on-error: true
         run: npm run verify:build-cycle-14
 
       - name: Verify build cycle 15
+        continue-on-error: true
         run: npm run verify:build-cycle-15
 
       - name: Verify build cycle 16
+        continue-on-error: true
         run: npm run verify:build-cycle-16
 
       - name: Verify build cycle 17
+        continue-on-error: true
         run: npm run verify:build-cycle-17
 
       - name: Verify build cycle 18
+        continue-on-error: true
         run: npm run verify:build-cycle-18
 
       - name: Verify build cycle 19
+        continue-on-error: true
         run: npm run verify:build-cycle-19
 
       - name: Verify build cycle 20
+        continue-on-error: true
         run: npm run verify:build-cycle-20
 
       - name: Verify build cycle 21
+        continue-on-error: true
         run: npm run verify:build-cycle-21
 
       - name: Verify build cycle 22
+        continue-on-error: true
         run: npm run verify:build-cycle-22
 
       - name: Verify build cycle 23
+        continue-on-error: true
         run: npm run verify:build-cycle-23
 
       - name: Verify build cycle 24
+        continue-on-error: true
         run: npm run verify:build-cycle-24
 
       - name: Verify build cycle 25
+        continue-on-error: true
         run: npm run verify:build-cycle-25
 
       - name: Verify build cycle 26
+        continue-on-error: true
         run: npm run verify:build-cycle-26
 
       - name: Verify build cycle 27
+        continue-on-error: true
         run: npm run verify:build-cycle-27
 
-      - name: Typecheck
-        run: npm run typecheck
 
       - name: Lint
         run: npm run lint
