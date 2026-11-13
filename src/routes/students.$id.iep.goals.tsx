@@ -138,7 +138,6 @@ type FamilyData = {
 };
 type LearnerVoiceData = { q_love?: string; q_good?: string; selectedLibraryToolName?: string; appliedToolName?: string };
 type CoverageData = { filledDomains?: string[]; failedDomains?: string[]; emergingDomains?: string[]; completionPercent?: number };
-type AssessmentDomainEntry = { score: string; note?: string };
 type GoalSourceId =
   | "assessment"
   | "family_priorities"
@@ -562,7 +561,6 @@ function IEPPage() {
   const [family, setFamily] = useState<FamilyData | null>(null);
   const [learnerVoice, setLearnerVoice] = useState<LearnerVoiceData | null>(null);
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
-  const [assessmentDomains, setAssessmentDomains] = useState<Record<string, AssessmentDomainEntry> | null>(null);
   const [assessmentRecords, setAssessmentRecords] = useState<AssessmentRecord[]>([]);
   const [additionalSources, setAdditionalSources] = useState<unknown>(null);
   const [knowledgeSupport, setKnowledgeSupport] = useState<KnowledgeSupportItem[]>([]);
@@ -629,16 +627,6 @@ function IEPPage() {
     try { setAdditionalSources(JSON.parse(localStorage.getItem(`himam_additional_sources_${id}`) || "null")); } catch { /* noop */ }
     setAssessmentRecords(loadAssessmentRecords(id));
     setSourcePipelines(loadSourceFilePipelines(id));
-    try {
-      const assessRaw = JSON.parse(localStorage.getItem(`himam_assessment_${id}`) || "null");
-      if (assessRaw?.domains && Array.isArray(assessRaw.domains)) {
-        const byCode: Record<string, AssessmentDomainEntry> = {};
-        for (const d of assessRaw.domains as Array<{ code: string; score: string; note?: string }>) {
-          byCode[d.code] = { score: d.score, note: d.note };
-        }
-        setAssessmentDomains(byCode);
-      }
-    } catch { /* noop */ }
     const informationRecords = loadInformationRecords(id);
     setKnowledgeSupport(buildKnowledgeSupportItems(informationRecords));
     setInformationProcessing(buildInformationProcessingProfile(informationRecords));
@@ -1690,8 +1678,6 @@ function IEPPage() {
                     <GoalReferencePanel
                       domainCode={d.code}
                       domainName={d.name}
-                      tool={student?.tool ?? ""}
-                      assessment={assessmentDomains?.[d.code] ?? null}
                       coverage={coverage}
                       family={family}
                       learnerVoice={learnerVoice}
