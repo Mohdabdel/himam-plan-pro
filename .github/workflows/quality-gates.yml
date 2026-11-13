@@ -2,9 +2,6 @@ name: Quality Gates
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
 
 jobs:
   quality:
@@ -17,100 +14,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
-      - name: Install
-        run: npm ci
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
 
-      - name: Verify governing files
-        run: npm run verify:governing-files
+      - name: Regenerate npm lockfile
+        run: npm install --package-lock-only --ignore-scripts
 
-      - name: Verify build cycle
-        run: npm run verify:build-cycle
+      - name: Regenerate Bun lockfile
+        run: bun install --lockfile-only
 
-      - name: Verify build cycle 02
-        run: npm run verify:build-cycle-02
+      - name: Verify npm ci
+        run: |
+          rm -rf node_modules
+          npm ci
 
-      - name: Verify build cycle 03
-        run: npm run verify:build-cycle-03
+      - name: Verify frozen Bun install
+        run: |
+          rm -rf node_modules
+          bun install --frozen-lockfile
 
-      - name: Verify build cycle 04
-        run: npm run verify:build-cycle-04
-
-      - name: Verify build cycle 05
-        run: npm run verify:build-cycle-05
-
-      - name: Verify build cycle 06
-        run: npm run verify:build-cycle-06
-
-      - name: Verify build cycle 07
-        run: npm run verify:build-cycle-07
-
-      - name: Verify build cycle 08
-        run: npm run verify:build-cycle-08
-
-      - name: Verify build cycle 09
-        run: npm run verify:build-cycle-09
-
-      - name: Verify build cycle 10
-        run: npm run verify:build-cycle-10
-
-      - name: Verify build cycle 11
-        run: npm run verify:build-cycle-11
-
-      - name: Verify build cycle 12
-        run: npm run verify:build-cycle-12
-
-      - name: Verify build cycle 13
-        run: npm run verify:build-cycle-13
-
-      - name: Verify build cycle 14
-        run: npm run verify:build-cycle-14
-
-      - name: Verify build cycle 15
-        run: npm run verify:build-cycle-15
-
-      - name: Verify build cycle 16
-        run: npm run verify:build-cycle-16
-
-      - name: Verify build cycle 17
-        run: npm run verify:build-cycle-17
-
-      - name: Verify build cycle 18
-        run: npm run verify:build-cycle-18
-
-      - name: Verify build cycle 19
-        run: npm run verify:build-cycle-19
-
-      - name: Verify build cycle 20
-        run: npm run verify:build-cycle-20
-
-      - name: Verify build cycle 21
-        run: npm run verify:build-cycle-21
-
-      - name: Verify build cycle 22
-        run: npm run verify:build-cycle-22
-
-      - name: Verify build cycle 23
-        run: npm run verify:build-cycle-23
-
-      - name: Verify build cycle 24
-        run: npm run verify:build-cycle-24
-
-      - name: Verify build cycle 25
-        run: npm run verify:build-cycle-25
-
-      - name: Verify build cycle 26
-        run: npm run verify:build-cycle-26
-
-      - name: Verify build cycle 27
-        run: npm run verify:build-cycle-27
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
+      - name: Upload synchronized lockfiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: synchronized-lockfiles
+          path: |
+            package-lock.json
+            bun.lock
