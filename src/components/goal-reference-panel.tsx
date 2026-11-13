@@ -1,6 +1,5 @@
 const TEAL = "#0F3D3E";
 
-export type ReferenceAssessmentEntry = { score: string; note?: string } | null;
 export type ReferenceCoverage = {
   filledDomains?: string[];
   failedDomains?: string[];
@@ -13,17 +12,9 @@ export type ReferenceLearnerVoice = { q_love?: string; q_good?: string } | null;
 type GoalReferencePanelProps = {
   domainCode: string;
   domainName: string;
-  tool: string;
-  assessment: ReferenceAssessmentEntry;
   coverage: ReferenceCoverage;
   family: ReferenceFamily;
   learnerVoice: ReferenceLearnerVoice;
-};
-
-const SCORE_LABEL: Record<string, string> = {
-  pass: "✓ نجح",
-  emerge: "◑ ناشئ",
-  fail: "✗ لم ينجح",
 };
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -37,11 +28,11 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
 
 /**
  * Curated, read-only context strip for the domain currently being worked on
- * in the IEP goal editor — the seven items requested, nothing more. Each
- * value is read from data that already exists (assessment, coverage, family
- * voice, learner voice); nothing here is invented or scored.
+ * in the IEP goal editor. Baseline selection is intentionally owned by the
+ * goal builder; this panel only summarizes supporting context already present
+ * in coverage, family voice, and learner voice.
  */
-export function GoalReferencePanel({ domainCode, domainName, tool, assessment, coverage, family, learnerVoice }: GoalReferencePanelProps) {
+export function GoalReferencePanel({ domainCode, domainName, coverage, family, learnerVoice }: GoalReferencePanelProps) {
   const isCovered = !!coverage?.filledDomains?.includes(domainCode);
   const isNeed = !!coverage && (
     (coverage.failedDomains ?? []).includes(domainCode) ||
@@ -49,7 +40,6 @@ export function GoalReferencePanel({ domainCode, domainName, tool, assessment, c
   );
 
   const sources: string[] = [];
-  if (assessment) sources.push(`التقييم الرسمي — ${tool || "أداة غير محددة"}`);
   if (family) sources.push("صوت الأسرة");
   if (learnerVoice) sources.push("صوت المتعلم");
 
@@ -58,7 +48,7 @@ export function GoalReferencePanel({ domainCode, domainName, tool, assessment, c
   if (isNeed && !family && !learnerVoice) {
     readiness = "⚠ تعارض: مجال ذو أولوية عالية دون صوت أسرة أو متعلم موثّق بعد";
     readinessColor = "#B91C1C";
-  } else if (assessment && coverage && family && learnerVoice) {
+  } else if (coverage && family && learnerVoice) {
     readiness = "✓ جاهزية عالية — جميع مصادر السياق متوفرة لهذا المجال";
     readinessColor = "#15803D";
   } else {
@@ -74,16 +64,6 @@ export function GoalReferencePanel({ domainCode, domainName, tool, assessment, c
         {domainName} <span style={{ fontSize: 11, color: "#94A3B8" }}>({domainCode})</span>
       </Row>
 
-      <Row label="Baseline مختصر">
-        {assessment?.score ? (
-          <>
-            {SCORE_LABEL[assessment.score] ?? assessment.score}
-            {assessment.note ? ` — ${assessment.note}` : ""}
-          </>
-        ) : (
-          "لم يُقيَّم هذا المجال بعد"
-        )}
-      </Row>
 
       <Row label="حالة التغطية / الثقة">
         {!coverage
