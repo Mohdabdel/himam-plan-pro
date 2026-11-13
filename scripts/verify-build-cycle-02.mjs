@@ -73,15 +73,15 @@ requireText("spreadsheet row extraction", pipeline, "readXlsxFile");
 requireText("official interpreted result guard", official, "hasInterpretedAssessmentStatements");
 requireText("official upload alone is insufficient", official, "الحد الأدنى ليس رفع الملف فقط");
 requireText("official draft uses reviewed statements", official, "statements: reviewedStatements");
-requireText("official assessment tool library visible", official, "مكتبة أدوات التقييم المتاحة للتجربة");
-requireText("official library selects tool", official, "onClick={() => setToolId(tool.id)}");
+requireText("official assessment tool library visible", official, "اختر الأداة المطبقة");
+requireText("official library selects tool", official, "onChange={(event) => setToolId(event.target.value)}");
 requireText("official accepted result extensions", official, "ACCEPTED_OFFICIAL_RESULT_EXTENSIONS");
 requireText("official accepted result labels", official, "الصيغ المقبولة");
 requireText("official no manual score input", official, "لا يدخل المختص درجات أو تقديرات يدوية هنا");
 requireText("official upload requires readable result", official, "ملف نتائج بصيغة مدعومة");
 requireText("official reference domains only", official, "تستخدم هذه المجالات كخريطة قراءة وتصنيف فقط");
-requireText("official assessment upload-only boundary", official, "لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً");
-requireText("official assessment processes reviewed result", official, "تعالج فقط النتيجة المفسرة التي راجعها المختص");
+requireText("official assessment upload-only boundary", official, "التقييمات الرسمية كأدوات مطبقة خارج منصة همم");
+requireText("official assessment processes reviewed result", official, 'decision: "approved_for_structured_response"');
 requireText("learner voice platform tool application", learnerVoice, "InformationToolApplication");
 requireText("learner voice uploaded file pipeline", learnerVoice, "LEARNER_VOICE_FORM");
 requireText("learner voice descriptive response required", learnerVoice, "hasInformationRecordResponse");
@@ -143,7 +143,7 @@ requireText("coverage does not mark ready on page load", coverage, "markCoverage
 
 requireText("iep imports current performance workspace", iep, "buildCurrentPerformanceWorkspace");
 requireText("iep blocks goal generation without baseline", iep, "مغلق حتى تفسير التقييم");
-requireText("iep routes blocked goal card to coverage", iep, "لا يفتح توليد الأهداف قبل وجود نتيجة تقييم رسمية مفسرة ومراجعة");
+requireText("iep routes blocked goal card to coverage", iep, 'if (currentPerformanceSummary.baselineReady) navigate({ to: "/students/$id/iep/goals", params: { id } });');
 
 requireText("package script", packageJson, "\"verify:build-cycle-02\"");
 requireText("ci runs cycle02", ci, "npm run verify:build-cycle-02");
