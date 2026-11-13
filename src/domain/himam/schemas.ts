@@ -1,11 +1,65 @@
 import { z } from "zod";
 import { HIMAM_CONCEPT_IDS } from "./concepts";
 import { SOURCE_PACKAGES, SOURCE_RECORD_TYPES, SOURCE_TYPES } from "./source-types";
+import {
+  TRANSITION_ENTITY_TYPES,
+  TRANSITION_MAPPING_STATUSES,
+  TRANSITION_MAPPING_TYPES,
+  TRANSITION_VALIDATION_STATUSES,
+} from "./transition-architecture";
 
 const nonEmptyString = z.string().min(1);
 const isoString = nonEmptyString;
 
 export const conceptIdSchema = z.enum(HIMAM_CONCEPT_IDS);
+
+export const transitionEntityTypeSchema = z.enum(TRANSITION_ENTITY_TYPES);
+export const transitionValidationStatusSchema = z.enum(TRANSITION_VALIDATION_STATUSES);
+export const transitionMappingTypeSchema = z.enum(TRANSITION_MAPPING_TYPES);
+export const transitionMappingStatusSchema = z.enum(TRANSITION_MAPPING_STATUSES);
+
+export const transitionEntityRefSchema = z.object({
+  schemeId: nonEmptyString,
+  schemeVersion: nonEmptyString,
+  entityType: transitionEntityTypeSchema,
+  entityId: nonEmptyString,
+  validationStatus: transitionValidationStatusSchema,
+});
+
+export const transitionSchemeDefinitionSchema = z.object({
+  schemeId: nonEmptyString,
+  schemeVersion: nonEmptyString,
+  entityType: transitionEntityTypeSchema,
+  labelAr: nonEmptyString.optional(),
+  validationStatus: transitionValidationStatusSchema,
+  frozenForProduction: z.boolean(),
+  provenanceRefs: z.array(nonEmptyString),
+});
+
+export const transitionMappingSchema = z.object({
+  mappingId: nonEmptyString,
+  from: transitionEntityRefSchema,
+  to: transitionEntityRefSchema.optional(),
+  mappingType: transitionMappingTypeSchema,
+  mappingStatus: transitionMappingStatusSchema,
+  rationale: nonEmptyString.optional(),
+  provenanceRefs: z.array(nonEmptyString),
+}).superRefine((value, ctx) => {
+  if (value.mappingType !== "unmapped" && !value.to) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Mapped transition relations require a target entity reference",
+      path: ["to"],
+    });
+  }
+  if (value.mappingType === "unmapped" && value.to) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Unmapped transition relations must not carry a target entity reference",
+      path: ["to"],
+    });
+  }
+});
 export const portfolioTargetIdSchema = z.enum([
   "PF_CURRENT_PERFORMANCE",
   "PF_PRIORITY",
@@ -136,6 +190,10 @@ export const evidenceRecordSchema = z.object({
   conceptId: conceptIdSchema,
   competencyId: nonEmptyString.optional(),
   componentIds: z.array(nonEmptyString),
+  competencyRefs: z.array(transitionEntityRefSchema).optional(),
+  enablingSkillRefs: z.array(transitionEntityRefSchema).optional(),
+  performanceDimensionRefs: z.array(transitionEntityRefSchema).optional(),
+  functionalScenarioRefs: z.array(transitionEntityRefSchema).optional(),
   performanceCode: nonEmptyString,
   supportCodes: z.array(nonEmptyString),
   observedAt: isoString,

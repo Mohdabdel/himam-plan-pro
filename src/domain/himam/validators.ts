@@ -7,6 +7,9 @@ import {
   learnerProfileSchema,
   structuredResponseSchema,
   toolAdministrationSchema,
+  transitionEntityRefSchema,
+  transitionMappingSchema,
+  transitionSchemeDefinitionSchema,
   verificationRunSchema,
 } from "./schemas";
 import type {
@@ -19,6 +22,11 @@ import type {
   ToolAdministration,
   VerificationRun,
 } from "./types";
+import type {
+  TransitionEntityRef,
+  TransitionMapping,
+  TransitionSchemeDefinition,
+} from "./transition-architecture";
 
 export type ValidationIssue = {
   code: string;
@@ -95,6 +103,46 @@ export function validateConceptRegistry(): ValidationResult {
   });
 
   return { ok: issues.length === 0, issues };
+}
+
+export function validateTransitionEntityRef(value: TransitionEntityRef): ValidationResult {
+  const result = transitionEntityRefSchema.safeParse(value);
+  return result.success ? { ok: true, issues: [] } : fromZod(result.error);
+}
+
+export function validateTransitionSchemeDefinition(
+  value: TransitionSchemeDefinition,
+): ValidationResult {
+  const result = transitionSchemeDefinitionSchema.safeParse(value);
+  if (!result.success) return fromZod(result.error);
+  if (value.validationStatus === "pre_cvi" && !value.frozenForProduction) {
+    return {
+      ok: false,
+      issues: [{
+        code: "PRE_CVI_SCHEME_NOT_FROZEN",
+        message: "Pre-CVI schemes must remain frozen for production decisions",
+      }],
+    };
+  }
+  return { ok: true, issues: [] };
+}
+
+export function validateTransitionMapping(value: TransitionMapping): ValidationResult {
+  const result = transitionMappingSchema.safeParse(value);
+  if (!result.success) return fromZod(result.error);
+  if (
+    value.mappingStatus === "validated" &&
+    (value.from.validationStatus === "pre_cvi" || value.to?.validationStatus === "pre_cvi")
+  ) {
+    return {
+      ok: false,
+      issues: [{
+        code: "PRE_CVI_MAPPING_CANNOT_BE_VALIDATED",
+        message: "Mappings involving pre-CVI entities cannot be marked validated",
+      }],
+    };
+  }
+  return { ok: true, issues: [] };
 }
 
 export function validateLearnerProfile(value: LearnerProfile): ValidationResult {

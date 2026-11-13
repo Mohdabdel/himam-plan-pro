@@ -1,5 +1,6 @@
 import type { ConceptId } from "./concepts";
 import type { SourceRef, SourceType } from "./source-types";
+import type { TransitionEntityRef } from "./transition-architecture";
 
 export type EntityId = string;
 export type ISODate = string;
@@ -85,6 +86,11 @@ export type EvidenceRecord = {
   conceptId: ConceptId;
   competencyId?: EntityId;
   componentIds: EntityId[];
+  /** Version-aware additive references; legacy fields above remain valid. */
+  competencyRefs?: TransitionEntityRef[];
+  enablingSkillRefs?: TransitionEntityRef[];
+  performanceDimensionRefs?: TransitionEntityRef[];
+  functionalScenarioRefs?: TransitionEntityRef[];
   performanceCode: string;
   supportCodes: string[];
   observedAt: ISODateTime;
