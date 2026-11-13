@@ -19,6 +19,8 @@ jobs:
           node-version: 22
           cache: npm
 
+      # npm ci is the canonical CI install command; this temporary validation branch
+      # bypasses the stale base lockfile without changing production files.
       - name: Install
         run: npm install --no-package-lock
 
