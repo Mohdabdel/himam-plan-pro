@@ -1678,6 +1678,7 @@ function IEPPage() {
                     <GoalReferencePanel
                       domainCode={d.code}
                       domainName={d.name}
+                      hasAssessment={assessmentRecords.length > 0}
                       coverage={coverage}
                       family={family}
                       learnerVoice={learnerVoice}
