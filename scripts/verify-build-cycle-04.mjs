@@ -20,6 +20,8 @@ const types = read("src/types/himam.ts");
 const processing = read("src/lib/learner-profile-processing.ts");
 const coverage = read("src/routes/students.$id.coverage.tsx");
 const goals = read("src/routes/students.$id.iep.goals.tsx");
+const iep = read("src/routes/students.$id.iep.tsx");
+const goalAiLayer = read("src/lib/goal-ai-layer.ts");
 const packageJson = read("package.json");
 const ci = read(".github/workflows/quality-gates.yml");
 
@@ -70,10 +72,10 @@ requireText("coverage explains sorting engine", coverage, "يفرز المحرك
 requireText("coverage shows blocking gaps", coverage, "فجوات مؤثرة");
 
 requireText("goals imports component element", goals, "ProfileComponentElement");
-requireText("goals maps components to domain", goals, "componentElementsForDomain");
+requireText("iep stores current level rows", iep, "currentLevelRows");
 requireText("goals source note uses matrix", goals, "مصفوفة مكونات البروفايل");
-requireText("goals shows component elements", goals, "selectedProfileComponentElements");
-requireText("goals shows impact label", goals, "profileImpactLabel");
+requireText("goal draft requires baseline reference", goals, "اختر مرجعية الخط القاعدي قبل إضافة المسودة.");
+requireText("goal opportunities filter by selected domain", goalAiLayer, "selectedDomainCode");
 requireText("goals panel exists", goals, "ProfileComponentMatrixPanel");
 requireText("goals panel inserted", goals, "<ProfileComponentMatrixPanel model={profileProcessing} />");
 
