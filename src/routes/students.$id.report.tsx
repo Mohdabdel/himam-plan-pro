@@ -877,16 +877,16 @@ function ReportPage() {
                   <QualityBadge q={family.quality} />
                   <InfoRow label="تاريخ الجلسة"  value={formatDate(family.sessionDate)} />
                   <InfoRow label="من حضر"         value={family.attendees} />
-                  {family.priorities.length > 0 && (
+                  {(family.priorities ?? []).length > 0 && (
                     <div style={{ padding: "6px 0" }}>
                       <span style={{ color: "#64748B", fontSize: 14, display: "block", marginBottom: 4 }}>الأولويات</span>
-                      {family.priorities.map((p) => <Tag key={p} text={p} />)}
+                      {(family.priorities ?? []).map((p) => <Tag key={p} text={p} />)}
                     </div>
                   )}
-                  {(family.concernsChecked.length > 0 || family.concernsText) && (
+                  {((family.concernsChecked ?? []).length > 0 || family.concernsText) && (
                     <div style={{ padding: "6px 0" }}>
                       <span style={{ color: "#64748B", fontSize: 14, display: "block", marginBottom: 4 }}>المخاوف</span>
-                      {family.concernsChecked.map((c) => <Tag key={c} text={c} color="#7c3aed" />)}
+                      {(family.concernsChecked ?? []).map((c) => <Tag key={c} text={c} color="#7c3aed" />)}
                       {family.concernsText && <p style={{ fontSize: 14, color: "#1F2937", marginTop: 6 }}>{family.concernsText}</p>}
                     </div>
                   )}
@@ -922,10 +922,10 @@ function ReportPage() {
                       <span style={{ color: "#1F2937", fontSize: 14 }}>{q.val}</span>
                     </div>
                   ))}
-                  {learner.environments.length > 0 && (
+                  {(learner.environments ?? []).length > 0 && (
                     <div style={{ marginTop: 10 }}>
                       <span style={{ color: "#64748B", fontSize: 14, display: "block", marginBottom: 4 }}>البيئات المريحة</span>
-                      {learner.environments.map((e) => <Tag key={e} text={e} />)}
+                      {(learner.environments ?? []).map((e) => <Tag key={e} text={e} />)}
                     </div>
                   )}
                 </>
