@@ -24,6 +24,7 @@ const pipeline = read("src/lib/source-file-pipeline.ts");
 const coverage = read("src/routes/students.$id.coverage.tsx");
 const iep = read("src/routes/students.$id.iep.tsx");
 const goals = read("src/routes/students.$id.iep.goals.tsx");
+const goalOpportunityEngine = read("src/lib/goal-opportunity-engine.ts");
 const packageJson = read("package.json");
 const ci = read(".github/workflows/quality-gates.yml");
 
@@ -62,7 +63,7 @@ requireText("performance draft builder", processing, "buildCurrentPerformanceDra
 requireText("goal opportunities generated", processing, "buildGoalOpportunities");
 requireText("readiness state", processing, "profile_ready_for_goal_review");
 requireText("psychometric boundary", processing, "أي تطبيق أو تصحيح سيكومتري كامل يحتاج عقد أداة وترخيص مستقل");
-requireText("official assessment upload-only boundary", read("src/routes/students.$id.assessment.official.tsx"), "لا تطبق المنصة الاختبار المقنن ولا تصححه آلياً");
+requireText("official assessment upload-only boundary", read("src/routes/students.$id.assessment.official.tsx"), "التقييمات الرسمية كأدوات مطبقة خارج منصة همم");
 requireText("official assessment no manual scoring fields", read("src/routes/students.$id.assessment.official.tsx"), "لا يدخل المختص درجات أو تقديرات يدوية هنا");
 requireText("information records use signal classifier", informationRecords, "classifySignalKindsFromText");
 requireText("information records performance guard", informationRecords, "canCandidateInformPerformance");
@@ -76,10 +77,10 @@ requireText("iep imports profile processing", iep, "buildLearnerProfileProcessin
 requireText("iep shows processed profile counts", iep, "processedProfileInputCount");
 requireText("goals imports profile processing", goals, "buildLearnerProfileProcessingModel");
 requireText("goals has processed profile source", goals, "processed_information_profile");
-requireText("goals maps domains to concepts", goals, "domainCodeToConceptIds");
-requireText("goals filters profile by selected domain", goals, "profileForDomain");
+requireText("goals maps domains to concepts", goalOpportunityEngine, "conceptIdsForDomain");
+requireText("goals filters profile by selected domain", goalOpportunityEngine, ".includes(opportunity.conceptId)");
 requireText("goals renders profile panel", goals, "ProfileProcessingPanel");
-requireText("goals shows profile opportunities in source step", goals, "goalOpportunities.slice");
+requireText("goals shows profile opportunities in source step", goalOpportunityEngine, "topGoalOpportunities.slice(0, 6)");
 requireText("package script", packageJson, "\"verify:build-cycle-03\"");
 requireText("ci runs cycle03", ci, "npm run verify:build-cycle-03");
 
