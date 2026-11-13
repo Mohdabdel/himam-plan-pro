@@ -12,6 +12,7 @@ export type ReferenceLearnerVoice = { q_love?: string; q_good?: string } | null;
 type GoalReferencePanelProps = {
   domainCode: string;
   domainName: string;
+  hasAssessment: boolean;
   coverage: ReferenceCoverage;
   family: ReferenceFamily;
   learnerVoice: ReferenceLearnerVoice;
@@ -30,9 +31,9 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
  * Curated, read-only context strip for the domain currently being worked on
  * in the IEP goal editor. Baseline selection is intentionally owned by the
  * goal builder; this panel only summarizes supporting context already present
- * in coverage, family voice, and learner voice.
+ * in assessment records, coverage, family voice, and learner voice.
  */
-export function GoalReferencePanel({ domainCode, domainName, coverage, family, learnerVoice }: GoalReferencePanelProps) {
+export function GoalReferencePanel({ domainCode, domainName, hasAssessment, coverage, family, learnerVoice }: GoalReferencePanelProps) {
   const isCovered = !!coverage?.filledDomains?.includes(domainCode);
   const isNeed = !!coverage && (
     (coverage.failedDomains ?? []).includes(domainCode) ||
@@ -40,6 +41,7 @@ export function GoalReferencePanel({ domainCode, domainName, coverage, family, l
   );
 
   const sources: string[] = [];
+  if (hasAssessment) sources.push("التقييم الرسمي");
   if (family) sources.push("صوت الأسرة");
   if (learnerVoice) sources.push("صوت المتعلم");
 
@@ -48,7 +50,7 @@ export function GoalReferencePanel({ domainCode, domainName, coverage, family, l
   if (isNeed && !family && !learnerVoice) {
     readiness = "⚠ تعارض: مجال ذو أولوية عالية دون صوت أسرة أو متعلم موثّق بعد";
     readinessColor = "#B91C1C";
-  } else if (coverage && family && learnerVoice) {
+  } else if (hasAssessment && coverage && family && learnerVoice) {
     readiness = "✓ جاهزية عالية — جميع مصادر السياق متوفرة لهذا المجال";
     readinessColor = "#15803D";
   } else {
