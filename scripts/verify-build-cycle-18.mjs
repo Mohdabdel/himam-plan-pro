@@ -18,6 +18,7 @@ function requireText(label, content, expected) {
 const spec = read("specs/himam_build_cycle_18_execution_plan_2026-09-30.md");
 const engine = read("src/lib/goal-opportunity-engine.ts");
 const goals = read("src/routes/students.$id.iep.goals.tsx");
+const goalAiLayer = read("src/lib/goal-ai-layer.ts");
 const packageJson = read("package.json");
 const ci = read(".github/workflows/quality-gates.yml");
 
@@ -31,8 +32,8 @@ requireText("engine proposal variants", engine, "near_current_performance");
 requireText("engine transition variant", engine, "functional_transition");
 requireText("engine preparatory variant", engine, "preparatory");
 requireText("goals route imports engine", goals, "@/lib/goal-opportunity-engine");
-requireText("goals route builds cards", goals, "const goalOpportunityCards = buildGoalOpportunityCards");
-requireText("goals route builds proposals", goals, "const selectedGoalProposals");
+requireText("goals route builds cards", goalAiLayer, "buildGoalOpportunityCards");
+requireText("goals route builds proposals", goalAiLayer, "buildGoalProposals");
 requireText("goals route displays proposal card", goals, "GoalProposalCard");
 requireText("goals route add proposal", goals, "addProposalToGoals");
 requireText("goals route blocks no evidence proposal", goals, "proposal.readiness === \"needs_evidence\"");
