@@ -56,9 +56,9 @@ requireOrder("journey rank order", journey, [
   "family_completed: 4",
   "coverage_ready: 5",
 ]);
-requireText("assessment primary path", assessmentHub, "المسار الرئيسي للتجربة");
+requireText("assessment primary path", assessmentHub, "ابدأ من أداة التقييم الرسمية ثم تابع بزر التالي في كل شاشة");
 requireText("assessment official next", assessmentHub, "التالي: أداة التقييم الرسمية");
-requireText("assessment cards secondary note", assessmentHub, "البطاقات التالية للاطلاع أو العودة لمكوّن محدد");
+requireText("assessment cards secondary note", assessmentHub, "البطاقات التالية للمراجعة أو العودة لمكوّن محدد، أما المسار الأساسي فيبدأ من زر التالي أعلاه.");
 requireText("iep linear handler", iepHub, "function goToNextPlanComponent");
 requireText("iep next current level", iepHub, "التالي: مستوى الأداء الحالي");
 requireText("iep next specialist vision", iepHub, "التالي: رؤية المختص");
