@@ -28,3 +28,13 @@ This cycle implements phase one of goal-generation reasoning only:
 - T11 — optional enrichment absence is silent.
 - T14 — preparatory proposal uses a distinct enabling step.
 - T15 — functional proposal changes reasoning toward meaningful application.
+
+
+## Known limitations
+
+The following limits are deliberate and must remain explicit until later phases:
+
+1. The current preparatory variant does **not** yet select a true enabling skill from the competency matrix. It derives a smaller preparatory step deterministically from the detected behavior topology (for example, the first step of a chained task). True enabling-skill reasoning is deferred to phase three with the longitudinal compass and competency matrix.
+2. The current functional-transition variant does **not** yet perform a distinct competency-demand or performance-fit inference. It keeps the same underlying skill, context and criterion as the near-current proposal and changes the application wording/rationale. True reasoning-level differentiation between the three variants is deferred to phase two (PerformanceFitCheck) and phase three (competency/compass context).
+3. Behavior-topology inference is keyword-based and approximate. Its classification is experimental and must remain reviewable by the specialist.
+4. Removing family voice, learner voice and priority from `REQUIRED_PROFILE_COMPONENTS` is an owner-approved governance decision. Its intended effect is that goal validity can be considered reviewable from reviewed assessment + current performance alone; the optional sources enrich quality but do not block the information-sufficiency state.
