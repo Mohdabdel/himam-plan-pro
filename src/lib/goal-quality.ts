@@ -142,7 +142,7 @@ export function computeGoalQuality(input: GoalQualityInput): QualityItem[] {
     needState = "done";
   } else if (!input.coverage && !input.family) {
     needState = "advisory";
-    needNote = "لا تتوفر بيانات تغطية أو صوت أسرة بعد لتقييم هذا المؤشر.";
+    needNote = undefined;
   } else {
     needState = "needs";
     needNote = "راجع مجالات التغطية المتعثرة أو أولويات الأسرة المسجَّلة للتأكد من ارتباط الهدف بها.";
@@ -157,7 +157,7 @@ export function computeGoalQuality(input: GoalQualityInput): QualityItem[] {
     strengthState = "done";
   } else if (!input.learnerVoice) {
     strengthState = "advisory";
-    strengthNote = "لم يُسجَّل صوت المتعلم بعد لهذا المتعلم.";
+    strengthNote = undefined;
   } else {
     strengthState = "needs";
     strengthNote = "راجع ما يحبه المتعلم أو يجيده في صوت المتعلم لتوظيفه ضمن صياغة الهدف.";
@@ -168,7 +168,7 @@ export function computeGoalQuality(input: GoalQualityInput): QualityItem[] {
   let visionNote: string;
   if (!input.family?.vision5y?.trim()) {
     visionState = "advisory";
-    visionNote = "لم تُوثَّق رؤية بعيدة المدى للأسرة بعد — راجع الاتساق العام يدويًا.";
+    visionNote = "";
   } else if (hasWordOverlap(goalText, input.family.vision5y)) {
     visionState = "done";
     visionNote = "يتوافق لفظيًا مع رؤية الأسرة المسجَّلة.";
