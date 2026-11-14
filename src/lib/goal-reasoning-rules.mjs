@@ -37,7 +37,7 @@ export function inferBehaviorTopology(skillAr, domainNameAr = "") {
   const text = `${skillAr ?? ""} ${domainNameAr ?? ""}`.toLowerCase();
   if (/تسلسل|خطوات|يرتب|إعداد|تحضير|روتين|task analysis|سلسلة/.test(text)) return "chained task";
   if (/مدة|دقيقة|وقت|زمن|يستمر|ينتظر/.test(text)) return "duration";
-  if (/تواصل|يطلب|يسأل|يجيب|يوضح|يعبر|كلام|إشارة/.test(text)) return "communication";
+  if (/تواصل|طلب|يطلب|يسأل|يجيب|يوضح|يعبر|كلام|إشارة/.test(text)) return "communication";
   if (/يبادر|مبادرة|يبدأ من تلقاء|بدون طلب/.test(text)) return "initiation";
   if (/ينتقل|انتقال|يغيّر النشاط|تغيير مهمة/.test(text)) return "transition";
   if (/إنتاج|ينتج|كمية|قطع|تعبئة|تغليف|عمل مهني/.test(text)) return "production";
