@@ -46,6 +46,10 @@ import type {
 } from "@/lib/goal-opportunity-engine";
 import { buildLearnerProfileProcessingModel } from "@/lib/learner-profile-processing";
 import {
+  ensureSyntheticGoalReasoningStudent,
+  SYNTHETIC_GOAL_REASONING_STUDENT_ID,
+} from "@/lib/seed-sample-student";
+import {
   loadSourceFilePipelines,
   summarizeSourceFilePipeline,
   type SourceFilePipelineRecord,
@@ -603,6 +607,10 @@ function IEPPage() {
   }, [scrollTarget]);
 
   useEffect(() => {
+    if (id === SYNTHETIC_GOAL_REASONING_STUDENT_ID) {
+      ensureSyntheticGoalReasoningStudent();
+    }
+
     try {
       const raw = localStorage.getItem("himam_students");
       if (raw) {
