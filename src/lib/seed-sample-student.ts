@@ -258,3 +258,161 @@ export function seedSampleStudent(): string {
 
   return id;
 }
+
+
+export const SYNTHETIC_GOAL_REASONING_STUDENT_ID = "synthetic-goal-reasoning-phase1";
+
+export function ensureSyntheticGoalReasoningStudent(): string {
+  const id = SYNTHETIC_GOAL_REASONING_STUDENT_ID;
+  const now = new Date().toISOString();
+
+  let students: StoredStudent[] = [];
+  try {
+    students = JSON.parse(localStorage.getItem("himam_students") || "[]");
+  } catch { /* noop */ }
+
+  if (students.some((student) => student.id === id)) return id;
+
+  const student: StoredStudent = {
+    id,
+    name: "متعلم تجريبي — المرحلة الأولى",
+    birthDate: "2008-05-20",
+    center: "بيئة اختبار همم",
+    tool: "TTAP-3",
+    createdAt: now,
+    status: "iep_completed",
+    ageBand: "AGE_14_PLUS",
+  };
+
+  try {
+    localStorage.setItem("himam_students", JSON.stringify([...students, student]));
+  } catch { /* noop */ }
+
+  try {
+    const formalRecord = createAssessmentRecord({
+      learnerId: id,
+      toolId: student.tool,
+      ageBand: student.ageBand,
+      uploadedFileName: "synthetic-phase1-reviewed-assessment.pdf",
+      uploadedFileType: "application/pdf",
+    });
+
+    const ratingByDomain: Record<string, { rating: "pass" | "emerge" | "fail"; note: string }> = {
+      VOCATIONAL_SKILLS: {
+        rating: "pass",
+        note: "ينظم أدوات المهمة الروتينية في المكان المحدد عند وضوح ترتيب العمل.",
+      },
+      VOCATIONAL_BEHAVIORS: {
+        rating: "pass",
+        note: "يلتزم بتعليمات العمل القصيرة في الموقف التدريبي المعتاد.",
+      },
+      INDEPENDENT_FUNCTIONING: {
+        rating: "fail",
+        note: "لا يكمل خطوات شراء بسيطة بصورة مستقلة عند تغير ترتيب الخطوات ويحتاج إلى توجيه مباشر.",
+      },
+      LEISURE_SKILLS: {
+        rating: "pass",
+        note: "يشارك في نشاط مألوف عندما تكون قواعد المشاركة واضحة.",
+      },
+      FUNCTIONAL_COMMUNICATION: {
+        rating: "emerge",
+        note: "يطلب المساعدة في 2 من 5 فرص عند تعثر المهمة إذا كان الشخص مألوفاً، ولا يثبت الأداء مع شخص غير مألوف.",
+      },
+      INTERPERSONAL_BEHAVIOR: {
+        rating: "pass",
+        note: "يتعاون مع زميل مألوف عند تحديد الدور المطلوب بوضوح.",
+      },
+    };
+
+    const completedRecord = formalRecord.domains.reduce((record, domain) => {
+      const rating = ratingByDomain[domain.domainCode];
+      return rating
+        ? updateAssessmentDomainRating(record, domain.domainCode, rating.rating, rating.note)
+        : record;
+    }, formalRecord);
+
+    saveAssessmentRecords(id, [{
+      ...completedRecord,
+      status: "completed",
+      assessmentDate: now.slice(0, 10),
+      assessorName: "مختص تجريبي",
+      updatedAt: now,
+    }]);
+
+    const reviewedPipeline = buildSourceFilePipeline({
+      learnerId: id,
+      sourceNameAr: "تقييم انتقالي اصطناعي مراجع — المرحلة الأولى",
+      file: {
+        name: "synthetic-phase1-reviewed-assessment.pdf",
+        type: "application/pdf",
+        size: 64000,
+      },
+      purpose: "OFFICIAL_ASSESSMENT_RESULTS",
+      sourceType: "INSTITUTIONAL_ASSESSMENT",
+      statements: [
+        "التواصل الوظيفي مهارة ناشئة: يطلب المساعدة في 2 من 5 فرص عند تعثر المهمة إذا كان الشخص مألوفاً، ولا يثبت الأداء مع شخص غير مألوف.",
+        "الأداء الوظيفي المستقل احتياج واضح: لا يكمل خطوات شراء بسيطة بصورة مستقلة عند تغير ترتيب الخطوات ويحتاج إلى توجيه مباشر.",
+        "المهارات المهنية نقطة قوة: ينظم أدوات المهمة الروتينية في المكان المحدد عند وضوح ترتيب العمل.",
+      ],
+      outputChannel: "KNOWLEDGE_SUPPORT_ITEM",
+    });
+    saveSourceFilePipelines(id, [reviewedPipeline]);
+  } catch { /* noop */ }
+
+  try {
+    localStorage.setItem(`himam_plan_preparation_${id}`, JSON.stringify({
+      specialistVision: "",
+      currentLevelRows: [
+        {
+          domainCode: "FUNCTIONAL_COMMUNICATION",
+          domainNameAr: "التواصل الوظيفي",
+          strengths: "يستخدم طلباً لفظياً مألوفاً مع شخص يعرفه.",
+          needs: "الأداء ناشئ: يطلب المساعدة في 2 من 5 فرص عند تعثر المهمة مع شخص مألوف، ولا يثبت الأداء مع شخص غير مألوف.",
+          sourceSummaryAr: "التقييم الانتقالي الاصطناعي المراجع",
+          evidenceCount: 1,
+          supportConditionCount: 0,
+          priorityCount: 0,
+          goalOpportunityCount: 1,
+          proposedByPlatform: true,
+        },
+        {
+          domainCode: "INDEPENDENT_FUNCTIONING",
+          domainNameAr: "الأداء الوظيفي المستقل",
+          strengths: "",
+          needs: "لا يكمل خطوات شراء بسيطة بصورة مستقلة عند تغير ترتيب الخطوات ويحتاج إلى توجيه مباشر.",
+          sourceSummaryAr: "التقييم الانتقالي الاصطناعي المراجع",
+          evidenceCount: 1,
+          supportConditionCount: 0,
+          priorityCount: 0,
+          goalOpportunityCount: 1,
+          proposedByPlatform: true,
+        },
+      ],
+      savedAt: now,
+    }));
+  } catch { /* noop */ }
+
+  try {
+    localStorage.setItem(`himam_iep_${id}`, JSON.stringify({
+      vision: "",
+      goals: {
+        VS: [], VB: [], IF: [], LS: [], FC: [], IB: [],
+      },
+      services: [],
+      startDate: now.slice(0, 10),
+      savedAt: now,
+    }));
+  } catch { /* noop */ }
+
+  // The fixture intentionally has no family voice, learner voice or other enrichment.
+  for (const key of [
+    `himam_family_${id}`,
+    `himam_learner_voice_${id}`,
+    `himam_additional_sources_${id}`,
+    `himam_information_records_${id}`,
+  ]) {
+    try { localStorage.removeItem(key); } catch { /* noop */ }
+  }
+
+  return id;
+}
