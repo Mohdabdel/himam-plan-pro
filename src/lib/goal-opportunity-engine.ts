@@ -1,5 +1,11 @@
 import { getConceptNameAr, isMvpConceptId } from "@/data/concepts";
 import { recommendCurriculumActivities } from "@/lib/curriculum-recommendations";
+import {
+  assessmentPriorityRefsForDomain,
+  contextFromProfile,
+  fidelityKindFromRating,
+  proposalReasoning,
+} from "@/lib/goal-reasoning-rules.mjs";
 import type { ProcessedCurrentLevelRow } from "@/lib/current-level-draft";
 import type {
   AssessmentRecord,
@@ -26,6 +32,11 @@ export type GoalOpportunityCard = {
   blockersAr: string[];
   sourceLabelsAr: string[];
   priority: "high" | "medium" | "low";
+  assessmentPriorityRefs: string[];
+  assessmentFindingKind: "strength" | "emerging" | "need" | "unknown";
+  assessmentFindingAr?: string;
+  environmentContextsAr: string[];
+  supportConditionsAr: string[];
 };
 
 export type GoalProposal = {
@@ -36,7 +47,9 @@ export type GoalProposal = {
   textAr: string;
   contextAr: string;
   criterionAr: string;
+  measurementType: string;
   measurementMethodAr: string;
+  assessmentPriorityRefs: string[];
   evidenceRefAr: string;
   goalTriggerAr: string;
   lifePracticeAr: string;
@@ -115,6 +128,48 @@ function curriculumLinkFor(conceptIds: ConceptId[], skillAr: string, contextAr: 
   return `${suggestion.familyNameAr}: ${suggestion.competencyDescription}`;
 }
 
+function assessmentContextForDomain(input: {
+  domainCode: string;
+  domainNameAr: string;
+  assessmentRecords: AssessmentRecord[];
+}) {
+  const record = [...input.assessmentRecords]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .find((item) => item.domains.some((domain) => (
+      domain.domainCode === input.domainCode || domain.domainNameAr === input.domainNameAr
+    )));
+  const domain = record?.domains.find((item) => (
+    item.domainCode === input.domainCode || item.domainNameAr === input.domainNameAr
+  ));
+  const priorityRefs = assessmentPriorityRefsForDomain(
+    input.assessmentRecords,
+    input.domainCode,
+    input.domainNameAr,
+  ).map((item) => item.ref);
+  return {
+    priorityRefs,
+    findingKind: fidelityKindFromRating(domain?.rating ?? "not_observed"),
+    findingAr: domain?.note?.trim() || "",
+  };
+}
+
+function profileContextForConcepts(
+  profileProcessing: LearnerProfileProcessingModel,
+  conceptIds: ConceptId[],
+) {
+  const related = profileProcessing.componentMatrix.elements.filter((element) => (
+    element.conceptIds.some((conceptId) => conceptIds.includes(conceptId))
+  ));
+  return {
+    environmentContextsAr: related
+      .filter((element) => element.componentId === "environment_context")
+      .map((element) => element.summaryAr),
+    supportConditionsAr: related
+      .filter((element) => element.componentId === "support_context")
+      .map((element) => element.summaryAr),
+  };
+}
+
 function priorityFromRow(row: ProcessedCurrentLevelRow): "high" | "medium" | "low" {
   if (row.evidenceCount > 0 && row.goalOpportunityCount > 0) return "high";
   if (row.priorityCount > 0 || row.supportConditionCount > 0 || row.needs) return "medium";
@@ -174,6 +229,12 @@ export function buildGoalOpportunityCards(input: {
       !row.needs && !row.strengths ? "لا توجد نقاط قوة أو احتياج مصنفة في المجال." : "",
     ].filter(Boolean);
     const priority = priorityFromRow(row);
+    const assessmentContext = assessmentContextForDomain({
+      domainCode: row.domainCode,
+      domainNameAr: row.domainNameAr,
+      assessmentRecords: input.assessmentRecords,
+    });
+    const profileContext = profileContextForConcepts(input.profileProcessing, conceptIds);
     const transitionLinkAr = transitionLinkFor({ ageYears: input.ageYears, conceptIds });
     const curriculumLinkAr = curriculumLinkFor(conceptIds, skillAr, row.domainNameAr);
 
@@ -187,13 +248,18 @@ export function buildGoalOpportunityCards(input: {
       triggerAr: row.goalOpportunityCount > 0
         ? `ظهرت ${row.goalOpportunityCount} فرصة هدف مرتبطة في معالجة البروفايل.`
         : "مستوى الأداء الحالي يشير إلى فرصة هدف قابلة للمراجعة.",
-      rationaleAr: "بدأ المقترح من مستوى الأداء الحالي ثم مر على بوصلة الانتقال والرؤية والمنهج عند توفرها.",
+      rationaleAr: "بدأ المقترح من مستوى الأداء الحالي وربط بالمفاهيم المتاحة في التقييم؛ البوصلة الطولية وتكييف الرؤية لم يُفعّلا بعد.",
       transitionLinkAr,
       curriculumLinkAr,
       readiness: readinessFor({ baselineAr, blockersAr, priority }),
       blockersAr,
       sourceLabelsAr: [row.sourceSummaryAr].filter(Boolean),
       priority,
+      assessmentPriorityRefs: assessmentContext.priorityRefs,
+      assessmentFindingKind: assessmentContext.findingKind,
+      assessmentFindingAr: assessmentContext.findingAr || undefined,
+      environmentContextsAr: profileContext.environmentContextsAr,
+      supportConditionsAr: profileContext.supportConditionsAr,
     });
   }
 
@@ -212,6 +278,12 @@ export function buildGoalOpportunityCards(input: {
     ].filter(Boolean);
     const domainCode = relatedRow?.domainCode ?? opportunity.conceptId;
     const domainNameAr = relatedRow?.domainNameAr ?? conceptName;
+    const assessmentContext = assessmentContextForDomain({
+      domainCode,
+      domainNameAr,
+      assessmentRecords: input.assessmentRecords,
+    });
+    const profileContext = profileContextForConcepts(input.profileProcessing, [opportunity.conceptId]);
 
     cards.push({
       id: `profile-opportunity-${opportunity.id}`,
@@ -228,6 +300,11 @@ export function buildGoalOpportunityCards(input: {
       blockersAr,
       sourceLabelsAr: opportunity.sourceInputIds,
       priority: opportunity.priority,
+      assessmentPriorityRefs: assessmentContext.priorityRefs,
+      assessmentFindingKind: assessmentContext.findingKind,
+      assessmentFindingAr: assessmentContext.findingAr || undefined,
+      environmentContextsAr: profileContext.environmentContextsAr,
+      supportConditionsAr: profileContext.supportConditionsAr,
     });
   }
 
@@ -258,6 +335,10 @@ export function buildGoalOpportunityCards(input: {
       blockersAr: baselineAr ? [] : ["الرؤية تحتاج ربطاً بمستوى أداء حالي قبل اعتماد هدف منها."],
       sourceLabelsAr: ["رؤية الخطة"],
       priority: "medium",
+      assessmentPriorityRefs: [],
+      assessmentFindingKind: "unknown",
+      environmentContextsAr: [],
+      supportConditionsAr: [],
     });
   }
 
@@ -279,19 +360,6 @@ function cleanSkillForGoal(skillAr: string) {
   );
 }
 
-function defaultContext(card: GoalOpportunityCard) {
-  if (card.domainNameAr.includes("مهني")) return "في نشاط تدريبي أو موقف عمل محاكى";
-  if (card.domainNameAr.includes("تواصل")) return "في موقف تواصل يومي داخل المركز أو المنزل";
-  if (card.domainNameAr.includes("استقلال") || card.domainNameAr.includes("حياة")) return "ضمن روتين يومي طبيعي";
-  return "في موقف تعليمي/وظيفي مناسب";
-}
-
-function defaultCriterion(variant: GoalProposal["variant"]) {
-  if (variant === "preparatory") return "بدعم مناسب في 3 من 5 فرص متتالية";
-  if (variant === "functional_transition") return "باستقلالية أو تذكير بسيط في 4 من 5 فرص";
-  return "بدقة 80% أو في 4 من 5 محاولات";
-}
-
 function readinessForProposal(card: GoalOpportunityCard, variant: GoalProposal["variant"]): GoalReadiness {
   if (card.readiness === "needs_evidence") return "needs_evidence";
   if (variant === "preparatory") return "ready";
@@ -309,11 +377,19 @@ export function buildGoalProposals(input: {
   const studentName = input.studentNameAr?.trim() || "المتعلم";
   const endLabel = input.planEndLabelAr?.trim() || "نهاية مدة الخطة";
   const skill = cleanSkillForGoal(card.skillAr);
-  const contextAr = defaultContext(card);
   const variants: GoalProposal["variant"][] = ["near_current_performance", "functional_transition", "preparatory"];
 
   return variants.slice(0, input.maxProposals ?? 3).map((variant) => {
-    const criterionAr = defaultCriterion(variant);
+    const reasoning = proposalReasoning({
+      variant,
+      skillAr: skill,
+      domainNameAr: card.domainNameAr,
+      baselineAr: card.baselineAr,
+      environmentContexts: card.environmentContextsAr,
+      supportConditions: card.supportConditionsAr,
+    });
+    const contextAr = contextFromProfile(card.environmentContextsAr, card.supportConditionsAr);
+    const criterionAr = reasoning.criterionAr;
     const variantPrefix = variant === "functional_transition"
       ? "توظيف"
       : variant === "preparatory"
@@ -322,32 +398,36 @@ export function buildGoalProposals(input: {
     const lifePracticeAr = variant === "functional_transition"
       ? card.transitionLinkAr
       : card.curriculumLinkAr ?? card.transitionLinkAr;
-    const actionAr = variant === "preparatory"
-      ? `يتدرب على خطوة تمهيدية لـ ${skill}`
-      : variant === "functional_transition"
-        ? `يطبق ${skill} في موقف وظيفي مرتبط بحياته اليومية`
-        : `ينفذ ${skill}`;
+    const actionAr = reasoning.actionAr;
 
     return {
       id: `${card.id}-${variant}`,
       opportunityId: card.id,
       variant,
       titleAr: `${variantPrefix} - ${card.domainNameAr}`,
-      textAr: `بحلول ${endLabel}، عند ${contextAr}، سيقوم ${studentName} بأن ${actionAr}، وفق معيار ${criterionAr}، ويقاس التقدم من خلال ملاحظة مباشرة أو سجل بيانات مناسب.`,
+      textAr: `بحلول ${endLabel}، عند ${contextAr}، سيقوم ${studentName} بأن ${actionAr}، وفق معيار ${criterionAr}، ويجمع التقدم من خلال ${reasoning.dataCollectionMethodAr}.`,
       contextAr,
       criterionAr,
-      measurementMethodAr: "ملاحظة مباشرة",
+      measurementType: reasoning.measurementType,
+      measurementMethodAr: reasoning.dataCollectionMethodAr,
+      assessmentPriorityRefs: card.assessmentPriorityRefs,
       evidenceRefAr: card.baselineAr,
       goalTriggerAr: card.triggerAr,
       lifePracticeAr,
       readiness: readinessForProposal(card, variant),
-      whyAr: variant === "near_current_performance"
-        ? "اقتراح قريب من مستوى الأداء الحالي لتقليل فجوة التنفيذ."
-        : variant === "functional_transition"
-          ? "اقتراح يوسع الهدف نحو أثر وظيفي/انتقالي مع بقاء الارتكاز على الدليل."
-          : "اقتراح تمهيدي عندما تكون المهارة النهائية بحاجة إلى خطوة أقرب.",
+      whyAr: [
+        reasoning.whyAr,
+        card.assessmentFindingKind === "emerging"
+          ? "يحافظ المقترح على وصف المهارة كمهارة ناشئة ولا يحولها إلى إتقان أو عجز."
+          : card.assessmentFindingKind === "strength"
+            ? "يحافظ المقترح على نتيجة القوة ولا يعيد وصفها كاحتياج."
+            : card.assessmentFindingKind === "need"
+              ? "يعالج المقترح احتياجاً موثقاً دون تضخيم دلالته."
+              : "",
+      ].filter(Boolean).join(" "),
       detailsAr: [
         card.rationaleAr,
+        card.assessmentPriorityRefs.length > 0 ? `أولوية تقييم: ${card.assessmentPriorityRefs.join("، ")}` : "",
         card.transitionLinkAr,
         card.curriculumLinkAr ? `ارتباط منهجي: ${card.curriculumLinkAr}` : "",
         ...card.blockersAr,

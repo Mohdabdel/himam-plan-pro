@@ -106,6 +106,12 @@ jobs:
       - name: Verify build cycle 27
         run: npm run verify:build-cycle-27
 
+      - name: Test goal reasoning phase one
+        run: npm run test:goal-reasoning-phase1
+
+      - name: Verify build cycle 28
+        run: npm run verify:build-cycle-28
+
       - name: Typecheck
         run: npm run typecheck
 

@@ -51,7 +51,9 @@
     "search:prior": "node scripts/search-prior-projects.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:goal-reasoning-phase1": "node --test test/goal-reasoning-phase1.test.mjs",
+    "verify:build-cycle-28": "node scripts/verify-build-cycle-28.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

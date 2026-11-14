@@ -52,9 +52,6 @@ const COMPONENT_NAMES_AR: Record<ProfileComponentId, string> = {
 const REQUIRED_PROFILE_COMPONENTS: ProfileComponentId[] = [
   "formal_assessment_results",
   "current_performance",
-  "family_voice",
-  "learner_voice",
-  "priority",
 ];
 
 const PROFILE_COMPONENT_ORDER: ProfileComponentId[] = [

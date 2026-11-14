@@ -102,6 +102,8 @@ type Goal = {
     readiness: string;
     whyAr: string;
     limitationAr: string;
+    measurementType?: string;
+    assessmentPriorityRefs?: string[];
     addedAt: string;
   };
 };
@@ -851,6 +853,8 @@ function IEPPage() {
             readiness: proposal.readiness,
             whyAr: proposal.whyAr,
             limitationAr: goalAiSuggestions.limitationAr,
+            measurementType: proposal.measurementType,
+            assessmentPriorityRefs: proposal.assessmentPriorityRefs,
             addedAt: new Date().toISOString(),
           },
         },
